@@ -1,0 +1,42 @@
+# Private working notes, never committed
+CLAUDE.local.md
+
+# Secrets and tokens
+.env
+.env.*
+*.key
+*.pem
+service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# Local stores, caches, extracted text (never committed; thirty-day retention in production)
+*.duckdb
+*.duckdb.wal
+*.sqlite
+*.sqlite3
+.cache/
+data/text/
+data/raw/
+
+# Rendered digests and draft files
+out/
+*.eml
+
+# Models
+models/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
