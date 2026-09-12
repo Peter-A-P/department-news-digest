@@ -1,0 +1,105 @@
+# Example audience: municipal affairs in one large city.
+#
+# Toronto, chosen because it is large, its council papers and newsroom are public, and it
+# is plainly not the employer's jurisdiction (PLAN.md section 2.1).
+#
+# Every `terms` key below must appear in docs/sources.md with a date read and status
+# `allowed`, or the fetcher refuses the source. Run `clippings sources check`.
+
+id: municipal-toronto
+name: Municipal affairs, Toronto
+description: >-
+  City of Toronto council and committee decisions, the municipal budget, transit, housing
+  and development approvals, and the provincial decisions that land on the city.
+
+rubric: >-
+  Relevant means an item a city councillor's assistant would flag before the next council
+  or committee meeting: council and committee decisions and the items coming to them,
+  budget and property tax decisions, transit service and capital projects, housing supply
+  and development approvals, labour negotiations with city unions, service disruptions of
+  city scale, and provincial or federal decisions that change the city's money or powers.
+  It excludes routine crime and collision reports, weather, sport, restaurant and culture
+  listings, and neighbourhood items with no decision attached.
+
+topics:
+  - Toronto city council
+  - municipal budget
+  - property tax
+  - transit service and expansion
+  - housing supply
+  - development approvals
+  - municipal labour relations
+  - provincial municipal funding
+
+entities:
+  organisations:
+    - City of Toronto
+    - Toronto Transit Commission
+    - Toronto City Council
+    - Metrolinx
+    - Government of Ontario
+  people: []
+  places:
+    - Toronto
+    - Ontario
+
+geography:
+  - Toronto
+  - Ontario
+
+languages:
+  - en
+
+sources:
+  feeds:
+    - url: https://www.toronto.ca/home/media-room/news-releases-media-advisories/rss/
+      publisher: City of Toronto newsroom
+      terms: toronto.ca
+    - url: https://www.ttc.ca/rss/News/Service_Alerts
+      publisher: Toronto Transit Commission service alerts
+      terms: ttc.ca
+    - url: https://www.cbc.ca/webfeed/rss/rss-canada-toronto
+      publisher: CBC News, Toronto
+      terms: cbc.ca
+    - url: https://toronto.citynews.ca/feed/
+      publisher: CityNews Toronto
+      terms: citynews.ca
+    - url: https://news.ontario.ca/en/rss/allnewsreleases.rss
+      publisher: Government of Ontario newsroom
+      terms: news.ontario.ca
+
+  gdelt:
+    queries:
+      - 'Toronto (council OR budget OR transit OR housing)'
+      - '"City of Toronto"'
+    limit: 75
+
+  reddit:
+    subreddits:
+      - toronto
+      - TorontoRealEstate
+    listing: new
+    limit: 50
+
+  bluesky:
+    queries:
+      - Toronto council
+      - TTC
+    limit: 50
+
+trusted_sources:
+  - toronto.ca
+  - ttc.ca
+  - news.ontario.ca
+  - cbc.ca
+
+blocked_sources: []
+
+digest:
+  max_stories: 10
+  rerank_candidates: 60
+  max_sentences_per_story: 3
+
+delivery:
+  time_local: "07:00"
+  timezone: America/Toronto

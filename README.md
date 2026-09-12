@@ -6,8 +6,15 @@ delivers a short digest with every claim cited and every quote verified against 
 source. One system in place of dozens of people each doing this by hand, at a few dollars
 a month per department, with measured precision and recall instead of a feeling.
 
-**Status: planning.** Nothing has run yet. The plan is in [PLAN.md](PLAN.md): a three-week
-build on Google Cloud Run, then a measurement month running daily.
+**Status: building, week 1 of 3.** Ingestion, storage, deduplication and clustering are
+built and tested; no digest has been produced and nothing has been measured. The plan is in
+[PLAN.md](PLAN.md): a three-week build on Google Cloud Run, then a measurement month
+running daily.
+
+**No source has been fetched yet.** Every source is gated on its terms being read and
+recorded in [docs/sources.md](docs/sources.md) with the date. Until a row there says
+`allowed`, the fetcher refuses that source and records the refusal. That is a check in the
+code, not a note in a document.
 
 **Nothing is sent.** The system publishes a page per audience and writes an email draft
 file an owner can send. It has no send path.
@@ -51,6 +58,30 @@ marked quotes; a verifier rejects any quote not verbatim in its source and any u
 sentence, repairing once and dropping otherwise. The digest is rendered as a page and a
 draft file. Precision and recall are measured against a hand-labelled week through the AI
 Release Gate's harness, with intervals.
+
+## Running it
+
+Python 3.13 and [uv](https://docs.astral.sh/uv/).
+
+```
+uv sync
+uv run clippings audiences-list           # the three example audiences
+uv run clippings sources check            # every source against the terms record
+uv run clippings run ai-policy            # fetch, extract and cluster today
+uv run clippings label ai-policy --labeller you
+uv run clippings retention                # delete items past thirty days
+```
+
+`clippings run` fetches nothing until the sources it needs are recorded as allowed. That is
+the expected state of a fresh clone: read the terms, put the date in
+[docs/sources.md](docs/sources.md), and run it again.
+
+Optional extras: `uv sync --extra embed` installs bge-small through ONNX for story
+clustering, and `--extra gcs` installs the Cloud Storage backend. Without the first, the
+pipeline falls back to a hashing backend and every run says which one produced its numbers.
+
+Configuring an audience is [docs/audiences.md](docs/audiences.md). What is stored and for
+how long is [docs/data-retention.md](docs/data-retention.md).
 
 ## Part of a portfolio
 

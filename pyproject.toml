@@ -1,0 +1,115 @@
+[project]
+name = "clippings"
+version = "0.1.0.dev0"
+description = "A configurable multi-source news digest: one product, one YAML file per audience, with cited summaries, verbatim-verified quotes, and measured precision and recall."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+authors = [{ name = "Peter Parker" }]
+dependencies = [
+  # Every model call goes through the portfolio gateway (PLAN.md section 2.3); cost per digest
+  # comes from its ledger. Pinned to the 0.x line the 04 plan promises additive changes within,
+  # from >=0.2 because the ledger report this project costs digests with landed in 0.2.0.
+  "boundary>=0.2,<0.3",
+  # Audience schema, source records and digest models. The audience file is the product, so its
+  # validation is not optional.
+  "pydantic>=2,<3",
+  # Audience files, source registry and the terms record are YAML. 6.x is the only maintained line.
+  "pyyaml>=6,<7",
+  # One HTTP client for feeds, GDELT, Reddit and Bluesky. Below 1.0 because a major bump changes
+  # defaults (timeouts, redirects, HTTP/2) that the politeness rules in sources/ depend on.
+  "httpx>=0.28,<1",
+  # RSS and Atom parsing. 6.x has handled the decade of malformed feeds in the wild; the
+  # alternative is parsing XML by hand against publishers who do not validate theirs.
+  "feedparser>=6,<7",
+  # One database file per environment: items, clusters, scores, digests, watermarks, the run
+  # lock. 1.x is the stable line and the file format is stable within it.
+  "duckdb>=1,<2",
+  # Article text extraction, only from pages that allow it (PLAN.md section 2.2). Below 2.0
+  # because extraction output changes between majors and the thirty-day store would mix formats.
+  "trafilatura>=2,<3",
+  # Command line: clippings run | label | eval | report | render. 0.x is the only line.
+  "typer>=0.15,<1",
+]
+
+[project.optional-dependencies]
+# Story clustering by local sentence embeddings (bge-small, CPU). ONNX rather than torch: the
+# Cloud Run job image stays small and the CPU path is the only one this project ever uses.
+# An extra so CI and the test suite never download a model; tests use the hashing backend.
+embed = ["fastembed>=0.7,<1"]
+# The DuckDB file is synchronised to a Cloud Storage bucket in production. An extra so local
+# development and CI run against the filesystem backend with no cloud credentials.
+gcs = ["google-cloud-storage>=3,<4"]
+
+[dependency-groups]
+dev = [
+  "pytest>=9,<10",
+  "mypy>=1,<2",
+  "ruff>=0.13,<1",
+  "types-PyYAML>=6,<7",
+  # Mocks the httpx transport so every source adapter has golden requests and responses and no
+  # test ever reaches a publisher.
+  "respx>=0.22,<1",
+]
+
+[tool.uv.sources]
+# Private until the first measured numbers; CI authenticates with a fine-grained read token.
+boundary = { git = "https://github.com/Peter-A-P/compliant-ai-gateway", tag = "v0.2.0" }
+
+[project.scripts]
+clippings = "clippings.cli:app"
+
+[build-system]
+requires = ["hatchling>=1,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["clippings"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# ruff formats Python code blocks inside Markdown by default; the plan and the docs keep their
+# own layout.
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "N", "RUF"]
+ignore = [
+  # Line length is handled by the formatter.
+  "E501",
+  # RunLockHeld and the rest read as the conditions they are; an Error suffix would make
+  # the call sites worse, and the same choice is made in the 04 gateway.
+  "N818",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["clippings", "tests"]
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+# feedparser and trafilatura ship no stubs; fastembed and google.cloud are behind optional
+# extras and are deliberately absent from the development environment, so the Cloud Storage
+# and embedding backends are type-checked against their call sites rather than their
+# libraries. The `type: ignore[attr-defined]` comments in remote.py are that trade made
+# visible.
+module = [
+  "feedparser",
+  "trafilatura",
+  "fastembed",
+  "respx",
+  "respx.*",
+  "google.*",
+  "google.cloud.*",
+  "google.api_core.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,113 @@
+# Example audience: AI policy and regulation.
+#
+# Not the employer's. A generic audience over public sources, shipped so a reader can see
+# what configuring a department looks like (PLAN.md section 2.1).
+#
+# Every `terms` key below must appear in docs/sources.md with a date read and status
+# `allowed`, or the fetcher refuses the source. Run `clippings sources check`.
+
+id: ai-policy
+name: AI policy and regulation
+description: >-
+  Government and regulator activity on artificial intelligence: draft and passed
+  legislation, enforcement, standards, procurement rules, public consultations and the
+  evidence submitted to them.
+
+rubric: >-
+  Relevant means an item that a policy adviser advising a minister on artificial
+  intelligence would need to have read before the next briefing. That includes new or
+  amended law, regulatory guidance and enforcement, formal standards, government
+  procurement decisions, consultations opening or closing, and substantive independent
+  analysis of any of these. It excludes product launches, funding rounds, model
+  benchmarks, opinion columns without new facts, and company announcements that carry no
+  regulatory consequence.
+
+topics:
+  - AI regulation
+  - AI legislation
+  - algorithmic accountability
+  - automated decision-making in government
+  - AI safety standards
+  - AI procurement rules
+  - data protection and AI
+  - AI and copyright
+
+entities:
+  organisations:
+    - European Commission
+    - NIST
+    - OECD
+    - Office of the Privacy Commissioner of Canada
+    - Innovation Science and Economic Development Canada
+    - UK AI Safety Institute
+    - Federal Trade Commission
+  people: []
+  places:
+    - European Union
+    - Canada
+    - United States
+    - United Kingdom
+
+geography:
+  - Canada
+  - European Union
+  - United States
+  - United Kingdom
+
+languages:
+  - en
+
+sources:
+  feeds:
+    - url: https://digital-strategy.ec.europa.eu/en/rss.xml
+      publisher: European Commission, Shaping Europe's digital future
+      terms: ec.europa.eu
+    - url: https://www.nist.gov/news-events/news/rss.xml
+      publisher: National Institute of Standards and Technology
+      terms: nist.gov
+    - url: https://oecd.ai/en/rss
+      publisher: OECD AI Policy Observatory
+      terms: oecd.ai
+    - url: https://www.priv.gc.ca/en/feeds/news/
+      publisher: Office of the Privacy Commissioner of Canada
+      terms: priv.gc.ca
+    - url: https://hai.stanford.edu/rss.xml
+      publisher: Stanford Institute for Human-Centered AI
+      terms: hai.stanford.edu
+
+  gdelt:
+    queries:
+      - '"artificial intelligence" (regulation OR legislation OR "data protection")'
+      - '"AI Act" OR "algorithmic accountability"'
+    limit: 75
+
+  reddit:
+    subreddits:
+      - ControlProblem
+      - artificial
+    listing: new
+    limit: 50
+
+  bluesky:
+    queries:
+      - AI regulation
+      - AI policy
+    limit: 50
+
+trusted_sources:
+  - ec.europa.eu
+  - nist.gov
+  - oecd.ai
+  - priv.gc.ca
+  - canada.ca
+
+blocked_sources: []
+
+digest:
+  max_stories: 10
+  rerank_candidates: 60
+  max_sentences_per_story: 3
+
+delivery:
+  time_local: "07:00"
+  timezone: America/St_Johns

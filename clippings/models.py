@@ -1,0 +1,127 @@
+"""The objects that move through the pipeline.
+
+An adapter yields `RawItem`. Normalisation turns it into `Item`, which is what the store
+holds and everything downstream reads.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+SourceKind = Literal["rss", "gdelt", "reddit", "bluesky"]
+
+
+class RawItem(BaseModel):
+    """What a source adapter yields, before normalisation.
+
+    The adapter does no cleaning beyond what its own format requires: normalisation is one
+    place, so the rules are the same for every source.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_key: str
+    source_kind: SourceKind
+    url: str
+    title: str
+    summary: str = ""
+    author: str | None = None
+    published_at: datetime | None = None
+    # Where this item came from within the source: a feed URL, a subreddit, a query.
+    origin: str = ""
+    # Public engagement counts where the source publishes them, for the ranking features.
+    score: int | None = None
+    comments: int | None = None
+
+
+class Item(BaseModel):
+    """A normalised item in the store.
+
+    `id` is derived from the canonical URL, so the same article arriving from a feed and
+    from GDELT is one row, seen by both.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    source_key: str
+    source_kind: SourceKind
+    url: str
+    original_url: str
+    domain: str
+    title: str
+    summary: str = ""
+    author: str | None = None
+    language: str | None = None
+    published_at: datetime
+    fetched_at: datetime
+    origin: str = ""
+    score: int | None = None
+    comments: int | None = None
+
+    @staticmethod
+    def id_for(canonical_url: str) -> str:
+        """A stable id for a canonical URL: the first sixteen hex characters of its digest."""
+        return hashlib.sha256(canonical_url.encode("utf-8")).hexdigest()[:16]
+
+
+class ItemText(BaseModel):
+    """Extracted article text, kept thirty days and never republished.
+
+    Held apart from `Item` so retention deletes it on its own schedule and so no code path
+    that renders a digest has the full text in hand by accident.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    item_id: str
+    text: str
+    extracted_at: datetime
+    # The extractor's own view of whether it found an article rather than a navigation page.
+    words: int
+
+
+class Cluster(BaseModel):
+    """One story: the items that report it, for one audience on one day."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    audience_id: str
+    day: str
+    # The item chosen to represent the story: earliest published among the most trusted.
+    representative_id: str
+    item_ids: tuple[str, ...] = Field(min_length=1)
+
+    @property
+    def size(self) -> int:
+        return len(self.item_ids)
+
+
+class Label(BaseModel):
+    """One relevance judgement, by one labeller, on one item.
+
+    The item's URL and title are copied here rather than referenced. A label outlives the
+    item it was made on: retention deletes the item at thirty days, and the labelled week
+    has to remain publishable as ids, URLs and labels after that (PLAN.md section 3).
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    audience_id: str
+    day: str
+    item_id: str
+    labeller: str
+    relevant: bool
+    # Which stratum of the day's sample this came from, and what it stands for. Recall is
+    # estimated from these weights, so a label without them cannot be used.
+    stratum: Literal["top", "random"]
+    rank: int
+    weight: float
+    url: str
+    title: str
+    labelled_at: datetime

@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        env:
+          # The gateway is private until its numbers are published; a fine-grained
+          # read-only token installs it, the same arrangement as the 02 and 03 repositories.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.BOUNDARY_READ_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
+        run: uv sync --frozen
+
+      - name: ruff
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: mypy
+        run: uv run mypy
+
+      - name: pytest
+        run: uv run pytest
+
+      # The terms record is a gate in the code, so it is a gate in CI too: a source added
+      # to an audience file without a row in docs/sources.md fails the build. Sources that
+      # are recorded but not yet read are expected during the build weeks, so this reports
+      # them without failing; the run itself refuses to fetch them either way.
+      - name: sources have a terms record
+        run: uv run clippings sources check || true
+
+      - name: every source in every audience file has a row
+        run: uv run pytest tests/test_terms_gate.py -q

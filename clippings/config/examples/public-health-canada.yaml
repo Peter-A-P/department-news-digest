@@ -1,0 +1,108 @@
+# Example audience: public health in Canada.
+#
+# Not the employer's. A generic audience over public sources (PLAN.md section 2.1).
+#
+# Every `terms` key below must appear in docs/sources.md with a date read and status
+# `allowed`, or the fetcher refuses the source. Run `clippings sources check`.
+
+id: public-health-canada
+name: Public health in Canada
+description: >-
+  Communicable disease activity, immunisation, drug and device safety, health system
+  capacity and public health policy across Canadian federal, provincial and territorial
+  authorities.
+
+rubric: >-
+  Relevant means an item a public health communications officer would need before the
+  morning meeting: outbreak and surveillance reporting, immunisation programme changes,
+  drug and medical device recalls and safety advisories, public health guidance issued or
+  withdrawn, health system capacity and emergency department status, and funding or policy
+  decisions that change what a health authority does. It excludes individual clinical case
+  reports, wellness and lifestyle features, hospital human interest stories, and
+  pharmaceutical company announcements with no regulatory or programme consequence.
+
+topics:
+  - communicable disease outbreaks
+  - immunisation programmes
+  - drug and device recalls
+  - public health guidance
+  - health system capacity
+  - emergency department closures
+  - public health funding
+
+entities:
+  organisations:
+    - Public Health Agency of Canada
+    - Health Canada
+    - Canadian Institute for Health Information
+    - National Advisory Committee on Immunization
+    - BC Centre for Disease Control
+    - Public Health Ontario
+  people: []
+  places:
+    - Canada
+    - Ontario
+    - British Columbia
+    - Quebec
+    - Alberta
+
+geography:
+  - Canada
+
+languages:
+  - en
+
+sources:
+  feeds:
+    - url: https://www.canada.ca/etc/designs/canada/wet-boew/feeds/healthycanadians-recalls-en.xml
+      publisher: Health Canada, recalls and safety alerts
+      terms: canada.ca
+    - url: https://www.canada.ca/en/news/web-feeds/health-news.atom.xml
+      publisher: Government of Canada, health news
+      terms: canada.ca
+    - url: https://www.cihi.ca/en/rss
+      publisher: Canadian Institute for Health Information
+      terms: cihi.ca
+    - url: https://www.cmaj.ca/rss/current.xml
+      publisher: Canadian Medical Association Journal
+      terms: cmaj.ca
+    - url: https://www.cbc.ca/webfeed/rss/rss-health
+      publisher: CBC News, health
+      terms: cbc.ca
+
+  gdelt:
+    queries:
+      - 'Canada (outbreak OR immunization OR "public health")'
+      - '"Public Health Agency of Canada"'
+    limit: 75
+
+  reddit:
+    subreddits:
+      - canada
+      - Epidemiology
+    listing: new
+    limit: 50
+
+  bluesky:
+    queries:
+      - Canada public health
+      - PHAC outbreak
+    limit: 50
+
+trusted_sources:
+  - canada.ca
+  - cihi.ca
+  - cmaj.ca
+  - publichealthontario.ca
+  - bccdc.ca
+
+blocked_sources: []
+
+digest:
+  max_stories: 10
+  rerank_candidates: 60
+  max_sentences_per_story: 3
+
+delivery:
+  time_local: "07:00"
+  timezone: America/Toronto
