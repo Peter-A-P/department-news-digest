@@ -76,6 +76,13 @@ def _print_report(report: RunReport) -> None:
         f"  clusters    {report.clusters} stories from {report.clustered_items} items "
         f"(collapse rate {report.collapse_rate:.2f}), embedder {report.embedder}"
     )
+    if report.selected:
+        displaced = f", {report.displaced} displaced for diversity" if report.displaced else ""
+        typer.echo(f"  digest      {len(report.selected)} stories chosen{displaced}")
+        for position, story in enumerate(report.selected, start=1):
+            sources = f" +{story.cluster.size - 1}" if story.cluster.size > 1 else ""
+            typer.echo(f"     {position:2d}. {story.score:.3f}  {story.representative.title[:66]}")
+            typer.echo(f"         {story.representative.domain}{sources}   {story.why()}")
     for failure in report.failures():
         typer.echo(f"  ! {failure.source_key} {failure.origin}: {failure.detail}")
 
@@ -225,7 +232,7 @@ def label(
     one = _pick(audiences, audience)[0]
     day = day or datetime.now(UTC).date().isoformat()
     with Store.open(db) as store:
-        queue = build_queue(store, one.id, day, labeller)
+        queue = build_queue(store, one.id, day, labeller, audience=one, embedder=default_embedder())
         if not queue.questions:
             typer.echo(f"nothing left to label for {one.id} on {day}")
             return

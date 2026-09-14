@@ -19,6 +19,9 @@ from clippings.ingest.extract import extract_one
 from clippings.ingest.normalise import normalise
 from clippings.ingest.store import Store
 from clippings.models import Cluster, Item
+from clippings.rank.features import embed_stories
+from clippings.rank.score import ScoredStory, score_stories
+from clippings.rank.select import candidates_for_rerank, select
 from clippings.sources.base import FetchContext, FetchResult, Source
 from clippings.sources.bluesky import BlueskySource
 from clippings.sources.gdelt import GdeltSource
@@ -59,6 +62,11 @@ class RunReport:
     clusters: int = 0
     clustered_items: int = 0
     embedder: str = ""
+    # The ranked stories, best first, and the K chosen for the digest. Week 2 hands the
+    # candidates to the gateway re-ranker; nothing here calls a model.
+    ranked: list[ScoredStory] = field(default_factory=list)
+    selected: list[ScoredStory] = field(default_factory=list)
+    displaced: int = 0
 
     @property
     def fetched(self) -> int:
@@ -226,5 +234,18 @@ def run_audience(
     report.clusters = len(clusters)
     report.clustered_items = len(pool)
     report.embedder = backend_name(embedder)
+
+    by_id = {item.id: item for item in pool}
+    report.ranked = score_stories(clusters, by_id, audience, embedder, context.now)
+    # The re-ranker only ever sees this slice, and the digest is chosen from it.
+    candidates = candidates_for_rerank(report.ranked, audience.digest.rerank_candidates)
+    selection = select(
+        candidates,
+        embed_stories([story.cluster for story in candidates], by_id, embedder),
+        audience.digest.max_stories,
+    )
+    report.selected = list(selection.stories)
+    report.displaced = len(selection.displaced)
+
     report.finished_at = datetime.now(UTC)
     return report
