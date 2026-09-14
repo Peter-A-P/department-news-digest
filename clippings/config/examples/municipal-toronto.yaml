@@ -52,21 +52,12 @@ languages:
 
 sources:
   feeds:
-    - url: https://www.toronto.ca/home/media-room/news-releases-media-advisories/rss/
+    - url: https://www.toronto.ca/news/feed/
       publisher: City of Toronto newsroom
       terms: toronto.ca
-    - url: https://www.ttc.ca/rss/News/Service_Alerts
-      publisher: Toronto Transit Commission service alerts
-      terms: ttc.ca
-    - url: https://www.cbc.ca/webfeed/rss/rss-canada-toronto
-      publisher: CBC News, Toronto
-      terms: cbc.ca
     - url: https://toronto.citynews.ca/feed/
       publisher: CityNews Toronto
       terms: citynews.ca
-    - url: https://news.ontario.ca/en/rss/allnewsreleases.rss
-      publisher: Government of Ontario newsroom
-      terms: news.ontario.ca
 
   gdelt:
     queries:

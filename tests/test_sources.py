@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -11,7 +12,7 @@ from clippings.config.audience import Audience, Feed
 from clippings.constants import USER_AGENT
 from clippings.sources.base import FetchContext, FetchResult
 from clippings.sources.bluesky import BlueskySource, parse_posts, post_url
-from clippings.sources.gdelt import GdeltSource, parse_articles
+from clippings.sources.gdelt import MIN_INTERVAL_SECONDS, GdeltSource, parse_articles
 from clippings.sources.reddit import RedditSource, parse_listing
 from clippings.sources.robots import AllowAll, RobotsCache
 from clippings.sources.rss import RssSource, parse_feed
@@ -209,16 +210,22 @@ def test_gdelt_articles_are_parsed() -> None:
     assert items[0].published_at == datetime(2026, 9, 12, 9, 0, tzinfo=UTC)
 
 
-def test_gdelt_text_response_is_a_failure_not_a_crash() -> None:
-    """GDELT answers a rejected query with plain text and a 200."""
+def test_gdelt_text_response_is_a_failure_carrying_gdelt_s_own_words() -> None:
+    """GDELT answers a rejected query with plain text and a 200.
+
+    What it says is the useful part, so the recorded detail is its sentence rather than the
+    JSON parser's complaint about column one.
+    """
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, text="Your query was too short.")
 
     audience = audience_with({"gdelt": {"queries": ["x"]}})
-    results = list(GdeltSource().fetch(audience, context_with(handler, gdelt="allowed")))
+    results = list(
+        GdeltSource(min_interval=0.0).fetch(audience, context_with(handler, gdelt="allowed"))
+    )
     assert results[0].ok is False
-    assert "not JSON" in results[0].detail
+    assert "Your query was too short." in results[0].detail
 
 
 def test_gdelt_restricts_the_query_to_the_audience_languages() -> None:
@@ -229,7 +236,7 @@ def test_gdelt_restricts_the_query_to_the_audience_languages() -> None:
         return httpx.Response(200, json={"articles": []})
 
     audience = audience_with({"gdelt": {"queries": ["transit"]}})
-    list(GdeltSource().fetch(audience, context_with(handler, gdelt="allowed")))
+    list(GdeltSource(min_interval=0.0).fetch(audience, context_with(handler, gdelt="allowed")))
     assert seen == ["transit sourcelang:english"]
 
 
@@ -347,3 +354,70 @@ def test_refusal_on_a_permitted_source_is_a_programming_error() -> None:
     context = context_with(lambda request: httpx.Response(200), **{"gov.example": "allowed"})
     with pytest.raises(AssertionError):
         context.refusal("gov.example", "https://gov.example/feed")
+
+
+def test_gdelt_waits_between_requests() -> None:
+    """GDELT asks for one request every five seconds, and that is the whole of its price."""
+    stamps: list[float] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stamps.append(time.monotonic())
+        return httpx.Response(200, json={"articles": []})
+
+    audience = audience_with({"gdelt": {"queries": ["one", "two"]}})
+    source = GdeltSource(min_interval=0.25)
+    list(source.fetch(audience, context_with(handler, gdelt="allowed")))
+
+    assert len(stamps) == 2
+    assert stamps[1] - stamps[0] >= 0.25, "the second request did not wait its turn"
+
+
+def test_the_default_gdelt_interval_is_what_gdelt_asked_for() -> None:
+    assert MIN_INTERVAL_SECONDS >= 5.0
+
+
+def test_gdelt_rate_limiting_is_reported_not_retried() -> None:
+    """Asking twice for what we were told to ask once is not a fix."""
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(429, text="Please limit requests to one every 5 seconds.")
+
+    audience = audience_with({"gdelt": {"queries": ["one"]}})
+    results = list(
+        GdeltSource(min_interval=0.0).fetch(audience, context_with(handler, gdelt="allowed"))
+    )
+    assert calls == 1
+    assert results[0].ok is False
+    assert "rate limited" in results[0].detail
+
+
+def test_bluesky_without_credentials_reports_itself_unavailable() -> None:
+    """Search needs a session now; without an app password the run continues without it."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("a request was sent with no app password")
+
+    audience = audience_with({"bluesky": {"queries": ["transit"]}})
+    results = list(BlueskySource().fetch(audience, context_with(handler, bluesky="allowed")))
+    assert results[0].ok is False
+    assert "BLUESKY_HANDLE" in results[0].detail
+
+
+def test_bluesky_searches_with_the_token_it_was_given() -> None:
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("createSession"):
+            return httpx.Response(200, json={"accessJwt": "a-token"})
+        seen.append(request.headers.get("Authorization", ""))
+        return httpx.Response(200, json={"posts": []})
+
+    audience = audience_with({"bluesky": {"queries": ["transit"]}})
+    context = context_with(handler, bluesky="allowed")
+    context.secrets = {"BLUESKY_HANDLE": "someone.bsky.social", "BLUESKY_APP_PASSWORD": "x"}
+    results = list(BlueskySource().fetch(audience, context))
+    assert results[0].ok is True
+    assert seen == ["Bearer a-token"]

@@ -54,21 +54,12 @@ languages:
 
 sources:
   feeds:
-    - url: https://www.canada.ca/etc/designs/canada/wet-boew/feeds/healthycanadians-recalls-en.xml
-      publisher: Health Canada, recalls and safety alerts
+    - url: https://api.io.canada.ca/io-server/gc/news/en/v2?sort=publishedDate&orderBy=desc&pick=50&format=atom
+      publisher: Government of Canada newsroom
       terms: canada.ca
-    - url: https://www.canada.ca/en/news/web-feeds/health-news.atom.xml
-      publisher: Government of Canada, health news
-      terms: canada.ca
-    - url: https://www.cihi.ca/en/rss
-      publisher: Canadian Institute for Health Information
-      terms: cihi.ca
     - url: https://www.cmaj.ca/rss/current.xml
       publisher: Canadian Medical Association Journal
       terms: cmaj.ca
-    - url: https://www.cbc.ca/webfeed/rss/rss-health
-      publisher: CBC News, health
-      terms: cbc.ca
 
   gdelt:
     queries:

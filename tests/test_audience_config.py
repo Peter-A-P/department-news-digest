@@ -86,12 +86,13 @@ def test_the_file_name_must_match_the_id(tmp_path) -> None:  # type: ignore[no-u
         load_audience(path)
 
 
-def test_the_three_example_audiences_load() -> None:
+def test_the_example_audiences_load() -> None:
     audiences = load_audiences(EXAMPLES)
     assert {audience.id for audience in audiences} == {
         "ai-policy",
         "public-health-canada",
         "municipal-toronto",
+        "newfoundland-labrador",
     }
 
 
@@ -99,4 +100,9 @@ def test_every_example_audience_has_a_rubric_and_sources() -> None:
     for audience in load_audiences(EXAMPLES):
         assert len(audience.rubric.split()) >= 30, f"{audience.id}: rubric is too thin to label by"
         assert audience.sources.feeds, f"{audience.id}: no feeds"
+        for feed in audience.sources.feeds:
+            # Every feed in the repository has been fetched at least once and returned
+            # entries; `clippings sources probe` is what checks that, and six of the
+            # original thirteen did not. A URL nobody has fetched is a guess.
+            assert feed.url.startswith("https://"), f"{audience.id}: {feed.url}"
         assert audience.profile_text(), f"{audience.id}: nothing to embed as a profile"

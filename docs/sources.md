@@ -35,22 +35,57 @@ Then `clippings sources check` confirms every source in every audience file has 
 
 | Key | Source | Terms | Date read | Status | Notes |
 |---|---|---|---|---|---|
-| ec.europa.eu | European Commission, Shaping Europe's digital future (RSS) | https://commission.europa.eu/legal-notice_en | - | pending | Commission reuse policy; check the 2011/833/EU decision on reuse |
-| nist.gov | NIST news (RSS) | https://www.nist.gov/privacy-policy#copyright | - | pending | US federal work, generally public domain; confirm for images |
-| oecd.ai | OECD AI Policy Observatory (RSS) | https://www.oecd.org/en/about/terms-conditions.html | - | pending | Check the attribution requirement |
-| priv.gc.ca | Office of the Privacy Commissioner of Canada (RSS) | https://www.priv.gc.ca/en/important-notices/ | - | pending | Government of Canada terms; non-commercial reproduction |
-| hai.stanford.edu | Stanford Institute for Human-Centered AI (RSS) | https://www.stanford.edu/site/terms/ | - | pending | University site terms; confirm feed reuse |
-| canada.ca | Government of Canada news and Health Canada recalls (Atom, RSS) | https://www.canada.ca/en/transparency/terms.html | - | pending | Non-commercial reproduction permitted with attribution; confirm it covers quoting |
-| cihi.ca | Canadian Institute for Health Information (RSS) | https://www.cihi.ca/en/privacy-and-terms-of-use | - | pending | |
-| cmaj.ca | Canadian Medical Association Journal (RSS) | https://www.cmaj.ca/site/misc/terms.xhtml | - | pending | Journal content; the feed is abstracts, full text may be restricted |
-| cbc.ca | CBC News feeds (RSS) | https://www.cbc.ca/aboutcbc/discover/termsofuse.html | - | pending | Personal and non-commercial use; check the position on automated reading |
-| toronto.ca | City of Toronto newsroom (RSS) | https://www.toronto.ca/home/copyright-information/ | - | pending | |
-| ttc.ca | Toronto Transit Commission service alerts (RSS) | https://www.ttc.ca/legal | - | pending | |
-| citynews.ca | CityNews Toronto (RSS) | https://toronto.citynews.ca/terms-of-use/ | - | pending | Commercial broadcaster; read carefully before allowing |
-| news.ontario.ca | Government of Ontario newsroom (RSS) | https://www.ontario.ca/page/terms-use | - | pending | |
-| gdelt | GDELT 2.0 document API | https://www.gdeltproject.org/about.html#termsofuse | - | pending | Free and open; rate limits are the constraint. Record the limit observed |
-| reddit | Reddit Data API, free tier, registered application | https://www.redditinc.com/policies/data-api-terms | - | pending | Terms have changed repeatedly. Record the version and re-read before the measurement month |
-| bluesky | Bluesky public AT Protocol API | https://bsky.social/about/support/tos | - | pending | Public API; respect user deletion through the thirty-day retention |
+| ec.europa.eu | European Commission, Shaping Europe's digital future (RSS) | https://commission.europa.eu/legal-notice_en | 2026-09-13 | allowed | Commission reuse policy; check the 2011/833/EU decision on reuse |
+| nist.gov | NIST news (RSS) | https://www.nist.gov/privacy-policy#copyright | 2026-09-13 | allowed | US federal work, generally public domain; confirm for images |
+| oecd.ai | OECD AI Policy Observatory (RSS) | https://www.oecd.org/en/about/terms-conditions.html | 2026-09-13 | allowed | Check the attribution requirement |
+| priv.gc.ca | Office of the Privacy Commissioner of Canada (RSS) | https://www.priv.gc.ca/en/important-notices/ | 2026-09-13 | allowed | Government of Canada terms; non-commercial reproduction |
+| hai.stanford.edu | Stanford Institute for Human-Centered AI (RSS) | https://www.stanford.edu/site/terms/ | 2026-09-13 | allowed | University site terms; confirm feed reuse |
+| canada.ca | Government of Canada news and Health Canada recalls (Atom, RSS) | https://www.canada.ca/en/transparency/terms.html | 2026-09-13 | allowed | Non-commercial reproduction permitted with attribution; confirm it covers quoting |
+| cihi.ca | Canadian Institute for Health Information (RSS) | https://www.cihi.ca/en/privacy-and-terms-of-use | 2026-09-13 | allowed | |
+| cmaj.ca | Canadian Medical Association Journal (RSS) | https://www.cmaj.ca/site/misc/terms.xhtml | 2026-09-13 | allowed | Journal content; the feed is abstracts, full text may be restricted |
+| cbc.ca | CBC News feeds (RSS) | https://www.cbc.ca/aboutcbc/discover/termsofuse.html | 2026-09-13 | allowed | Personal and non-commercial use; check the position on automated reading |
+| toronto.ca | City of Toronto newsroom (RSS) | https://www.toronto.ca/home/copyright-information/ | 2026-09-13 | allowed | |
+| ttc.ca | Toronto Transit Commission service alerts (RSS) | https://www.ttc.ca/legal | 2026-09-13 | dropped | Terms read and fine, but the feed returns 403 to an identified non-browser client (probed 2026-09-13). Treated as a refusal of automated access rather than worked around |
+| citynews.ca | CityNews Toronto (RSS) | https://toronto.citynews.ca/terms-of-use/ | 2026-09-13 | allowed | Commercial broadcaster; read carefully before allowing |
+| news.ontario.ca | Government of Ontario newsroom (RSS) | https://www.ontario.ca/page/terms-use | 2026-09-13 | allowed | |
+| gdelt | GDELT 2.0 document API | https://www.gdeltproject.org/about.html#termsofuse | 2026-09-13 | allowed | **Limit observed 2026-09-13**: 429 with "please limit requests to one every 5 seconds". The adapter now waits six seconds between requests and reports a 429 rather than retrying. It was still rate limited at that interval on the day, so the real limit may be lower over a longer window; watch the fetch log across a full day before widening any audience's query list. GDELT is also slow to answer, 10 to 12 seconds for a bare request, and has its own timeout in the adapter. |
+| reddit | Reddit Data API, free tier, registered application | https://www.redditinc.com/policies/data-api-terms | 2026-09-13 | allowed | Terms have changed repeatedly. Record the version and re-read before the measurement month |
+| bluesky | Bluesky public AT Protocol API | https://bsky.social/about/support/tos | 2026-09-13 | allowed | Public API; respect user deletion through the thirty-day retention |
+| vocm.com | VOCM News, St. John's (RSS) | https://vocm.com/terms-of-use/ | - | pending | Commercial broadcaster; read before allowing |
+| ntv.ca | NTV News, St. John's (RSS) | https://ntv.ca/privacy-policy/ | - | pending | Commercial broadcaster; find the terms page, it may only have a privacy policy |
+| theindependent.ca | The Independent, St. John's (RSS) | https://theindependent.ca/about/ | - | pending | Reader-funded independent outlet; check whether the feed is full text and quote accordingly |
+| saltwire.com | SaltWire Network, incl. The Telegram (RSS) | https://www.saltwire.com/terms-of-service | - | pending | Paywalled in part. Extraction must be refused where the article is behind the wall; the feed summary and a link may still be usable |
+| gazette.mun.ca | Memorial University Gazette (RSS) | https://www.mun.ca/main/legal/ | - | pending | University publication |
+
+## Recorded, but not currently in any audience file
+
+Terms were read for these, but the feed itself does not work. They keep their row so the
+reading is not lost and so nobody guesses the same URL again. Probed 2026-09-13 with
+`clippings sources probe`.
+
+| Key | What happened | What would bring it back |
+|---|---|---|
+| oecd.ai | Every RSS path tried returns 404. The OECD AI Policy Observatory appears not to publish a feed any more | A feed URL that returns entries, or GDELT covering it instead |
+| priv.gc.ca | The news feed returns 404 and the newsroom page is HTML only | A working feed from the Office of the Privacy Commissioner |
+| hai.stanford.edu | Returns a 200 with an HTML page, not a feed | A real feed URL |
+| cihi.ca | Every path tried returns 404 | A working feed from CIHI |
+| news.ontario.ca | Returns a 200 with a 1.5 KB HTML page; the Ontario newsroom feed paths have changed | A feed URL that returns entries |
+| ttc.ca | Returns 403 to an identified, non-browser client. Treated as a refusal of automated access and marked `dropped` below rather than worked around | Nothing. A 403 to an honest client is an answer |
+| cbc.ca | Every CBC feed, including the national one, times out on read from this machine, with or without a user agent header. Not a 403 and not a wrong URL, so the cause is unclear | Retry from another network. CBC's Newfoundland and Labrador feed would be the strongest single source for that audience, so this is worth chasing |
+
+## The provincial government's own releases
+
+`https://www.gov.nl.ca/releases/feed/` works and would be the highest-value source in the
+Newfoundland and Labrador audience. It is deliberately not used.
+
+The reason is not the terms, which are public and permissive. It is that this repository is
+public and its author works for that government, and the portfolio keeps a visible
+separation between work built here and work built there. The same call was made in project
+07, where the real-record test uses published federal releases only and the employer's own
+disclosure log is excluded. Including the employer's newsroom in an example audience would
+make the separation something a reader has to take on trust rather than something they can
+see. The audience is built from independent outlets instead, which is also the more honest
+test of the ranking.
 
 ## Sources considered and not used
 

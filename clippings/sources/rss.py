@@ -19,7 +19,7 @@ from clippings.models import RawItem, SourceKind
 from clippings.sources.base import FetchContext, FetchResult
 
 
-def _entry_published(entry: Any) -> datetime | None:
+def entry_published(entry: Any) -> datetime | None:
     """The entry's publication time, from whichever of the date fields it filled in."""
     for attribute in ("published_parsed", "updated_parsed", "created_parsed"):
         parsed = getattr(entry, attribute, None)
@@ -71,7 +71,7 @@ def parse_feed(body: bytes, feed: Feed, since: datetime) -> tuple[RawItem, ...]:
         link = _entry_link(entry)
         if not link:
             continue
-        published = _entry_published(entry)
+        published = entry_published(entry)
         if published is not None and published <= since:
             continue
         items.append(

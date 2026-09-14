@@ -7,6 +7,7 @@ the publisher's own terms as for any other item.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any
@@ -19,6 +20,18 @@ from clippings.sources.base import FetchContext, FetchResult
 
 API = "https://api.gdeltproject.org/api/v2/doc/doc"
 SOURCE_KEY = "gdelt"
+
+# GDELT's own words in its 429 body, observed 2026-09-13: "Please limit requests to one
+# every 5 seconds." It is free and open, and this is the whole of what it asks in return,
+# so the interval is enforced here rather than left to how many queries an audience happens
+# to configure. Six seconds, not five, because the clock that matters is theirs.
+MIN_INTERVAL_SECONDS = 6.0
+
+# GDELT is slow to answer and slow even to complete a TLS handshake: measured at 10 to 12
+# seconds for a bare request on 2026-09-13, against a 10 second default that was timing the
+# handshake out before the query was ever sent. Its own timeout, rather than a longer one
+# for every publisher, because no feed needs this.
+TIMEOUT = httpx.Timeout(45.0, connect=30.0)
 
 # GDELT stamps articles with the time it saw them, as YYYYMMDDTHHMMSSZ.
 SEEN_FORMAT = "%Y%m%dT%H%M%SZ"
@@ -69,14 +82,26 @@ def language_of(article: dict[str, Any]) -> str | None:
 
 
 class GdeltSource:
-    """One request per query in the audience file."""
+    """One request per query in the audience file, spaced to GDELT's stated rate limit."""
 
     kind: SourceKind = "gdelt"
+
+    def __init__(self, min_interval: float = MIN_INTERVAL_SECONDS) -> None:
+        self._min_interval = min_interval
+        self._last_request: float | None = None
 
     def fetch(self, audience: Audience, context: FetchContext) -> Iterator[FetchResult]:
         config = audience.sources.gdelt
         for query in config.queries:
             yield self._fetch_one(query, config.limit, audience, context)
+
+    def _wait_turn(self) -> None:
+        """Hold until GDELT's stated interval has passed since the last request."""
+        if self._last_request is not None:
+            elapsed = time.monotonic() - self._last_request
+            if elapsed < self._min_interval:
+                time.sleep(self._min_interval - elapsed)
+        self._last_request = time.monotonic()
 
     def _fetch_one(
         self, query: str, limit: int, audience: Audience, context: FetchContext
@@ -95,15 +120,26 @@ class GdeltSource:
             "timespan": f"{min(minutes, 60 * 24 * 7)}min",
             "sort": "DateDesc",
         }
+        self._wait_turn()
         try:
-            response = context.client.get(API, params=params)
+            response = context.client.get(API, params=params, timeout=TIMEOUT)
+            if response.status_code == httpx.codes.TOO_MANY_REQUESTS:
+                # Reported rather than retried: the interval above is the fix, and a retry
+                # here would be this project asking twice for what it was told to ask once.
+                return FetchResult.failure(
+                    SOURCE_KEY, query, f"rate limited: {response.text[:120].strip()}"
+                )
             response.raise_for_status()
             payload = response.json()
         except httpx.HTTPError as exc:
             return FetchResult.failure(SOURCE_KEY, query, f"{type(exc).__name__}: {exc}")
-        except ValueError as exc:
-            # GDELT answers a rejected query with plain text and a 200.
-            return FetchResult.failure(SOURCE_KEY, query, f"not JSON: {exc}")
+        except ValueError:
+            # GDELT answers a rejected query, and a rate limit it did not label 429, with
+            # plain text and a 200. Its own words are the useful part, so they are what gets
+            # recorded rather than the JSON parser's complaint about column one.
+            return FetchResult.failure(
+                SOURCE_KEY, query, f"refused the query: {response.text[:160].strip()}"
+            )
         return FetchResult(
             source_key=SOURCE_KEY, origin=query, items=parse_articles(payload, query, since)
         )

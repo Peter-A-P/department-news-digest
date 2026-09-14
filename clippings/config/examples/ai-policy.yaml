@@ -65,15 +65,9 @@ sources:
     - url: https://www.nist.gov/news-events/news/rss.xml
       publisher: National Institute of Standards and Technology
       terms: nist.gov
-    - url: https://oecd.ai/en/rss
-      publisher: OECD AI Policy Observatory
-      terms: oecd.ai
-    - url: https://www.priv.gc.ca/en/feeds/news/
-      publisher: Office of the Privacy Commissioner of Canada
-      terms: priv.gc.ca
-    - url: https://hai.stanford.edu/rss.xml
-      publisher: Stanford Institute for Human-Centered AI
-      terms: hai.stanford.edu
+    - url: https://api.io.canada.ca/io-server/gc/news/en/v2?sort=publishedDate&orderBy=desc&pick=50&format=atom
+      publisher: Government of Canada newsroom
+      terms: canada.ca
 
   gdelt:
     queries:

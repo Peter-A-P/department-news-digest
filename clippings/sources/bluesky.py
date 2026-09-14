@@ -1,8 +1,15 @@
-"""Bluesky, through the public AT Protocol search endpoint.
+"""Bluesky, through the AT Protocol search endpoint.
 
-The public AppView answers search without authentication, so this source needs no
-credentials. As with Reddit, the item is the post: public discussion is what this source is
-for, and a link in a post reaches the pool through the publisher's own feed.
+As with Reddit, the item is the post: public discussion is what this source is for, and a
+link in a post reaches the pool through the publisher's own feed.
+
+Search needs a session. Measured on 2026-09-13: `app.bsky.actor.getProfile` answers 200 on
+the public AppView without credentials, while `app.bsky.feed.searchPosts` on the same host
+answers 403, so search is authenticated now whatever it was before. The official route is
+an app password, which is what this uses (`BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD` from the
+environment, never committed). Without them this source reports itself unavailable and the
+run continues. There is no unauthenticated way to search that does not mean going around
+the refusal, and going around it is what this project does not do.
 
 Deleted posts are honoured by the thirty-day retention: nothing here is kept longer, and a
 digest that has already been published shows the post's text only as a quote of at most
@@ -21,8 +28,35 @@ from clippings.config.audience import Audience
 from clippings.models import RawItem, SourceKind
 from clippings.sources.base import FetchContext, FetchResult
 
-API = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts"
+HOST = "https://bsky.social"
+SEARCH = f"{HOST}/xrpc/app.bsky.feed.searchPosts"
+CREATE_SESSION = f"{HOST}/xrpc/com.atproto.server.createSession"
 SOURCE_KEY = "bluesky"
+
+
+class BlueskyAuthError(RuntimeError):
+    """The app password was refused, or was never set."""
+
+
+def access_token(context: FetchContext) -> str:
+    """An access token from an app password.
+
+    An app password, not the account password: it is revocable on its own and cannot change
+    the account. Bluesky issues them for exactly this.
+    """
+    handle = context.secrets.get("BLUESKY_HANDLE", "")
+    password = context.secrets.get("BLUESKY_APP_PASSWORD", "")
+    if not handle or not password:
+        raise BlueskyAuthError("BLUESKY_HANDLE and BLUESKY_APP_PASSWORD are not set")
+    response = context.client.post(
+        CREATE_SESSION, json={"identifier": handle, "password": password}
+    )
+    if response.status_code != httpx.codes.OK:
+        raise BlueskyAuthError(f"createSession returned {response.status_code}")
+    token = response.json().get("accessJwt")
+    if not token:
+        raise BlueskyAuthError("createSession returned no accessJwt")
+    return str(token)
 
 
 def post_url(uri: str, handle: str) -> str:
@@ -95,16 +129,28 @@ class BlueskySource:
 
     def fetch(self, audience: Audience, context: FetchContext) -> Iterator[FetchResult]:
         config = audience.sources.bluesky
-        for query in config.queries:
-            yield self._fetch_one(query, config.limit, context)
-
-    def _fetch_one(self, query: str, limit: int, context: FetchContext) -> FetchResult:
+        if not config.queries:
+            return
         if not context.permitted(SOURCE_KEY):
-            return context.refusal(SOURCE_KEY, query)
+            for query in config.queries:
+                yield context.refusal(SOURCE_KEY, query)
+            return
+        try:
+            token = access_token(context)
+        except (BlueskyAuthError, httpx.HTTPError) as exc:
+            for query in config.queries:
+                yield FetchResult.failure(SOURCE_KEY, query, f"unavailable: {exc}")
+            return
+        for query in config.queries:
+            yield self._fetch_one(query, config.limit, token, context)
+
+    def _fetch_one(self, query: str, limit: int, token: str, context: FetchContext) -> FetchResult:
         since = context.since(SOURCE_KEY, query)
         try:
             response = context.client.get(
-                API, params={"q": query, "limit": str(limit), "sort": "latest"}
+                SEARCH,
+                params={"q": query, "limit": str(limit), "sort": "latest"},
+                headers={"Authorization": f"Bearer {token}"},
             )
             response.raise_for_status()
             payload = response.json()

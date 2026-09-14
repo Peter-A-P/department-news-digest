@@ -65,8 +65,9 @@ Python 3.13 and [uv](https://docs.astral.sh/uv/).
 
 ```
 uv sync
-uv run clippings audiences-list           # the three example audiences
+uv run clippings audiences-list           # the four example audiences
 uv run clippings sources check            # every source against the terms record
+uv run clippings sources probe            # fetch each feed once and check it is a feed
 uv run clippings run ai-policy            # fetch, extract and cluster today
 uv run clippings label ai-policy --labeller you
 uv run clippings retention                # delete items past thirty days

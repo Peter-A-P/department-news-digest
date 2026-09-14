@@ -3,9 +3,14 @@
 An audience is one YAML file. Adding a department is adding one of these; there is no
 other configuration and no code to change.
 
-The three files in [`clippings/config/examples/`](../clippings/config/examples/) are worked
-examples, deliberately generic: AI policy and regulation, public health in Canada, and
-municipal affairs in Toronto.
+The four files in [`clippings/config/examples/`](../clippings/config/examples/) are worked
+examples, deliberately generic: AI policy and regulation, public health in Canada,
+municipal affairs in Toronto, and regional affairs in Newfoundland and Labrador.
+
+The fourth is there because the other three are national or big-city, and the product's
+claim is that a small regional team gets the same system from the same code. It is also the
+harder ranking problem: fewer sources, less duplication to collapse, and a pool where
+almost everything is local but little of it matters.
 
 ## The fields
 
@@ -53,12 +58,31 @@ reports every source in every audience file against the record and exits non-zer
 is missing or not yet allowed. This is a gate, not a report: the run itself makes the same
 check before any request leaves.
 
+## Sources that need credentials
+
+Reddit and Bluesky both need an account of your own, and neither is committed. Reddit reads
+`REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` from a registered application on the free
+tier. Bluesky reads `BLUESKY_HANDLE` and `BLUESKY_APP_PASSWORD`: an app password, which is
+revocable on its own and cannot change the account. Bluesky's search endpoint began
+refusing unauthenticated requests with a 403, and an app password is the official way in,
+so that is the way this takes.
+
+Without those variables each source reports itself unavailable and the run carries on with
+the rest. That is deliberate: the pipeline runs with any subset of its sources, which is
+what makes dropping one cheap.
+
 ## Adding an audience
 
 1. Copy an example to `<your-id>.yaml` and edit it.
 2. Add a row to `docs/sources.md` for any source not already there, and read its terms.
-3. `clippings sources check`
-4. `clippings run <your-id>`
+3. `clippings sources check` confirms every source is recorded and allowed.
+4. `clippings sources probe <your-id>` fetches each feed once and confirms it is a feed.
+5. `clippings run <your-id>`
+
+Step 4 is not optional politeness. On the first live run, six of the thirteen feeds
+originally configured here were wrong: four returned 404 and two returned a 200 with an
+HTML page, which the parser reads as a feed with no entries and the run counts as a healthy
+source. A feed URL is a guess until something has fetched it.
 
 ## What `rerank_candidates` costs
 

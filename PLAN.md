@@ -52,9 +52,18 @@ The numbers a stranger can check:
 
 An audience is a YAML file: topics as short phrases, named entities (organisations,
 people, places), geography, languages, trusted and blocked sources, digest length, and
-delivery time. Everything downstream reads from it. Three example audiences ship,
+delivery time. Everything downstream reads from it. Four example audiences ship,
 deliberately not the employer's: AI policy and regulation; public health in Canada;
-municipal affairs in one large city. Adding a department is adding a file.
+municipal affairs in one large city; and regional affairs in Newfoundland and Labrador.
+Adding a department is adding a file.
+
+The fourth was added on 2026-09-13, after the first live run, because the three original
+audiences are all national or big-city and the product's claim is that a small regional
+team gets the same system. A regional audience is where a hand-made digest is most common
+and worst served, and it is the harder ranking problem: fewer sources, less duplication to
+collapse, and a pool where most items are local but few matter. It is a regional newsroom's
+brief, not any department's, and the provincial government's own newsroom feed is
+deliberately not one of its sources, for the reason recorded in `docs/sources.md`.
 
 ### 2.2 Official APIs and published feeds only; terms recorded before use
 
@@ -115,7 +124,7 @@ through the 03 gate's eval spec. One audience is labelled by two people for kapp
 
 | Source | Volume | What it gives | Access and terms |
 |---|---|---|---|
-| RSS and Atom feeds from news outlets, government newsrooms, journals | Hundreds of items per day across three audiences | The core news stream | Publisher terms and robots rules respected; text kept thirty days; recorded per feed |
+| RSS and Atom feeds from news outlets, government newsrooms, journals | Hundreds of items per day across four audiences | The core news stream | Publisher terms and robots rules respected; text kept thirty days; recorded per feed |
 | GDELT document API | Queried per audience daily | Global coverage of the audience's entities | Free, open; rate limits respected |
 | Reddit API | Selected public subreddits per audience | Public discussion | Registered application, free tier; terms read and recorded; deletions honoured by thirty-day retention |
 | Bluesky public API (AT Protocol) | Search and feeds per audience | Public discussion | Public API; user preferences respected |
@@ -169,13 +178,13 @@ writing.
 
 | Week | Built | Done when |
 |---|---|---|
-| 1 | Source adapters with terms recorded; normalise, extract, store on DuckDB with Cloud Storage sync; near-duplicate and story clustering; the three audience configs; gateway aliases; labelling CLI; first local end-to-end run on one audience | A day's pool for one audience clustered locally; `docs/sources.md` complete |
-| 2 | Hybrid ranking and gateway re-ranker; cited summariser, verifier, repair; assembly and rendering (page, Markdown, .eml draft); LangGraph graph; Cloud Run job, service and scheduler deployed; daily runs begin for all three audiences; labelling week starts as days arrive | Three digests published daily at digest.peterparker.ca; labels accumulating |
+| 1 | Source adapters with terms recorded; normalise, extract, store on DuckDB with Cloud Storage sync; near-duplicate and story clustering; the four audience configs; gateway aliases; labelling CLI; first local end-to-end run on one audience | A day's pool for one audience clustered locally; `docs/sources.md` complete |
+| 2 | Hybrid ranking and gateway re-ranker; cited summariser, verifier, repair; assembly and rendering (page, Markdown, .eml draft); LangGraph graph; Cloud Run job, service and scheduler deployed; daily runs begin for all four audiences; labelling week starts as days arrive | Four digests published daily at digest.peterparker.ca; labels accumulating |
 | 3 | Evaluation: precision, recall and kappa through the gate; deduplication pairs; quote and faithfulness checks; source yield; timeliness; cost per digest; reader study (three readers, five days); trend view; Rule C write-up; README; `v0.1.0` | Every table in section 1 filled except uptime; repository public |
 | Measurement month | Daily runs unattended; uptime, cost and timeliness collected; a second labelled week on one audience if drift in relevance is suspected | Uptime and monthly cost added to the README |
 
 First to drop if behind: the trend view; Bluesky (RSS, GDELT and Reddit stay); the reader
-study to two readers. The three audiences, the labelled week with intervals,
+study to two readers. The four audiences, the labelled week with intervals,
 deduplication, quote verification, cost per digest and the terms record are not droppable.
 
 ## 6. Cost
@@ -187,13 +196,15 @@ Sonnet 5 at $2 in and $10 out). Embeddings and clustering run on CPU inside the 
 |---|---|---:|---:|
 | Re-ranking | 60 candidates per audience per day at about 500 tokens each; Haiku 4.5 | 0.03 per audience-day | |
 | Summaries | About 10 stories per digest at about 3,000 tokens in and 400 out; Sonnet 5 | 0.10 per audience-day | |
-| Running cost, three audiences | About US$0.13 per audience-day, 30 days | 12 per month | 16 per month |
+| Running cost, four audiences | About US$0.13 per audience-day, 30 days | 16 per month | 21 per month |
 | Cloud Run job and service, Scheduler, Storage | Within free tiers at this volume; egress a few GB | 0 to 3 per month | 0 to 4 per month |
 | Build month | Development reruns, the labelled week rerun under five configurations, faithfulness sample | 40 | 54 |
 | **Build** | | **40** | **54** |
-| **Running** | | **12 to 15 per month** | **16 to 20 per month** |
+| **Running** | | **16 to 19 per month** | **21 to 26 per month** |
 
-Under the CA$40 per month the project file estimated; the difference is Haiku for
+Still under the CA$40 per month the project file estimated, with less room than before:
+the fourth audience added on 2026-09-13 costs about a third more to run. The difference is
+Haiku for
 re-ranking and the pre-filter that keeps the model away from the full pool. Outside the
 plan's budget, as an alongside project; actuals still go in the plan repository's STATUS.
 
@@ -233,7 +244,7 @@ Whichever produces the clearest evidence becomes `docs/rejected.md`.
 
 ## 10. Definition of done
 
-- [ ] Three example audiences configured and running daily on Cloud Run with Cloud Scheduler
+- [ ] Four example audiences configured and running daily on Cloud Run with Cloud Scheduler
 - [ ] Hand-labelled week per audience; precision at K and importance-weighted recall with CIs through the 03 gate; kappa on one audience
 - [ ] Deduplication precision and recall on labelled pairs; collapse rate reported
 - [ ] Every quote in a published digest verified verbatim against its source; before-and-after repair counts published

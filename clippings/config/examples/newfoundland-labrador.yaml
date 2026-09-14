@@ -1,0 +1,112 @@
+# Example audience: regional affairs in Newfoundland and Labrador.
+#
+# A regional news brief of the kind a newsroom, a business association or a community
+# organisation keeps: what is happening in the province's economy, politics, health system
+# and communities. It is not any department's media-monitoring brief, and the provincial
+# government's own news releases are deliberately not a source here; see docs/sources.md.
+#
+# Every `terms` key below must appear in docs/sources.md with a date read and status
+# `allowed`, or the fetcher refuses the source. Run `clippings sources check`.
+
+id: newfoundland-labrador
+name: Regional affairs, Newfoundland and Labrador
+description: >-
+  What is happening across Newfoundland and Labrador: the provincial economy and the
+  industries it rests on, House of Assembly and municipal decisions, the health system,
+  population and services outside the northeast Avalon, and the federal decisions that
+  land on the province.
+
+rubric: >-
+  Relevant means an item a regional newsroom would put in the morning budget: decisions
+  and announcements that change what happens in the province, including House of Assembly
+  business, municipal council decisions, provincial and federal funding, fisheries quotas
+  and processing, offshore and onshore energy projects, health system capacity and service
+  changes, school and post-secondary decisions, major employer openings and closures,
+  transport and ferry service, and population and housing. It excludes routine crime and
+  court reports, weather unless services are disrupted, sport, entertainment and community
+  event listings, and national or international stories with no connection to the province.
+
+topics:
+  - provincial politics
+  - House of Assembly
+  - fisheries and aquaculture
+  - offshore oil and gas
+  - renewable energy projects
+  - health system capacity
+  - rural services and outmigration
+  - municipal decisions
+  - housing and cost of living
+  - ferry and air transport
+
+entities:
+  organisations:
+    - House of Assembly
+    - City of St. John's
+    - Memorial University
+    - Marine Atlantic
+    - Fisheries and Oceans Canada
+    - Fish, Food and Allied Workers
+  people: []
+  places:
+    - Newfoundland and Labrador
+    - St. John's
+    - Corner Brook
+    - Labrador
+    - Gander
+    - Grand Falls-Windsor
+
+geography:
+  - Newfoundland and Labrador
+
+languages:
+  - en
+
+sources:
+  feeds:
+    - url: https://vocm.com/feed/
+      publisher: VOCM News
+      terms: vocm.com
+    - url: https://ntv.ca/feed/
+      publisher: NTV News
+      terms: ntv.ca
+    - url: https://theindependent.ca/feed/
+      publisher: The Independent
+      terms: theindependent.ca
+    - url: https://www.saltwire.com/rss
+      publisher: SaltWire Network
+      terms: saltwire.com
+    - url: https://gazette.mun.ca/feed/
+      publisher: Memorial University Gazette
+      terms: gazette.mun.ca
+
+  gdelt:
+    queries:
+      - '"Newfoundland and Labrador"'
+      - '"St. John''s" (council OR harbour OR fishery)'
+    limit: 75
+
+  reddit:
+    subreddits:
+      - newfoundland
+      - StJohnsNL
+    listing: new
+    limit: 50
+
+  bluesky:
+    queries:
+      - Newfoundland Labrador
+      - NL politics
+    limit: 50
+
+trusted_sources: []
+
+blocked_sources: []
+
+digest:
+  max_stories: 10
+  rerank_candidates: 60
+  max_sentences_per_story: 3
+
+delivery:
+  time_local: "07:00"
+  timezone: America/St_Johns

@@ -1,7 +1,7 @@
 """`clippings` on the command line.
 
     clippings run       fetch, extract and cluster a day for one audience or all of them
-    clippings sources   check the terms record against the audience files
+    clippings sources   check the terms record, or probe that the feeds are feeds
     clippings label     label a day's sample for precision and recall
     clippings retention delete items past the thirty-day window
     clippings audiences list the configured audiences
@@ -28,6 +28,7 @@ from clippings.ingest.pipeline import RunReport, new_run_id, run_audience
 from clippings.ingest.remote import LocalRunLock, RunLockHeld
 from clippings.ingest.store import Store
 from clippings.sources.base import FetchContext, http_client
+from clippings.sources.probe import PROBE_TIMEOUT, probe_audience
 from clippings.sources.robots import RobotsCache
 from clippings.sources.terms import TermsGate, TermsRecordError, load_terms
 
@@ -166,6 +167,34 @@ def sources_check(audiences: AudienceDir = EXAMPLES) -> None:
         )
         raise typer.Exit(code=1)
     typer.echo(f"\nAll {len(set(allowed))} sources have terms recorded and allowed.")
+
+
+@sources_app.command("probe")
+def sources_probe(
+    audience: Annotated[str | None, typer.Argument(help="One audience id, or all of them.")] = None,
+    audiences: AudienceDir = EXAMPLES,
+) -> None:
+    """Fetch every feed once and report what came back.
+
+    Run this when adding a source and when a run's yield drops. A feed URL is a guess until
+    something fetches it, and the failure this is really for is the 200 that contains a web
+    page rather than a feed, which a run would otherwise count as a healthy source.
+
+    Makes one request per feed, so it is never part of a run or of CI.
+    """
+    selected = _pick(audiences, audience)
+    failures = 0
+    with http_client(timeout=PROBE_TIMEOUT) as client:
+        for one in selected:
+            typer.echo(f"\n{one.id}")
+            for result in probe_audience(client, one):
+                typer.echo(result.line)
+                typer.echo(f"        {result.feed.url}")
+                failures += not result.ok
+    if failures:
+        typer.echo(f"\n{failures} feed(s) did not return a usable feed.", err=True)
+        raise typer.Exit(code=1)
+    typer.echo("\nEvery configured feed returned entries.")
 
 
 @app.command()
