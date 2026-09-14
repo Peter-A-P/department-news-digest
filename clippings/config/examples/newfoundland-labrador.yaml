@@ -63,6 +63,9 @@ languages:
 
 sources:
   feeds:
+    - url: https://www.cbc.ca/webfeed/rss/rss-canada-newfoundland
+      publisher: CBC News, Newfoundland and Labrador
+      terms: cbc.ca
     - url: https://vocm.com/feed/
       publisher: VOCM News
       terms: vocm.com

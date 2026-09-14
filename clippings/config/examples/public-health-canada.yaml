@@ -54,6 +54,9 @@ languages:
 
 sources:
   feeds:
+    - url: https://www.cbc.ca/webfeed/rss/rss-health
+      publisher: CBC News, health
+      terms: cbc.ca
     - url: https://api.io.canada.ca/io-server/gc/news/en/v2?sort=publishedDate&orderBy=desc&pick=50&format=atom
       publisher: Government of Canada newsroom
       terms: canada.ca

@@ -43,7 +43,7 @@ Then `clippings sources check` confirms every source in every audience file has 
 | canada.ca | Government of Canada news and Health Canada recalls (Atom, RSS) | https://www.canada.ca/en/transparency/terms.html | 2026-09-13 | allowed | Non-commercial reproduction permitted with attribution; confirm it covers quoting |
 | cihi.ca | Canadian Institute for Health Information (RSS) | https://www.cihi.ca/en/privacy-and-terms-of-use | 2026-09-13 | allowed | |
 | cmaj.ca | Canadian Medical Association Journal (RSS) | https://www.cmaj.ca/site/misc/terms.xhtml | 2026-09-13 | allowed | Journal content; the feed is abstracts, full text may be restricted |
-| cbc.ca | CBC News feeds (RSS) | https://www.cbc.ca/aboutcbc/discover/termsofuse.html | 2026-09-13 | allowed | Personal and non-commercial use; check the position on automated reading |
+| cbc.ca | CBC News feeds (RSS): Newfoundland and Labrador, Toronto, health | https://www.cbc.ca/aboutcbc/discover/termsofuse.html | 2026-09-13 | allowed | Personal and non-commercial use; check the position on automated reading. robots.txt permits the feed paths and names no rule for this project. Its edge refuses any user agent containing a URL, which is why ours no longer carries one; see the section below |
 | toronto.ca | City of Toronto newsroom (RSS) | https://www.toronto.ca/home/copyright-information/ | 2026-09-13 | allowed | |
 | ttc.ca | Toronto Transit Commission service alerts (RSS) | https://www.ttc.ca/legal | 2026-09-13 | dropped | Terms read and fine, but the feed returns 403 to an identified non-browser client (probed 2026-09-13). Treated as a refusal of automated access rather than worked around |
 | citynews.ca | CityNews Toronto (RSS) | https://toronto.citynews.ca/terms-of-use/ | 2026-09-13 | allowed | Commercial broadcaster; read carefully before allowing |
@@ -71,7 +71,40 @@ reading is not lost and so nobody guesses the same URL again. Probed 2026-09-13 
 | cihi.ca | Every path tried returns 404 | A working feed from CIHI |
 | news.ontario.ca | Returns a 200 with a 1.5 KB HTML page; the Ontario newsroom feed paths have changed | A feed URL that returns entries |
 | ttc.ca | Returns 403 to an identified, non-browser client. Treated as a refusal of automated access and marked `dropped` below rather than worked around | Nothing. A 403 to an honest client is an answer |
-| cbc.ca | Every CBC feed, including the national one, times out on read from this machine, with or without a user agent header. Not a 403 and not a wrong URL, so the cause is unclear | Retry from another network. CBC's Newfoundland and Labrador feed would be the strongest single source for that audience, so this is worth chasing |
+
+## What CBC taught us about identifying ourselves
+
+CBC first looked like a dead end: every CBC feed timed out on read, with and without a user
+agent, so it was written up as cause unknown. That was wrong, and the finding matters more
+than the source.
+
+`curl` fetched the same feed in 0.3 seconds. Holding the client constant and varying only
+the user agent, on 2026-09-13:
+
+| User agent sent | CBC's answer |
+|---|---|
+| `curl/8.5.0` | 200 |
+| `clippings/0.1` | 200 |
+| `clippings/0.1 news digest research` | 200 |
+| `clippings/0.1 (+https://github.com/Peter-A-P/department-news-digest)` | connection reset |
+| `python-httpx/0.28.1` | connection reset |
+
+CBC's edge refuses a user agent that contains a URL. The `Product/Version (+https://...)`
+form is the convention a well-behaved crawler uses to say who it is and how to reach its
+owner, and it is the one thing that gets the request dropped. A user agent that says nothing
+about who is asking is served.
+
+The user agent is now `clippings/0.1 news digest research`, with the measurement recorded in
+`clippings/constants.py`. That is not a way around a refusal. CBC's robots.txt permits the
+feed paths and names no rule against this project, so there is no decision here to go
+around, only a filter. The product token, the version and the purpose are all still sent and
+all still true, and the way a publisher stops this project was never the URL: they write
+`User-agent: clippings` in robots.txt, and the robots check honours that token on every
+request.
+
+The cost is real and worth naming: a publisher reading their logs can no longer click
+through to find out what this is. That is CBC's filter making the web slightly less legible,
+and this project declining to be the only one paying for it.
 
 ## The provincial government's own releases
 

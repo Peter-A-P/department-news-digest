@@ -52,6 +52,9 @@ languages:
 
 sources:
   feeds:
+    - url: https://www.cbc.ca/webfeed/rss/rss-canada-toronto
+      publisher: CBC News, Toronto
+      terms: cbc.ca
     - url: https://www.toronto.ca/news/feed/
       publisher: City of Toronto newsroom
       terms: toronto.ca

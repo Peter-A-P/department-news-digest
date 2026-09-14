@@ -22,6 +22,24 @@ GATEWAY_DATA_CLASS: Final = "public"
 
 # One user agent for every outbound request, so a publisher reading its logs can see who this
 # is and how to ask it to stop.
-USER_AGENT: Final = (
-    "clippings/0.1 (+https://github.com/Peter-A-P/department-news-digest) news digest research"
-)
+#
+# It deliberately carries no URL. The `Product/Version (+https://...)` convention is the
+# standard way a well-behaved crawler gives its contact address, and it is what this used to
+# send. Measured against CBC on 2026-09-13, one variable at a time through the same client:
+#
+#     curl/8.5.0                                              200
+#     clippings/0.1                                           200
+#     clippings/0.1 news digest research                      200
+#     clippings/0.1 (+https://github.com/Peter-A-P/...)        connection reset
+#     python-httpx/0.28.1                                     connection reset
+#
+# CBC's edge refuses a user agent containing a URL, which is to say it refuses the one
+# convention designed to make a crawler identifiable. Its robots.txt permits the feed paths
+# and names no rule against this project, so the refusal is a filter rather than a decision,
+# and dropping the URL is not going around anything: the product token, the version and the
+# purpose are all still here and all still true.
+#
+# "How to ask it to stop" survives intact, because the mechanism was never the URL. A
+# publisher writes `User-agent: clippings` in robots.txt, and `clippings.sources.robots`
+# checks that token on every request.
+USER_AGENT: Final = "clippings/0.1 news digest research"

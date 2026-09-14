@@ -421,3 +421,17 @@ def test_bluesky_searches_with_the_token_it_was_given() -> None:
     results = list(BlueskySource().fetch(audience, context))
     assert results[0].ok is True
     assert seen == ["Bearer a-token"]
+
+
+def test_the_user_agent_identifies_the_project_without_carrying_a_url() -> None:
+    """The product token is what robots.txt addresses, and it has to stay.
+
+    The URL is deliberately absent: CBC's edge drops any user agent containing one, which is
+    the convention meant to make a crawler identifiable. See clippings/constants.py for the
+    measurement and docs/sources.md for the reasoning.
+    """
+    assert USER_AGENT.startswith("clippings/")
+    assert "://" not in USER_AGENT, (
+        "a URL in the user agent gets this project refused by at least one publisher; "
+        "robots.txt addresses the 'clippings' product token instead"
+    )
