@@ -6,10 +6,9 @@ delivers a short digest with every claim cited and every quote verified against 
 source. One system in place of dozens of people each doing this by hand, at a few dollars
 a month per department, with measured precision and recall instead of a feeling.
 
-**Status: building, week 1 of 3.** Ingestion, storage, deduplication and clustering are
+**Status: building.** Ingestion, storage, deduplication and clustering are
 built and tested; no digest has been produced and nothing has been measured. The plan is in
-[PLAN.md](PLAN.md): a three-week build on Google Cloud Run, then a measurement month
-running daily.
+[PLAN.md](PLAN.md): a build on Google Cloud Run, then a measurement month running daily.
 
 **No source has been fetched yet.** Every source is gated on its terms being read and
 recorded in [docs/sources.md](docs/sources.md) with the date. Until a row there says
