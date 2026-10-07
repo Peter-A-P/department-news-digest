@@ -24,8 +24,8 @@ emailed.
 
 1. A Google Cloud project with billing, and `gcloud auth login` on the machine that deploys.
 2. **The spend caps.** `clippings/config/gateway/caps.yaml` holds this project's caps in
-   the gateway: US$2 a run, US$5 a day, US$60 a month. Confirm them, and mirror the project
-   line in the gateway repository's own caps file. The Anthropic console's hard cap is the
+   the gateway: US$2 a run, US$5 a day, US$60 a month, confirmed by Peter on 2026-10-07.
+   Mirror the project line in the gateway repository's own caps file. The Anthropic console's hard cap is the
    first line of defence; these are the second.
 3. Docker, for building the image locally (Cloud Build is not used, so nothing is built on
    a machine this project does not control).

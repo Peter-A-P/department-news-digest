@@ -15,8 +15,10 @@
 #   developer rerunning by hand cannot spend a month's budget in an afternoon.
 # - `monthly_usd` holds the running cost and the build month's reruns together, with room.
 #
-# PROPOSED, not yet confirmed by Peter. Mirror the project line in the gateway repository's
-# own caps file before the first live call so the portfolio total stays honest.
+# Confirmed by Peter on 2026-10-07, after the first live digest measured US$0.063 for one
+# audience-day, so a daily run of all four is about US$0.25 against the US$2 per-run cap.
+# The project line is to be mirrored in the gateway repository's own caps file so the
+# portfolio total stays honest.
 
 version: 1
 portfolio_monthly_usd: 60
