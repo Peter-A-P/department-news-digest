@@ -94,3 +94,36 @@ def test_every_source_in_every_example_audience_has_a_row() -> None:
             keys.add("bluesky")
         missing = keys - set(rows)
         assert not missing, f"{audience.id} uses sources with no row in docs/sources.md: {missing}"
+
+
+def test_recording_a_reading_changes_one_row_and_nothing_else() -> None:
+    """Find-and-replace of `pending` broke the legend and left no date, twice."""
+    from datetime import date
+
+    import pytest
+
+    from clippings.sources.terms import TermsRecordError, parse_terms, record_reading
+
+    text = "\n".join(
+        [
+            "| Status | Meaning |",
+            "|---|---|",
+            "| `pending` | Not read yet. |",
+            "",
+            "| Key | Source | Terms | Date read | Status | Notes |",
+            "|---|---|---|---|---|---|",
+            "| a.example | A | https://a.example/terms | - | pending | first |",
+            "| b.example | B | https://b.example/terms | - | pending | |",
+            "",
+            "Prose that says `pending` stays as it is.",
+        ]
+    )
+    updated = record_reading(text, "a.example", "allowed", date(2026, 10, 7), "Read by Peter")
+    rows = parse_terms(updated)
+    assert rows["a.example"].allowed and rows["a.example"].date_read == date(2026, 10, 7)
+    assert rows["a.example"].notes == "first. Read by Peter"
+    assert rows["b.example"].status == "pending"
+    assert "| `pending` | Not read yet. |" in updated
+    assert "says `pending` stays" in updated
+    with pytest.raises(TermsRecordError, match="no row"):
+        record_reading(text, "c.example", "allowed", date(2026, 10, 7))

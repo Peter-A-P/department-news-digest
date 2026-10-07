@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import os
 from contextlib import ExitStack
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Annotated
@@ -51,7 +51,14 @@ from clippings.ingest.store import Store
 from clippings.sources.base import FetchContext, http_client
 from clippings.sources.probe import PROBE_TIMEOUT, probe_audience
 from clippings.sources.robots import RobotsCache
-from clippings.sources.terms import TermsGate, TermsRecordError, load_terms
+from clippings.sources.terms import (
+    SOURCES_DOC,
+    STATUSES,
+    TermsGate,
+    TermsRecordError,
+    load_terms,
+    record_reading,
+)
 
 app = typer.Typer(add_completion=False, help=__doc__)
 sources_app = typer.Typer(help="The terms record and what it permits.")
@@ -346,6 +353,35 @@ def sources_check(audiences: AudienceDir = EXAMPLES) -> None:
         )
         raise typer.Exit(code=1)
     typer.echo(f"\nAll {len(set(allowed))} sources have terms recorded and allowed.")
+
+
+@sources_app.command("record")
+def sources_record(
+    keys: Annotated[list[str], typer.Argument(help="Terms keys, as in docs/sources.md.")],
+    status: Annotated[str, typer.Option(help="allowed, dropped or pending.")] = "allowed",
+    read_on: Annotated[
+        str | None, typer.Option("--read-on", help="Date the terms were read, YYYY-MM-DD.")
+    ] = None,
+    note: Annotated[str, typer.Option(help="Appended to the row's notes.")] = "",
+) -> None:
+    """Record that a source's terms were read: its row's status and date, nothing else.
+
+    Use this rather than editing the table by hand: a find-and-replace of `pending` also
+    changes the legend and the prose, and a row allowed without a date stops every source.
+    """
+    if status not in STATUSES:
+        raise typer.BadParameter(f"status must be one of {', '.join(sorted(STATUSES))}")
+    day = date.fromisoformat(read_on) if read_on else datetime.now(UTC).date()
+    text = SOURCES_DOC.read_text(encoding="utf-8")
+    try:
+        for key in keys:
+            text = record_reading(text, key, status, day, note)  # type: ignore[arg-type]
+    except TermsRecordError as exc:
+        typer.echo(f"terms record: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    SOURCES_DOC.write_text(text, encoding="utf-8")
+    for key in keys:
+        typer.echo(f"  {status:8s} {key} (read {day})")
 
 
 @sources_app.command("probe")

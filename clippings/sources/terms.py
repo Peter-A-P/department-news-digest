@@ -122,6 +122,37 @@ def load_terms(path: Path = SOURCES_DOC) -> dict[str, TermsRow]:
     return parse_terms(path.read_text(encoding="utf-8"))
 
 
+def record_reading(text: str, key: str, status: Status, read_on: date, note: str = "") -> str:
+    """The terms document with one source's row changed, and nothing else.
+
+    Exists because the obvious way to do this by hand, find-and-replace `pending` with
+    `allowed`, also rewrites the status legend and any prose that names a status, and leaves
+    the date column empty, which makes the whole record refuse to load and every source with
+    it. That happened twice (2026-10-02, 2026-10-07). This edits the one row by its key.
+    """
+    lines = text.split("\n")
+    found = False
+    for index, line in enumerate(lines):
+        cells = _cells(line)
+        if len(cells) < 5 or cells[0] != key or _is_separator(cells):
+            continue
+        if found:
+            raise TermsRecordError(f"source {key!r}: recorded twice")
+        found = True
+        cells[3] = read_on.isoformat()
+        cells[4] = status
+        if note:
+            existing = cells[5].rstrip(" .") if len(cells) > 5 else ""
+            cells[5:] = [f"{existing}. {note}" if existing else note]
+        ending = "\r" if line.endswith("\r") else ""
+        lines[index] = "| " + " | ".join(cells) + " |" + ending
+    if not found:
+        raise TermsRecordError(f"source {key!r} has no row to update; add one first")
+    updated = "\n".join(lines)
+    parse_terms(updated)  # refuse to write a record that would not load
+    return updated
+
+
 class TermsGate:
     """Refuses any source whose terms are not recorded as read and allowed.
 
