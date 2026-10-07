@@ -9,8 +9,8 @@ a month per department, with measured precision and recall instead of a feeling.
 **Status: building.** The whole pipeline is built and tested: ingestion, deduplication,
 clustering, ranking, the model re-ranker, cited summaries, the verifier with one repair,
 the page, the Markdown and the email draft, the read-only service and the Cloud Run
-deployment. The first model-backed digest was built locally on 2026-10-07 for the
-Newfoundland and Labrador audience; nothing is deployed yet, and nothing has been measured.
+deployment. It has run daily on Cloud Run since 2026-10-07, for all four audiences, at about
+US$0.23 a day in model calls. Nothing has been measured yet.
 The plan is in [PLAN.md](PLAN.md): a build on Google Cloud Run, then a measurement month
 running daily.
 

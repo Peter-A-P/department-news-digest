@@ -36,6 +36,19 @@ SECRETS=(anthropic-api-key reddit-client-id reddit-client-secret bluesky-handle 
 
 gcloud config set project "$PROJECT" >/dev/null
 
+# A service account exists a few seconds before IAM will bind a role to it (found on the
+# first deploy, 2026-10-07: "Service account ... does not exist" straight after creating
+# it). Bindings are retried rather than raced.
+retry() {
+  local attempt
+  for attempt in 1 2 3 4 5 6; do
+    "$@" && return 0
+    echo "  retrying in 10s ($attempt/6)" >&2
+    sleep 10
+  done
+  return 1
+}
+
 echo "== APIs"
 gcloud services enable run.googleapis.com cloudscheduler.googleapis.com \
   artifactregistry.googleapis.com secretmanager.googleapis.com billingbudgets.googleapis.com
@@ -59,16 +72,16 @@ for sa in clippings-job clippings-web clippings-scheduler; do
   gcloud iam service-accounts describe "${sa}@${PROJECT}.iam.gserviceaccount.com" >/dev/null 2>&1 || \
     gcloud iam service-accounts create "$sa" --display-name="$sa"
 done
-gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
+retry gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
   --member="serviceAccount:${JOB_SA}" --role=roles/storage.objectAdmin >/dev/null
-gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
+retry gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
   --member="serviceAccount:${WEB_SA}" --role=roles/storage.objectViewer >/dev/null
 
 echo "== Secrets (names only; values are added by hand)"
 for secret in "${SECRETS[@]}"; do
   gcloud secrets describe "$secret" >/dev/null 2>&1 || \
     gcloud secrets create "$secret" --replication-policy=automatic
-  gcloud secrets add-iam-policy-binding "$secret" \
+  retry gcloud secrets add-iam-policy-binding "$secret" \
     --member="serviceAccount:${JOB_SA}" --role=roles/secretmanager.secretAccessor >/dev/null
 done
 
@@ -99,7 +112,7 @@ gcloud run jobs deploy clippings-daily --image="$IMAGE" --region="$REGION" \
   --cpu=1 --memory=2Gi --task-timeout=3600 --max-retries=1
 
 echo "== The schedule"
-gcloud run jobs add-iam-policy-binding clippings-daily --region="$REGION" \
+retry gcloud run jobs add-iam-policy-binding clippings-daily --region="$REGION" \
   --member="serviceAccount:${SCHEDULER_SA}" --role=roles/run.invoker >/dev/null
 RUN_URI="https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/jobs/clippings-daily:run"
 if gcloud scheduler jobs describe clippings-daily --location="$REGION" >/dev/null 2>&1; then

@@ -47,7 +47,9 @@ def application(site: Site) -> Callable[[Environ, StartResponse], Iterable[bytes
     def app(environ: Environ, start_response: StartResponse) -> Iterable[bytes]:
         method = environ.get("REQUEST_METHOD", "GET")
         path = environ.get("PATH_INFO", "/")
-        if path == "/healthz":
+        # /health, because Cloud Run's front end answers /healthz itself with a 404 and the
+        # request never reaches the container (found on the first deploy, 2026-10-07).
+        if path in {"/health", "/healthz"}:
             return _respond(start_response, "200 OK", b"ok\n", "text/plain; charset=utf-8", method)
         if method not in {"GET", "HEAD"}:
             return _respond(

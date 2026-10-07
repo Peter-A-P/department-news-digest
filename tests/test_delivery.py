@@ -232,7 +232,7 @@ def test_the_service_serves_pages_and_nothing_else(tmp_path: Path) -> None:
     assert get(app, "/test-audience/2026-09-12/", "POST")[0].startswith("405")
     eml = get(app, "/test-audience/2026-09-12/digest.eml")
     assert eml[1]["Content-Disposition"].startswith("attachment")
-    assert get(app, "/healthz")[2] == b"ok\n"
+    assert get(app, "/health")[2] == b"ok\n"
 
 
 # -- what survives, and what is never fetched ------------------------------------------------
