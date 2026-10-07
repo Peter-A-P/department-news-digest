@@ -199,6 +199,10 @@ def run(
             _print_report(state["report"])
             if "digest" in state:
                 _print_digest(state["digest"], state.get("published", []))
+                # A failed call is not a crash, so it would otherwise be invisible here.
+                errors = [error for work in state.get("works", []) for error in work.errors]
+                for error in sorted(set(errors))[:5]:
+                    typer.echo(f"  ! {error[:200]}", err=True)
         # The thirty-day promise is kept by the daily run itself, not by a person remembering
         # to run `clippings retention`.
         deleted = store.retention()
@@ -243,7 +247,7 @@ def _print_digest(digest: Digest, published: list[str]) -> None:
     typer.echo(f"  cost        US${digest.cost_usd:.4f} over {len(digest.calls)} calls{uncosted}")
     typer.echo(f"  digest      {len(digest.stories)} stories")
     for story in digest.stories:
-        mark = "" if story.sentences else "  (no verified summary)"
+        mark = "" if story.sentences else f"  ({story.status})"
         score = "-" if story.rerank_score is None else str(story.rerank_score)
         typer.echo(f"     {story.position:2d}. [{score}] {story.headline[:70]}{mark}")
     if published:

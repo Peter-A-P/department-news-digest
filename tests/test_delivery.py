@@ -277,3 +277,10 @@ def test_state_sync_round_trips_through_the_bucket(tmp_path: Path) -> None:
     second = StateSync(bucket, tmp_path / "run2")
     second.pull()
     assert (second.db.read_bytes(), second.ledger.read_bytes()) == (b"db", b"ledger")
+
+
+def test_temperature_is_not_sent_unless_a_call_asks_for_it() -> None:
+    """Sonnet 5.5 answers 400 to any request carrying `temperature` (2026-10-07)."""
+    fake = FakeGateway()
+    GatewayClient(gateway=fake).complete(call(), run_id="r")  # type: ignore[arg-type]
+    assert fake.calls[0]["request"].temperature is None

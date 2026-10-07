@@ -54,6 +54,10 @@ class StoryWork:
 
     @property
     def status(self) -> str:
+        if not self.kept and self.draft is not None and not self.draft.sentences and self.errors:
+            # Nothing was drafted because the call failed or its answer did not parse: a
+            # different fact from a summary the verifier refused, and the page says which.
+            return "summary failed"
         if not self.kept:
             return "no verified summary"
         return "repaired" if self.repaired is not None else "verified"

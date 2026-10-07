@@ -56,8 +56,18 @@ def select(
     *,
     diversity: float = DEFAULT_DIVERSITY,
     max_per_domain: int = DEFAULT_MAX_PER_DOMAIN,
+    tiers: Mapping[str, float] | None = None,
 ) -> Selection:
-    """Choose up to `k` stories, penalising resemblance to what is already chosen."""
+    """Choose up to `k` stories, penalising resemblance to what is already chosen.
+
+    `tiers`, when given, is the re-ranker's verdict per story id, and diversity and the
+    per-outlet cap work within a tier, never across one: every story the model called a must-read is taken before any
+    it called relevant, and so on down. Found on the first live run (2026-10-07), where two
+    stories the model scored 1 were placed above four it scored 2, because the penalty for
+    resembling an earlier story was larger than the gap between two rubric scores. The rubric
+    is the audience's own statement of what matters; resemblance should reorder within it,
+    not overrule it.
+    """
     by_score_alone = tuple(scored)
     if k <= 0 or not scored:
         return Selection(stories=(), by_score_alone=by_score_alone)
@@ -69,10 +79,23 @@ def select(
     while remaining and len(chosen) < k:
         best: ScoredStory | None = None
         best_value = float("-inf")
-        for story in remaining:
-            domain = story.representative.domain
-            if per_domain.get(domain, 0) >= max_per_domain:
-                continue
+        pool = remaining
+        if tiers is not None:
+            # The tier comes first and the outlet cap applies inside it: a story the model
+            # called marginal does not go above one it called relevant because the relevant
+            # one is the fourth from CBC. Seen on the same run, where three CBC stories at
+            # the top capped the outlet and pulled two 1s above four 2s.
+            top = max(tiers.get(story.id, 0.0) for story in remaining)
+            pool = [story for story in remaining if tiers.get(story.id, 0.0) == top]
+        eligible = [
+            story
+            for story in pool
+            if per_domain.get(story.representative.domain, 0) < max_per_domain
+        ]
+        if tiers is not None and not eligible:
+            # Every story left in this tier is from a capped outlet: the tier wins.
+            eligible = pool
+        for story in eligible:
             value = story.score - diversity * _max_similarity(story, chosen, story_vectors)
             if value > best_value:
                 best, best_value = story, value

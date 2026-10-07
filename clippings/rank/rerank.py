@@ -110,6 +110,14 @@ class Rerank:
     def excluded(self) -> int:
         return sum(1 for score in self.scores if score.excluded)
 
+    def tiers(self) -> dict[str, float]:
+        """The model's score per story, for selection. A candidate it gave no score sits
+        below every story it scored relevant, where `blend` already puts it."""
+        return {
+            score.story_id: float(score.model_score) if score.model_score is not None else 0.5
+            for score in self.scores
+        }
+
     def selectable(self) -> tuple[ScoredStory, ...]:
         """The stories the digest may be chosen from: everything not scored 0."""
         excluded = {score.story_id for score in self.scores if score.excluded}

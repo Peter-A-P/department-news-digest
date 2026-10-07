@@ -107,7 +107,12 @@ def _story_html(story: DigestStory) -> str:
             )
             parts.append(f"<p>{escape(sentence.text)} {marks}</p>")
     else:
-        parts.append('<p class="none">No summary passed verification; the link is the story.</p>')
+        why = (
+            "The summary could not be produced today"
+            if story.status == "summary failed"
+            else "No summary passed verification"
+        )
+        parts.append(f'<p class="none">{why}; the link is the story.</p>')
     parts.append('<ol class="sources">')
     for source in story.sources:
         read = "" if source.extracted else " (feed summary only)"
@@ -163,7 +168,12 @@ def markdown(digest: Digest) -> str:
                 lines.append(f"{sentence.text} {marks}")
             lines.append("")
         else:
-            lines += ["_No summary passed verification._", ""]
+            why = (
+                "The summary could not be produced today."
+                if story.status == "summary failed"
+                else "No summary passed verification."
+            )
+            lines += [f"_{why}_", ""]
         for source in story.sources:
             lines.append(f"- [{source.sid}] {source.domain}: [{source.title}]({source.url})")
         lines.append("")

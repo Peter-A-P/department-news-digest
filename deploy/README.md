@@ -83,7 +83,8 @@ and they are on the gateway's ledger in `gs://BUCKET/state/boundary.sqlite`:
 
 ```
 gcloud storage cp gs://BUCKET/state/boundary.sqlite /tmp/ && \
-  uv run boundary ledger report --ledger /tmp/boundary.sqlite
+  uv run boundary --config clippings/config/gateway/boundary.yaml \
+    ledger report --ledger /tmp/boundary.sqlite
 ```
 
 ## Changing the schedule

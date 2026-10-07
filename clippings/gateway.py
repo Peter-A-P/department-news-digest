@@ -83,7 +83,10 @@ class ModelCall:
     system: str
     user: str
     max_tokens: int = 1024
-    temperature: float = 0.0
+    # None leaves it to the model's default and sends nothing. Sonnet 5.5 refuses the field
+    # outright ("`temperature` is deprecated for this model", HTTP 400, found on the first
+    # live run, 2026-10-07), so it is opt-in per call rather than a default every call sends.
+    temperature: float | None = None
 
     @property
     def ledger_purpose(self) -> str:

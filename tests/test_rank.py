@@ -343,3 +343,50 @@ def test_clustered_stories_rank_and_select_end_to_end(audience: Audience) -> Non
     chosen = select(ranked, embed_stories(clusters, by_id, embedder), k=2)
     assert 1 <= len(chosen.stories) <= 2
     assert all(s.representative.id in by_id for s in chosen.stories)
+
+
+def test_diversity_reorders_within_a_rubric_tier_and_never_across_one() -> None:
+    """First live run, 2026-10-07: two stories scored 1 by the re-ranker were placed above
+    four it scored 2, because resemblance to a chosen story cost more than a rubric point."""
+    from clippings.models import Cluster
+    from clippings.rank.features import Features
+    from clippings.rank.score import ScoredStory
+    from clippings.rank.select import select
+    from tests.conftest import item
+
+    def story(name: str, score: float) -> ScoredStory:
+        rep = item(name, domain=f"{name}.example")
+        cluster = Cluster(
+            id=name, audience_id="a", day="d", representative_id=rep.id, item_ids=(rep.id,)
+        )
+        return ScoredStory(cluster, rep, Features(0, 0, 0, 0, 0, 0), score)
+
+    must, alike, unalike = story("must", 0.9), story("alike", 0.6), story("unalike", 0.4)
+    vectors = {"must": (1.0, 0.0), "alike": (1.0, 0.0), "unalike": (0.0, 1.0)}
+    tiers = {"must": 3.0, "alike": 2.0, "unalike": 1.0}
+
+    untiered = select([must, alike, unalike], vectors, 2)
+    assert [s.id for s in untiered.stories] == ["must", "unalike"]
+    tiered = select([must, alike, unalike], vectors, 2, tiers=tiers)
+    assert [s.id for s in tiered.stories] == ["must", "alike"]
+
+
+def test_the_outlet_cap_does_not_pull_a_marginal_story_above_a_relevant_one() -> None:
+    from clippings.models import Cluster
+    from clippings.rank.features import Features
+    from clippings.rank.score import ScoredStory
+    from clippings.rank.select import select
+    from tests.conftest import item
+
+    def story(name: str, domain: str) -> ScoredStory:
+        rep = item(name, domain=domain)
+        cluster = Cluster(
+            id=name, audience_id="a", day="d", representative_id=rep.id, item_ids=(rep.id,)
+        )
+        return ScoredStory(cluster, rep, Features(0, 0, 0, 0, 0, 0), 0.5)
+
+    stories = [story(f"cbc{i}", "cbc.ca") for i in range(4)] + [story("other", "ntv.ca")]
+    tiers = {"cbc0": 3.0, "cbc1": 3.0, "cbc2": 3.0, "cbc3": 2.0, "other": 1.0}
+    vectors = {s.id: (1.0, 0.0) for s in stories}
+    chosen = select(stories, vectors, 5, tiers=tiers, diversity=0.0, max_per_domain=3)
+    assert [s.id for s in chosen.stories] == ["cbc0", "cbc1", "cbc2", "cbc3", "other"]

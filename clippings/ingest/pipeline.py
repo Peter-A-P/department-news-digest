@@ -8,7 +8,7 @@ decides only what runs next.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
@@ -266,7 +266,14 @@ def rank_day(
 
 
 def choose(
-    stories: Sequence[ScoredStory], pool: dict[str, Item], embedder: Embedder, k: int
+    stories: Sequence[ScoredStory],
+    pool: dict[str, Item],
+    embedder: Embedder,
+    k: int,
+    *,
+    tiers: Mapping[str, float] | None = None,
 ) -> Selection:
-    """The digest's K stories from an ordered list, with the diversity penalty."""
-    return select(stories, embed_stories([story.cluster for story in stories], pool, embedder), k)
+    """The digest's K stories from an ordered list, with the diversity penalty applied within
+    the re-ranker's tiers when there are any."""
+    vectors = embed_stories([story.cluster for story in stories], pool, embedder)
+    return select(stories, vectors, k, tiers=tiers)
