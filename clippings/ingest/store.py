@@ -12,14 +12,17 @@ from collections.abc import Iterable, Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import TracebackType
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 import duckdb
 
 from clippings.constants import RETENTION_DAYS
 from clippings.models import Cluster, Item, ItemText, Label
 
-SCHEMA_VERSION = 2
+if TYPE_CHECKING:
+    from clippings.assemble.digest import Digest
+
+SCHEMA_VERSION = 3
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -122,6 +125,34 @@ CREATE TABLE IF NOT EXISTS fetch_log (
     ok          BOOLEAN NOT NULL,
     detail      TEXT NOT NULL
 );
+
+-- The order a run put a day's candidates in, after the re-ranker: what the digest was chosen
+-- from, and what the week-3 labelling sample calls "top thirty". Scores and the model's
+-- one-line reason only; no text.
+CREATE TABLE IF NOT EXISTS rankings (
+    audience_id TEXT NOT NULL,
+    day         TEXT NOT NULL,
+    run_id      TEXT NOT NULL,
+    position    INTEGER NOT NULL,
+    cluster_id  TEXT NOT NULL,
+    prefilter   DOUBLE NOT NULL,
+    rerank      INTEGER,
+    final       DOUBLE NOT NULL,
+    reason      TEXT NOT NULL,
+    PRIMARY KEY (audience_id, day, run_id, position)
+);
+
+-- One row per published digest, as JSON. A digest holds summaries, quotes of at most
+-- twenty-five words, titles and links, never article text, so it is kept after retention
+-- deletes the items it was built from: it is the archive, and week 3 measures from it.
+CREATE TABLE IF NOT EXISTS digests (
+    audience_id  TEXT NOT NULL,
+    day          TEXT NOT NULL,
+    run_id       TEXT NOT NULL,
+    generated_at TIMESTAMPTZ NOT NULL,
+    body         TEXT NOT NULL,
+    PRIMARY KEY (audience_id, day, run_id)
+);
 """
 
 
@@ -130,6 +161,10 @@ class Store:
 
     def __init__(self, connection: duckdb.DuckDBPyConnection) -> None:
         self._connection = connection
+        # DuckDB hands TIMESTAMPTZ values back in the session's time zone, which defaults to
+        # the machine's. Every time this project stores is UTC, and a page that printed a
+        # Warsaw wall-clock time labelled UTC (found 2026-10-02) is the bug this prevents.
+        self._connection.execute("SET TimeZone = 'UTC'")
         self._connection.execute(SCHEMA)
         self._connection.execute(
             "INSERT INTO meta (key, value) VALUES ('schema_version', ?) "
@@ -434,6 +469,88 @@ class Store:
         return {
             (str(row[0]), str(row[1])): bool(row[2])
             for row in self._connection.execute(query, params).fetchall()
+        }
+
+    # -- rankings and digests ------------------------------------------------------------
+
+    def save_ranking(
+        self,
+        audience_id: str,
+        day: str,
+        run_id: str,
+        rows: Sequence[tuple[str, float, int | None, float, str]],
+    ) -> None:
+        """Rows of (cluster id, pre-filter, rerank score or None, final, reason), best first."""
+        self._connection.executemany(
+            "INSERT INTO rankings (audience_id, day, run_id, position, cluster_id, prefilter, "
+            "rerank, final, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT DO NOTHING",
+            [
+                [audience_id, day, run_id, position, *row]
+                for position, row in enumerate(rows, start=1)
+            ],
+        )
+
+    def ranking_for(self, audience_id: str, day: str) -> list[str]:
+        """Cluster ids in the order the day's latest run ranked them; empty if none ran."""
+        latest = self._connection.execute(
+            "SELECT max(run_id) FROM rankings WHERE audience_id = ? AND day = ?",
+            [audience_id, day],
+        ).fetchone()
+        if not latest or latest[0] is None:
+            return []
+        rows = self._connection.execute(
+            "SELECT cluster_id FROM rankings WHERE audience_id = ? AND day = ? AND run_id = ? "
+            "ORDER BY position",
+            [audience_id, day, latest[0]],
+        ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def save_digest(self, digest: Digest) -> None:
+        self._connection.execute(
+            "INSERT INTO digests (audience_id, day, run_id, generated_at, body) "
+            "VALUES (?, ?, ?, ?, ?) ON CONFLICT (audience_id, day, run_id) DO UPDATE SET "
+            "generated_at = excluded.generated_at, body = excluded.body",
+            [
+                digest.audience_id,
+                digest.day,
+                digest.run_id,
+                digest.generated_at,
+                digest.model_dump_json(),
+            ],
+        )
+
+    def digest_for(self, audience_id: str, day: str) -> Digest | None:
+        """The latest digest built for this audience on this day."""
+        from clippings.assemble.digest import Digest
+
+        row = self._connection.execute(
+            "SELECT body FROM digests WHERE audience_id = ? AND day = ? "
+            "ORDER BY generated_at DESC, run_id DESC LIMIT 1",
+            [audience_id, day],
+        ).fetchone()
+        return Digest.model_validate_json(row[0]) if row else None
+
+    def digest_days(self, audience_id: str) -> list[str]:
+        rows = self._connection.execute(
+            "SELECT DISTINCT day FROM digests WHERE audience_id = ? ORDER BY day DESC",
+            [audience_id],
+        ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def texts_for(self, item_ids: Iterable[str]) -> dict[str, ItemText]:
+        ids = list(item_ids)
+        if not ids:
+            return {}
+        placeholders = ", ".join("?" for _ in ids)
+        rows = self._connection.execute(
+            "SELECT item_id, text, extracted_at, words FROM item_text "
+            f"WHERE item_id IN ({placeholders})",
+            ids,
+        ).fetchall()
+        return {
+            row[0]: ItemText(item_id=row[0], text=row[1], extracted_at=row[2], words=row[3])
+            for row in rows
         }
 
     # -- retention -----------------------------------------------------------------------

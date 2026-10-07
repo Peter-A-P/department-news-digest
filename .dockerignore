@@ -1,0 +1,13 @@
+.git
+.venv
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.env
+.env.*
+data
+out
+tests
+**/__pycache__
+CLAUDE.md
+CLAUDE.local.md

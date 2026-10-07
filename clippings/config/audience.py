@@ -41,6 +41,11 @@ class Feed(Strict):
     url: str
     publisher: str
     terms: str
+    # False for a feed whose terms were cleared for the feed itself and not for its article
+    # pages: a publisher paywalled in part, where the feed's own title and summary and a link
+    # are usable and a request for the page is not. The item still reaches a digest, and the
+    # summariser and verifier work from what the publisher put in the feed.
+    extract: bool = True
 
     @field_validator("url")
     @classmethod

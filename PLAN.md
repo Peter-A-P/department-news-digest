@@ -1,6 +1,8 @@
 # Plan: Department News Digest
 
-**Written:** 2026-09-07. **Status:** plan only, nothing built.
+**Written:** 2026-09-07. **Status:** building. Week 1 and week 2's code are built and tested; the
+first model-backed digest and the deployment wait on the gateway key, the spend caps and the GCP
+account (2026-10-02).
 
 **Build:** three weeks of evenings, not sequenced; the plan is written in relative weeks.
 Earliest start: after `boundary` v0.1.0 (Sep 13 2026) and a GCP account with billing
@@ -94,6 +96,13 @@ every sentence has at least one citation. A sentence that fails is repaired once
 with the failure named) and dropped if it fails again. Counts before and after repair are
 published, so the reader can see how often the model invented a quote.
 
+Two refinements made while building it (2026-10-02). A quote must appear in a source the
+sentence *cites*, not merely somewhere in the cluster: a real quote attributed to the wrong
+outlet is a wrong citation. And every number in a sentence must appear in a source it cites,
+the check project 13 found most useful, because a fluent summary still writes 30 where the
+source says 60. The headline is never the model's: a story is headed by its representative
+item's own title, so the only words no publisher wrote are the checked summary sentences.
+
 ### 2.5 A daily job, stateless compute, one small database
 
 A Cloud Run job per day, triggered by Cloud Scheduler, runs the LangGraph pipeline for all
@@ -151,14 +160,18 @@ clippings/
                every sentence cited), repair.py (one rewrite, then drop)
   assemble/    digest.py (sections, length budget), render.py (HTML page, Markdown, .eml draft file),
                trends.py (weekly entity and topic deltas with the items behind them)
-  graph.py     LangGraph: fetch -> normalise -> cluster -> rank -> summarise -> verify -> assemble -> publish;
+  gateway.py   the only module that imports the gateway: aliases per purpose, data class `public`,
+               the spend switch, and a scripted client for the tests
+  graph.py     LangGraph: ingest -> rank -> rerank -> select -> summarise -> verify (-> repair -> verify)
+               -> assemble -> publish, with a stop after rank when no model may be called;
                no send node exists
   eval/        sample.py (top-30 plus random-30 per day), labels.py (labelling CLI), precision_recall.py
                (importance-weighted recall, bootstrap CIs), dedup_eval.py, quotes_eval.py, faithfulness.py
                (hand-check tool; 03 judge adapter), reader_study.py, source_yield.py, timeliness.py,
                gate/ (03 eval spec and item loader)
-  serve/       Cloud Run service: digest per audience, archive, trend page, read-only
-  cli.py       clippings run | label | eval | report | render
+  serve/       Cloud Run service: digest per audience, archive, trend page, read-only (stdlib WSGI
+               over the bucket's site prefix; GET and HEAD only)
+  cli.py       clippings run | label | eval | report | render | serve
 deploy/        Dockerfile; Cloud Run job and service; Cloud Scheduler; Cloud Storage bucket; budget alerts;
                custom domain digest.peterparker.ca
 docs/          sources.md (terms per source, date read), audiences.md, data-retention.md
@@ -191,6 +204,10 @@ deduplication, quote verification, cost per digest and the terms record are not 
 
 Prices as of 2026-09-07 (Anthropic list per million tokens: Haiku 4.5 at $1 in and $5 out,
 Sonnet 5 at $2 in and $10 out). Embeddings and clustering run on CPU inside the job.
+Summaries route to Sonnet 5.5 since 2026-10-02: newer, and the same $2 and $10 in the
+gateway's 2026-10-01 price list, so no line below moves. The re-ranker is shown about 150
+tokens per candidate (headline, outlet, sixty words of feed summary) rather than the 500
+assumed here, so its line is an upper bound.
 
 | Item | Basis | US$ | CA$ |
 |---|---|---:|---:|

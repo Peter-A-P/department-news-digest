@@ -131,3 +131,13 @@ def test_the_package_contains_no_smtp_configuration() -> None:
         text = path.read_text(encoding="utf-8")
         for needle in needles:
             assert needle not in text, f"{path.name} mentions {needle!r}"
+
+
+def test_the_graph_switches_third_party_tracing_off() -> None:
+    """langgraph's tracing client would send prompts to LangSmith if the environment asked."""
+    import os
+
+    from clippings import graph  # noqa: F401
+
+    for variable in ("LANGSMITH_TRACING", "LANGCHAIN_TRACING_V2", "LANGCHAIN_TRACING"):
+        assert os.environ[variable] == "false"

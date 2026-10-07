@@ -66,9 +66,6 @@ sources:
     - url: https://www.cbc.ca/webfeed/rss/rss-canada-newfoundland
       publisher: CBC News, Newfoundland and Labrador
       terms: cbc.ca
-    - url: https://vocm.com/feed/
-      publisher: VOCM News
-      terms: vocm.com
     - url: https://ntv.ca/feed/
       publisher: NTV News
       terms: ntv.ca
@@ -78,6 +75,9 @@ sources:
     - url: https://www.saltwire.com/rss
       publisher: SaltWire Network
       terms: saltwire.com
+      # Paywalled in part. Cleared for the feed only: title, summary and link, and no
+      # request for the article page. See docs/sources.md.
+      extract: false
     - url: https://gazette.mun.ca/feed/
       publisher: Memorial University Gazette
       terms: gazette.mun.ca

@@ -105,3 +105,18 @@ def test_the_fetch_log_records_a_failure(store: Store) -> None:
     )
     rows = store._connection.execute("SELECT ok, detail FROM fetch_log").fetchall()
     assert rows == [(False, "ConnectTimeout")]
+
+
+def test_times_come_back_in_utc_whatever_the_machine_says() -> None:
+    """DuckDB returns TIMESTAMPTZ in the session zone, which defaults to the machine's."""
+    from datetime import UTC, timedelta
+
+    from clippings.ingest.store import Store
+    from tests.conftest import NOW, item
+
+    with Store.memory() as store:
+        store.add_items([item("a")], "test-audience")
+        published = store.items_for("test-audience")[0].published_at
+    assert published == NOW
+    assert published.utcoffset() == timedelta(0)
+    assert published.tzinfo is not None and published.astimezone(UTC).hour == NOW.hour

@@ -7,9 +7,16 @@ requires-python = ">=3.13,<3.14"
 authors = [{ name = "Peter Parker" }]
 dependencies = [
   # Every model call goes through the portfolio gateway (PLAN.md section 2.3); cost per digest
-  # comes from its ledger. Pinned to the 0.x line the 04 plan promises additive changes within,
-  # from >=0.2 because the ledger report this project costs digests with landed in 0.2.0.
-  "boundary>=0.2,<0.3",
+  # comes from its ledger. From 0.35 for three things this project uses: `data_class` on every
+  # call (0.4, so each row says `public`), the per-day cap (0.30, which bounds a scheduler
+  # retry loop), and the packaged 2026-10-01 price list (`prices: builtin`), which carries
+  # Sonnet 5.5. Below 1 because the gateway's interface is additive within 0.x and Part B is
+  # the major bump.
+  "boundary>=0.35,<1",
+  # The pipeline graph (PLAN.md section 4): fetch to publish as nodes, with the verify and
+  # repair loop as an edge rather than a while loop. The 0.x line project 13 uses; a major
+  # bump changes the StateGraph API the graph is written against.
+  "langgraph>=0.6,<1",
   # Audience schema, source records and digest models. The audience file is the product, so its
   # validation is not optional.
   "pydantic>=2,<3",
@@ -52,8 +59,9 @@ dev = [
 ]
 
 [tool.uv.sources]
-# Private until the first measured numbers; CI authenticates with a fine-grained read token.
-boundary = { git = "https://github.com/Peter-A-P/compliant-ai-gateway", tag = "v0.2.0" }
+# Pinned to the tag, not a branch, so the lockfile resolves to one commit and the price list
+# a digest was costed at is the one this checkout names.
+boundary = { git = "https://github.com/Peter-A-P/compliant-ai-gateway", tag = "v0.35.2" }
 
 [project.scripts]
 clippings = "clippings.cli:app"
@@ -107,9 +115,14 @@ module = [
   "google.*",
   "google.cloud.*",
   "google.api_core.*",
+  "langgraph",
+  "langgraph.*",
 ]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# langgraph imports a langchain serializer that warns about a default it does not use: no
+# checkpointer is configured, so nothing is ever serialised.
+filterwarnings = ["ignore::langchain_core._api.deprecation.LangChainPendingDeprecationWarning"]

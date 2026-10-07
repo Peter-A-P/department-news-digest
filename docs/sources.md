@@ -51,11 +51,11 @@ Then `clippings sources check` confirms every source in every audience file has 
 | gdelt | GDELT 2.0 document API | https://www.gdeltproject.org/about.html#termsofuse | 2026-09-13 | allowed | **Limit observed 2026-09-13**: 429 with "please limit requests to one every 5 seconds". The adapter now waits six seconds between requests and reports a 429 rather than retrying. It was still rate limited at that interval on the day, so the real limit may be lower over a longer window; watch the fetch log across a full day before widening any audience's query list. GDELT is also slow to answer, 10 to 12 seconds for a bare request, and has its own timeout in the adapter. |
 | reddit | Reddit Data API, free tier, registered application | https://www.redditinc.com/policies/data-api-terms | 2026-09-13 | allowed | Terms have changed repeatedly. Record the version and re-read before the measurement month |
 | bluesky | Bluesky public AT Protocol API | https://bsky.social/about/support/tos | 2026-09-13 | allowed | Public API; respect user deletion through the thirty-day retention |
-| vocm.com | VOCM News, St. John's (RSS) | https://vocm.com/terms-of-use/ | - | pending | Commercial broadcaster; read before allowing |
-| ntv.ca | NTV News, St. John's (RSS) | https://ntv.ca/privacy-policy/ | - | pending | Commercial broadcaster; find the terms page, it may only have a privacy policy |
-| theindependent.ca | The Independent, St. John's (RSS) | https://theindependent.ca/about/ | - | pending | Reader-funded independent outlet; check whether the feed is full text and quote accordingly |
-| saltwire.com | SaltWire Network, incl. The Telegram (RSS) | https://www.saltwire.com/terms-of-service | - | pending | Paywalled in part. Extraction must be refused where the article is behind the wall; the feed summary and a link may still be usable |
-| gazette.mun.ca | Memorial University Gazette (RSS) | https://www.mun.ca/main/legal/ | - | pending | University publication |
+| vocm.com | VOCM News, St. John's (RSS) | https://vocm.com/terms-of-use/ | 2026-10-02 | dropped | Terms read by Peter 2026-10-02 and fine, but every path on the site, the feed and robots.txt's own sitemap included, returns 403 to a non-browser client, identified or not (probed 2026-10-02). Treated as a refusal of automated access, the same call as ttc.ca |
+| ntv.ca | NTV News, St. John's (RSS) | https://ntv.ca/privacy-policy/ | 2026-10-02 | allowed | Commercial broadcaster; the site publishes a privacy policy rather than separate terms of use. Read by Peter 2026-10-02 and cleared for this use |
+| theindependent.ca | The Independent, St. John's (RSS) | https://theindependent.ca/about/ | 2026-10-02 | allowed | Reader-funded independent outlet. Read by Peter 2026-10-02 and cleared for this use |
+| saltwire.com | SaltWire Network, incl. The Telegram (RSS) | https://www.saltwire.com/terms-of-service | 2026-10-02 | allowed | Paywalled in part. Cleared by Peter 2026-10-02 for the feed only: the feed is set `extract: false` in the audience file, so the digest uses the publisher's own feed title and summary and a link, and no article page is ever requested |
+| gazette.mun.ca | Memorial University Gazette (RSS) | https://www.mun.ca/main/legal/ | 2026-10-02 | allowed | University publication. Read by Peter 2026-10-02 and cleared for this use |
 
 ## Recorded, but not currently in any audience file
 
@@ -71,6 +71,7 @@ reading is not lost and so nobody guesses the same URL again. Probed 2026-09-13 
 | cihi.ca | Every path tried returns 404 | A working feed from CIHI |
 | news.ontario.ca | Returns a 200 with a 1.5 KB HTML page; the Ontario newsroom feed paths have changed | A feed URL that returns entries |
 | ttc.ca | Returns 403 to an identified, non-browser client. Treated as a refusal of automated access and marked `dropped` below rather than worked around | Nothing. A 403 to an honest client is an answer |
+| vocm.com | Returns 403 on every path, robots.txt excepted, to any non-browser client, with this project's user agent and with curl's. robots.txt itself permits the feed. Marked `dropped` above rather than worked around | Nothing. VOCM publishing a feed it serves to automated readers |
 
 ## What CBC taught us about identifying ourselves
 

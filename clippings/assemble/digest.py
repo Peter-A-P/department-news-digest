@@ -1,0 +1,258 @@
+"""The digest as data: what is shown, why, what it cost, and what the verifier refused.
+
+A `Digest` is what the store keeps and every renderer reads. It holds no article text: the
+summary sentences (the only words a model wrote, every one verified), quotes of at most
+twenty-five words inside them, and each source's title, outlet and link. So it is safe to
+keep after the thirty-day deletion of the items it was built from, and the archive and the
+week-3 measurements are built from it.
+
+The counts go with the digest rather than into a log, because the README's quote and
+citation columns are sums over stored digests, and a number that can be recomputed from the
+store is one a stranger can check.
+"""
+
+from __future__ import annotations
+
+from collections import Counter
+from collections.abc import Sequence
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
+
+from clippings.config.audience import Audience
+from clippings.gateway import ModelReply, Purpose
+from clippings.rank.rerank import Rerank, RerankScore
+from clippings.summarise.run import StoryWork
+
+
+class Frozen(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class SourceLink(Frozen):
+    sid: str
+    item_id: str
+    domain: str
+    title: str
+    url: str
+    published_at: datetime
+    # Whether the summariser read the article or only the feed's title and summary.
+    extracted: bool
+
+
+class DigestSentence(Frozen):
+    text: str
+    cites: tuple[str, ...]
+
+
+class DigestStory(Frozen):
+    story_id: str
+    position: int
+    headline: str
+    url: str
+    domain: str
+    published_at: datetime
+    outlets: int
+    sentences: tuple[DigestSentence, ...]
+    sources: tuple[SourceLink, ...]
+    status: str
+    prefilter_score: float
+    rerank_score: int | None
+    rerank_reason: str
+    final_score: float
+    why: str
+
+
+class VerificationCounts(Frozen):
+    """What the verifier saw, summed over the digest's stories.
+
+    "First" is the summariser's own draft. "After repair" is what was verified the second
+    time. Shown sentences passed one check or the other, so every quote shown is verbatim
+    by construction, and the useful numbers are the first two quote figures: how often the
+    model tried to put words in a source's mouth, before and after being told it had.
+    """
+
+    stories: int = 0
+    sentences_drafted: int = 0
+    sentences_cited_first: int = 0
+    sentences_passed_first: int = 0
+    sentences_repaired_ok: int = 0
+    sentences_dropped: int = 0
+    sentences_shown: int = 0
+    over_budget_cut: int = 0
+    quotes_first: int = 0
+    quotes_verbatim_first: int = 0
+    quotes_after_repair: int = 0
+    quotes_verbatim_after_repair: int = 0
+    quotes_shown: int = 0
+    stories_repaired: int = 0
+    stories_without_summary: int = 0
+    refusals: dict[str, int] = {}
+
+
+class CallCost(Frozen):
+    purpose: str
+    story_id: str
+    model: str
+    call_uid: str | None
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float | None
+
+
+class Digest(Frozen):
+    audience_id: str
+    audience_name: str
+    day: str
+    run_id: str
+    generated_at: datetime
+    stories: tuple[DigestStory, ...]
+    counts: VerificationCounts
+    calls: tuple[CallCost, ...]
+    # Pool and pipeline facts the page states, so a reader sees what the digest was chosen
+    # from and by what.
+    pool_items: int
+    pool_stories: int
+    candidates: int
+    reranked: bool
+    rerank_error: str
+    rerank_unscored: int
+    rerank_excluded: int
+    embedder: str
+    model_client: str
+
+    @property
+    def cost_usd(self) -> float:
+        """The digest's model cost from the gateway's own figures. Uncosted rows count zero
+        here and are reported separately, because the gateway never guesses a price."""
+        return sum(call.cost_usd or 0.0 for call in self.calls)
+
+    @property
+    def uncosted_calls(self) -> int:
+        return sum(1 for call in self.calls if call.cost_usd is None)
+
+
+def counts_for(works: Sequence[StoryWork]) -> VerificationCounts:
+    refusals: Counter[str] = Counter()
+    c: Counter[str] = Counter()
+    for work in works:
+        c["stories"] += 1
+        if work.draft is not None:
+            c["over_budget_cut"] += work.draft.over_budget
+        if work.first is not None:
+            c["sentences_drafted"] += len(work.first.checks)
+            c["sentences_cited_first"] += work.first.cited
+            c["sentences_passed_first"] += len(work.first.kept)
+            c["quotes_first"] += work.first.quotes
+            c["quotes_verbatim_first"] += work.first.quotes_verbatim
+            for check in work.first.failed:
+                for finding in check.findings:
+                    refusals[finding.failure.value] += 1
+        last = work.final or work.first
+        if last is not None:
+            c["quotes_after_repair"] += last.quotes
+            c["quotes_verbatim_after_repair"] += last.quotes_verbatim
+        if work.repaired is not None and work.first is not None:
+            c["stories_repaired"] += 1
+            c["sentences_repaired_ok"] += max(0, len(work.kept) - len(work.first.kept))
+        shown = work.kept
+        c["sentences_shown"] += len(shown)
+        c["quotes_shown"] += sum(len(sentence.quotes) for sentence in shown)
+        if not shown:
+            c["stories_without_summary"] += 1
+    c["sentences_dropped"] = (
+        c["sentences_drafted"] - c["sentences_passed_first"] - c["sentences_repaired_ok"]
+    )
+    return VerificationCounts.model_validate({**c, "refusals": dict(refusals)})
+
+
+def _story(position: int, work: StoryWork, score: RerankScore | None) -> DigestStory:
+    rep = work.story.representative
+    return DigestStory(
+        story_id=work.id,
+        position=position,
+        headline=rep.title.strip(),
+        url=rep.url,
+        domain=rep.domain,
+        published_at=rep.published_at,
+        outlets=work.story.cluster.size,
+        sentences=tuple(
+            DigestSentence(text=sentence.text, cites=sentence.cites) for sentence in work.kept
+        ),
+        sources=tuple(
+            SourceLink(
+                sid=source.sid,
+                item_id=source.item.id,
+                domain=source.domain,
+                title=source.item.title.strip(),
+                url=source.item.url,
+                published_at=source.item.published_at,
+                extracted=source.extracted,
+            )
+            for source in work.sources
+        ),
+        status=work.status,
+        prefilter_score=score.prefilter if score else work.story.score,
+        rerank_score=score.model_score if score else None,
+        rerank_reason=score.reason if score else "",
+        final_score=work.story.score,
+        why=work.story.why(),
+    )
+
+
+def _calls(rerank: Rerank | None, works: Sequence[StoryWork]) -> tuple[CallCost, ...]:
+    def cost(purpose: Purpose, story_id: str, reply: ModelReply) -> CallCost:
+        return CallCost(
+            purpose=purpose.value,
+            story_id=story_id,
+            model=reply.model,
+            call_uid=reply.call_uid,
+            input_tokens=reply.input_tokens,
+            output_tokens=reply.output_tokens,
+            cost_usd=reply.cost_usd,
+        )
+
+    calls = []
+    if rerank is not None and rerank.reply is not None:
+        calls.append(cost(Purpose.RERANK, "", rerank.reply))
+    for work in works:
+        calls.extend(cost(purpose, work.id, reply) for purpose, reply in work.replies)
+    return tuple(calls)
+
+
+def build_digest(
+    audience: Audience,
+    *,
+    day: str,
+    run_id: str,
+    generated_at: datetime,
+    works: Sequence[StoryWork],
+    rerank: Rerank | None,
+    pool_items: int,
+    pool_stories: int,
+    embedder: str,
+    model_client: str,
+) -> Digest:
+    scores = {score.story_id: score for score in rerank.scores} if rerank else {}
+    return Digest(
+        audience_id=audience.id,
+        audience_name=audience.name,
+        day=day,
+        run_id=run_id,
+        generated_at=generated_at,
+        stories=tuple(
+            _story(position, work, scores.get(work.id))
+            for position, work in enumerate(works, start=1)
+        ),
+        counts=counts_for(works),
+        calls=_calls(rerank, works),
+        pool_items=pool_items,
+        pool_stories=pool_stories,
+        candidates=len(rerank.scores) if rerank else 0,
+        reranked=rerank.reranked if rerank else False,
+        rerank_error=rerank.error if rerank else "not run",
+        rerank_unscored=rerank.unscored if rerank else 0,
+        rerank_excluded=rerank.excluded if rerank else 0,
+        embedder=embedder,
+        model_client=model_client,
+    )

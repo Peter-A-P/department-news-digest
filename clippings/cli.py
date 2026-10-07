@@ -1,31 +1,52 @@
 """`clippings` on the command line.
 
-    clippings run       fetch, extract and cluster a day for one audience or all of them
+    clippings run       a day for one audience or all of them: fetch to published page
+    clippings render    re-render stored digests to the site directory
+    clippings serve     serve the published pages, read-only
     clippings sources   check the terms record, or probe that the feeds are feeds
     clippings label     label a day's sample for precision and recall
     clippings retention delete items past the thirty-day window
     clippings audiences list the configured audiences
 
-`eval`, `report` and `render` arrive with the measurement and delivery work in weeks two
-and three. There is no send command, and there will not be one.
+`eval` and `report` arrive with the measurement work in week three. There is no send
+command, and there will not be one.
 """
 
 from __future__ import annotations
 
 import os
+from contextlib import ExitStack
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Annotated
 
 import typer
 
+from clippings import graph
+from clippings.assemble.digest import Digest
+from clippings.assemble.publish import GcsSite, LocalSite, Site, publish_digest, publish_indexes
 from clippings.cluster.embed import Hashing, default_embedder
 from clippings.config.audience import Audience
 from clippings.config.load import EXAMPLES, AudienceFileError, load_audience, load_audiences
 from clippings.constants import RETENTION_DAYS
 from clippings.eval.labels import build_queue, record
-from clippings.ingest.pipeline import RunReport, new_run_id, run_audience
-from clippings.ingest.remote import LocalRunLock, RunLockHeld
+from clippings.gateway import (
+    GatewayClient,
+    ModelClient,
+    SpendCapReached,
+    SpendNotAllowed,
+    open_client,
+)
+from clippings.graph import Pipeline
+from clippings.ingest.pipeline import RunReport, new_run_id
+from clippings.ingest.remote import (
+    GcsObjectStore,
+    GcsRunLock,
+    LocalRunLock,
+    RunLockHeld,
+    StateSync,
+)
 from clippings.ingest.store import Store
 from clippings.sources.base import FetchContext, http_client
 from clippings.sources.probe import PROBE_TIMEOUT, probe_audience
@@ -38,6 +59,10 @@ app.add_typer(sources_app, name="sources")
 
 DEFAULT_DB = Path("data/clippings.duckdb")
 DEFAULT_LOCK = Path("data/clippings.lock")
+DEFAULT_SITE = Path("out/site")
+# The gateway's ledger sits beside the database, so one directory (or one bucket prefix)
+# holds every record a run writes.
+LEDGER_NAME = "boundary.sqlite"
 
 AudienceDir = Annotated[
     Path, typer.Option("--audiences", help="Directory of audience files.", show_default=False)
@@ -98,8 +123,23 @@ def run(
         typer.Option("--model/--no-model", help="Use bge-small rather than the hashing backend."),
     ] = True,
     lock: Annotated[Path, typer.Option(help="Run lock file.")] = DEFAULT_LOCK,
+    site: Annotated[Path, typer.Option(help="Directory the digest pages are written to.")] = (
+        DEFAULT_SITE
+    ),
+    bucket: Annotated[
+        str | None,
+        typer.Option(
+            envvar="CLIPPINGS_BUCKET",
+            help="Cloud Storage bucket: the database, the ledger, the lock and the site live "
+            "there, and the run works on local copies. Production only.",
+        ),
+    ] = None,
 ) -> None:
-    """Fetch, extract and cluster today for one audience or all of them."""
+    """Fetch, rank, re-rank, summarise, verify and publish today's digest.
+
+    Model calls are made only when CLIPPINGS_ALLOW_SPEND=1 is set. Without it the run stops
+    after the free stages and prints what the pre-filter would have chosen.
+    """
     selected = _pick(audiences, audience)
     embedder = default_embedder(prefer_model=real_embedder) if real_embedder else Hashing()
     try:
@@ -108,22 +148,150 @@ def run(
         typer.echo(f"terms record: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
-    try:
-        with LocalRunLock(lock), http_client() as client, Store.open(db) as store:
-            context = FetchContext(
+    with ExitStack() as stack:
+        try:
+            if bucket:
+                workdir = Path(stack.enter_context(TemporaryDirectory(prefix="clippings-")))
+                stack.enter_context(GcsRunLock(bucket))
+                sync = StateSync(GcsObjectStore(bucket), workdir)
+                sync.pull()
+                stack.callback(sync.push)
+                db, ledger = sync.db, sync.ledger
+                published: Site = GcsSite(bucket)
+            else:
+                stack.enter_context(LocalRunLock(lock))
+                ledger = db.parent / LEDGER_NAME
+                published = LocalSite(site)
+        except RunLockHeld as exc:
+            typer.echo(f"another run holds the lock: {exc}", err=True)
+            raise typer.Exit(code=3) from exc
+
+        client = _model_client(ledger)
+        if isinstance(client, GatewayClient):
+            stack.callback(client.close)
+        http = stack.enter_context(http_client())
+        store = stack.enter_context(Store.open(db))
+        context = FetchContext(
+            client=http,
+            gate=gate,
+            robots=RobotsCache(http),
+            now=datetime.now(UTC),
+            secrets=_secrets(),
+        )
+        run_id = new_run_id(context.now)
+        for one in selected:
+            pipeline = Pipeline(
+                audience=one,
+                store=store,
+                context=context,
+                embedder=embedder,
+                run_id=run_id,
                 client=client,
-                gate=gate,
-                robots=RobotsCache(client),
-                now=datetime.now(UTC),
-                secrets=_secrets(),
+                site=published,
+                extract=extract,
             )
-            run_id = new_run_id(context.now)
-            for one in selected:
-                report = run_audience(one, store, context, embedder, run_id=run_id, extract=extract)
-                _print_report(report)
-    except RunLockHeld as exc:
-        typer.echo(f"another run holds the lock: {exc}", err=True)
-        raise typer.Exit(code=3) from exc
+            try:
+                state = graph.run(pipeline)
+            except SpendCapReached as exc:
+                typer.echo(f"\nstopped: {exc}", err=True)
+                typer.echo("No further model call was made. Raise the cap in a commit.", err=True)
+                raise typer.Exit(code=4) from exc
+            _print_report(state["report"])
+            if "digest" in state:
+                _print_digest(state["digest"], state.get("published", []))
+        # The thirty-day promise is kept by the daily run itself, not by a person remembering
+        # to run `clippings retention`.
+        deleted = store.retention()
+        typer.echo(
+            f"\nretention   deleted {deleted['items']} items and {deleted['texts']} texts "
+            f"older than {RETENTION_DAYS} days"
+        )
+        publish_indexes(
+            published,
+            [(one.id, one.name) for one in load_audiences(audiences)],
+            {one.id: store.digest_days(one.id) for one in load_audiences(audiences)},
+        )
+
+
+def _model_client(ledger: Path) -> ModelClient | None:
+    """The gateway client if spending is switched on, otherwise None and a note saying so."""
+    try:
+        return open_client(ledger_path=ledger)
+    except SpendNotAllowed as exc:
+        typer.echo(f"no model calls: {exc}", err=True)
+        return None
+
+
+def _print_digest(digest: Digest, published: list[str]) -> None:
+    c = digest.counts
+    rerank = (
+        f"re-ranked {digest.candidates}, {digest.rerank_excluded} excluded by the rubric, "
+        f"{digest.rerank_unscored} unscored"
+        if digest.reranked
+        else f"NOT re-ranked: {digest.rerank_error}"
+    )
+    typer.echo(f"  rerank      {rerank}")
+    typer.echo(
+        f"  verify      {c.sentences_drafted} drafted, {c.sentences_passed_first} passed first, "
+        f"{c.sentences_repaired_ok} repaired, {c.sentences_dropped} dropped; quotes verbatim "
+        f"{c.quotes_verbatim_first}/{c.quotes_first} first, "
+        f"{c.quotes_verbatim_after_repair}/{c.quotes_after_repair} after repair"
+    )
+    for reason, count in sorted(c.refusals.items(), key=lambda pair: -pair[1]):
+        typer.echo(f"                {count:4d}  {reason}")
+    uncosted = f", {digest.uncosted_calls} uncosted" if digest.uncosted_calls else ""
+    typer.echo(f"  cost        US${digest.cost_usd:.4f} over {len(digest.calls)} calls{uncosted}")
+    typer.echo(f"  digest      {len(digest.stories)} stories")
+    for story in digest.stories:
+        mark = "" if story.sentences else "  (no verified summary)"
+        score = "-" if story.rerank_score is None else str(story.rerank_score)
+        typer.echo(f"     {story.position:2d}. [{score}] {story.headline[:70]}{mark}")
+    if published:
+        typer.echo(f"  published   {published[0]} and {len(published) - 1} more")
+
+
+@app.command()
+def render(
+    audience: Annotated[str | None, typer.Argument(help="One audience id, or all of them.")] = None,
+    day: Annotated[str | None, typer.Option(help="Day to render, YYYY-MM-DD.")] = None,
+    audiences: AudienceDir = EXAMPLES,
+    db: DbPath = DEFAULT_DB,
+    site: Annotated[Path, typer.Option(help="Directory to write to.")] = DEFAULT_SITE,
+) -> None:
+    """Re-render stored digests to the site directory. Makes no model call and no fetch."""
+    selected = _pick(audiences, audience)
+    target = LocalSite(site)
+    with Store.open(db) as store:
+        for one in selected:
+            days = [day] if day else store.digest_days(one.id)
+            for each in days:
+                digest = store.digest_for(one.id, each)
+                if digest is None:
+                    typer.echo(f"  no digest for {one.id} on {each}")
+                    continue
+                publish_digest(target, digest)
+                typer.echo(f"  rendered {one.id} {each}")
+        publish_indexes(
+            target,
+            [(one.id, one.name) for one in load_audiences(audiences)],
+            {one.id: store.digest_days(one.id) for one in load_audiences(audiences)},
+        )
+
+
+@app.command()
+def serve(
+    site: Annotated[Path, typer.Option(help="Directory to serve.")] = DEFAULT_SITE,
+    bucket: Annotated[
+        str | None,
+        typer.Option(envvar="CLIPPINGS_BUCKET", help="Serve the bucket's site prefix instead."),
+    ] = None,
+    host: Annotated[str, typer.Option(help="Interface to bind.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(envvar="PORT", help="Port to listen on.")] = 8080,
+) -> None:
+    """Serve the published digest pages, read-only."""
+    from clippings.serve.app import serve as run_server
+
+    run_server(GcsSite(bucket) if bucket else LocalSite(site), host=host, port=port)
 
 
 @sources_app.command("check")

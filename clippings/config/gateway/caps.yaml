@@ -1,0 +1,32 @@
+# Spend caps for the digest, enforced by the gateway before a call is made. Second line of
+# defence: the first is the hard cap in the Anthropic console.
+#
+# Amounts are USD because vendors bill in USD. Raise a cap here, deliberately, in a commit;
+# never bypass it in code.
+#
+# The reasoning, from PLAN.md section 6: about US$0.13 per audience-day, four audiences,
+# so about US$0.52 for a daily run and US$16 for a month of them. The build month adds about
+# US$40 of development reruns.
+#
+# - `per_run_usd` is what catches one run going wrong, which is the failure that burns money
+#   with nobody watching: a run is all four audiences for one day, planned at US$0.52, so
+#   US$2 is four times the plan and still small.
+# - `daily_usd` bounds a day however many runs it holds, so a scheduler retry loop or a
+#   developer rerunning by hand cannot spend a month's budget in an afternoon.
+# - `monthly_usd` holds the running cost and the build month's reruns together, with room.
+#
+# PROPOSED, not yet confirmed by Peter. Mirror the project line in the gateway repository's
+# own caps file before the first live call so the portfolio total stays honest.
+
+version: 1
+portfolio_monthly_usd: 60
+
+projects:
+  clippings:
+    monthly_usd: 60
+    per_run_usd: 2
+    daily_usd: 5
+
+default:
+  monthly_usd: 1
+  per_run_usd: 0.5

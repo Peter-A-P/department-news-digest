@@ -12,6 +12,11 @@ that means in the code, so a reader does not have to take it on trust.
 | `clusters` | Which items are the same story, per audience per day | Thirty days, as its items expire |
 | `labels`, `pair_labels` | Relevance and duplicate judgements, with the item's URL and title copied in | Indefinitely: these are the measurement |
 | `watermarks`, `fetch_log` | How far each source has been read, and what each fetch attempt returned | Indefinitely: uptime and source yield are published numbers |
+| `rankings` | The order each run put a day's stories in: cluster ids, pre-filter and re-ranker scores, and the re-ranker's one-line reason | Indefinitely: the labelling sample is drawn from it |
+| `digests` | Each published digest as JSON: the verified summary sentences, the publishers' titles and links, the verifier's counts and the cost of each model call | Indefinitely: it is the archive, and holds no article text |
+
+The gateway's ledger (`boundary.sqlite`, beside the database) holds one row per model call:
+tokens, cost, model and hashes of the request and response, never their content.
 
 Nothing raw is committed to the repository. `.gitignore` excludes `*.duckdb`, `data/text/`
 and `data/raw/`.
@@ -20,7 +25,8 @@ and `data/raw/`.
 
 `clippings.constants.RETENTION_DAYS` is thirty, and `Store.retention()` deletes every item
 published before the cutoff along with its extracted text and its audience links. It is
-run daily. `tests/test_store.py` fails if an item a day past the window survives, or if its
+run at the end of every `clippings run`, so the daily job keeps the promise without anyone
+remembering to. `tests/test_store.py` fails if an item a day past the window survives, or if its
 text survives the item.
 
 Thirty days is not a compromise between usefulness and caution. The digest is daily and
@@ -39,7 +45,15 @@ retention over a labelled day and asserts the labels are still there and the ite
 
 A summary, a link, and quotes of at most twenty-five words
 (`clippings.constants.QUOTE_MAX_WORDS`). Never the article. The verifier enforces both the
-length and the requirement that a quote appears verbatim in its source.
+length and the requirement that a quote appears verbatim in a source the sentence cites.
+Headlines are the publishers' own titles, linked.
+
+Because a digest holds only those things, it is kept after the items it was built from are
+deleted: `tests/test_delivery.py::test_a_digest_outlives_the_items_it_was_built_from`.
+
+A feed marked `extract: false` in its audience file (SaltWire, which is paywalled in part)
+never has its article pages requested; its items are summarised from the publisher's own
+feed title and summary, and the page says "feed summary only" beside the link.
 
 ## Deletion at the source
 
@@ -50,5 +64,12 @@ twenty-five words of what was public when it was fetched.
 ## What never leaves this machine
 
 Embeddings and clustering run on CPU inside the job. The only thing sent to a model
-provider is the re-ranking and summarisation of the top candidates, through the 04 gateway
+provider is the re-ranking of the top candidates (headline, outlet and the first sixty
+words of the feed summary) and the summarisation and repair of the chosen stories (up to
+four sources each, at most 450 words of article text per source), through the 04 gateway
 with the data class `public`, because every source is public by construction.
+`clippings/gateway.py` is the only module that imports the gateway, and a test asserts it.
+
+langgraph carries LangSmith's tracing client, which would send a run's state to a third
+party if an environment variable asked it to. `clippings/graph.py` switches tracing off
+whatever the environment says, and a test asserts that too.

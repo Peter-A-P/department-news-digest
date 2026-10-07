@@ -237,3 +237,33 @@ class GcsObjectStore:
 
     def upload(self, source: Path, name: str) -> None:
         self._bucket().blob(name).upload_from_filename(str(source))  # type: ignore[attr-defined]
+
+
+class StateSync:
+    """The run's state files, copied down from the bucket before a run and back up after.
+
+    Two files: the DuckDB store and the gateway's ledger. Both are single-writer files, and
+    the run lock is what makes a copy-modify-upload cycle safe: nothing else writes to the
+    bucket's copies while the lock is held. Taken only inside the lock, by the CLI.
+
+    A file that is not in the bucket yet is not an error on the first run: the run creates
+    it and the push uploads it.
+    """
+
+    DB = "state/clippings.duckdb"
+    LEDGER = "state/boundary.sqlite"
+
+    def __init__(self, objects: ObjectStore, workdir: Path) -> None:
+        self.objects = objects
+        self.db = workdir / "clippings.duckdb"
+        self.ledger = workdir / "boundary.sqlite"
+
+    def pull(self) -> None:
+        self.objects.download(self.DB, self.db)
+        self.objects.download(self.LEDGER, self.ledger)
+
+    def push(self) -> None:
+        if self.db.is_file():
+            self.objects.upload(self.db, self.DB)
+        if self.ledger.is_file():
+            self.objects.upload(self.ledger, self.LEDGER)

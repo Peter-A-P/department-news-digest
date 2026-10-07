@@ -6,14 +6,17 @@ delivers a short digest with every claim cited and every quote verified against 
 source. One system in place of dozens of people each doing this by hand, at a few dollars
 a month per department, with measured precision and recall instead of a feeling.
 
-**Status: building.** Ingestion, storage, deduplication and clustering are
-built and tested; no digest has been produced and nothing has been measured. The plan is in
-[PLAN.md](PLAN.md): a build on Google Cloud Run, then a measurement month running daily.
+**Status: building.** The whole pipeline is built and tested: ingestion, deduplication,
+clustering, ranking, the model re-ranker, cited summaries, the verifier with one repair,
+the page, the Markdown and the email draft, the read-only service and the Cloud Run
+deployment. No model-backed digest has been published yet, and nothing has been measured.
+The plan is in [PLAN.md](PLAN.md): a build on Google Cloud Run, then a measurement month
+running daily.
 
-**No source has been fetched yet.** Every source is gated on its terms being read and
-recorded in [docs/sources.md](docs/sources.md) with the date. Until a row there says
-`allowed`, the fetcher refuses that source and records the refusal. That is a check in the
-code, not a note in a document.
+**Every source is gated on its terms.** A source is fetched only when its row in
+[docs/sources.md](docs/sources.md) says `allowed` with the date the terms were read; until
+then the fetcher refuses it and records the refusal. That is a check in the code, not a
+note in a document.
 
 **Nothing is sent.** The system publishes a page per audience and writes an email draft
 file an owner can send. It has no send path.
@@ -67,14 +70,20 @@ uv sync
 uv run clippings audiences-list           # the four example audiences
 uv run clippings sources check            # every source against the terms record
 uv run clippings sources probe            # fetch each feed once and check it is a feed
-uv run clippings run ai-policy            # fetch, extract and cluster today
+uv run clippings run ai-policy            # today's digest, written to out/site/
+uv run clippings serve                    # the pages at http://127.0.0.1:8080/
+uv run clippings render                   # re-render stored digests, no fetch, no model
 uv run clippings label ai-policy --labeller you
-uv run clippings retention                # delete items past thirty days
+uv run clippings retention                # delete items past thirty days (run also does this)
 ```
 
-`clippings run` fetches nothing until the sources it needs are recorded as allowed. That is
-the expected state of a fresh clone: read the terms, put the date in
-[docs/sources.md](docs/sources.md), and run it again.
+`clippings run` makes no model call unless `CLIPPINGS_ALLOW_SPEND=1` is set; without it the
+run stops after the free stages and prints what the pre-filter would have chosen. With it,
+every call goes through the gateway with this project's caps in
+[clippings/config/gateway/caps.yaml](clippings/config/gateway/caps.yaml), and the key is
+read from `ANTHROPIC_API_KEY` or a gitignored `.env`.
+
+Deploying to Cloud Run is [deploy/README.md](deploy/README.md).
 
 Optional extras: `uv sync --extra embed` installs bge-small through ONNX for story
 clustering, and `--extra gcs` installs the Cloud Storage backend. Without the first, the

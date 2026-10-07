@@ -8,6 +8,7 @@ reader is linked to; the dedup key is a stricter form used only to give an item 
 
 from __future__ import annotations
 
+import html
 import re
 from datetime import UTC, datetime
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -115,8 +116,13 @@ def is_trusted(domain: str, audience: Audience) -> bool:
 
 
 def clean_text(value: str) -> str:
-    """Feed summaries arrive as HTML fragments; the store holds plain text."""
-    return WHITESPACE.sub(" ", TAG.sub(" ", value)).strip()
+    """Feed summaries arrive as HTML fragments; the store holds plain text.
+
+    Entities are decoded once, after the tags are gone: some feeds (SaltWire's, measured
+    2026-10-02) put `&#039;` in a title that feedparser hands over as those six characters,
+    and a quote checked against "St. John&#039;s" would never match "St. John's".
+    """
+    return WHITESPACE.sub(" ", html.unescape(TAG.sub(" ", value))).strip()
 
 
 def normalise(

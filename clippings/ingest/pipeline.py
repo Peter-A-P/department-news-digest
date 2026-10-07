@@ -21,7 +21,7 @@ from clippings.ingest.store import Store
 from clippings.models import Cluster, Item
 from clippings.rank.features import embed_stories
 from clippings.rank.score import ScoredStory, score_stories
-from clippings.rank.select import candidates_for_rerank, select
+from clippings.rank.select import Selection, candidates_for_rerank, select
 from clippings.sources.base import FetchContext, FetchResult, Source
 from clippings.sources.bluesky import BlueskySource
 from clippings.sources.gdelt import GdeltSource
@@ -220,10 +220,35 @@ def run_audience(
     extract: bool = True,
     window_hours: int = 48,
 ) -> RunReport:
-    """The whole of week one for one audience: fetch, store, extract, cluster."""
+    """Every stage that costs nothing, for one audience: fetch, store, extract, cluster,
+    rank, and choose from the pre-filter's order. The graph runs the same stages and then
+    hands the candidates to the re-ranker; this is what runs when no model may be called."""
     run_id = run_id or new_run_id(context.now)
     report = ingest(audience, store, context, run_id=run_id, sources=sources)
+    pool = rank_day(
+        audience, store, context, embedder, report, extract=extract, window_hours=window_hours
+    )
+    # The re-ranker only ever sees this slice, and the digest is chosen from it.
+    candidates = candidates_for_rerank(report.ranked, audience.digest.rerank_candidates)
+    selection = choose(candidates, pool, embedder, audience.digest.max_stories)
+    report.selected = list(selection.stories)
+    report.displaced = len(selection.displaced)
 
+    report.finished_at = datetime.now(UTC)
+    return report
+
+
+def rank_day(
+    audience: Audience,
+    store: Store,
+    context: FetchContext,
+    embedder: Embedder,
+    report: RunReport,
+    *,
+    extract: bool = True,
+    window_hours: int = 48,
+) -> dict[str, Item]:
+    """Extract, cluster and score the day's pool. Returns the pool by item id."""
     since = context.now.replace(microsecond=0) - timedelta(hours=window_hours)
     pool = store.items_for(audience.id, since=since)
     if extract:
@@ -237,15 +262,11 @@ def run_audience(
 
     by_id = {item.id: item for item in pool}
     report.ranked = score_stories(clusters, by_id, audience, embedder, context.now)
-    # The re-ranker only ever sees this slice, and the digest is chosen from it.
-    candidates = candidates_for_rerank(report.ranked, audience.digest.rerank_candidates)
-    selection = select(
-        candidates,
-        embed_stories([story.cluster for story in candidates], by_id, embedder),
-        audience.digest.max_stories,
-    )
-    report.selected = list(selection.stories)
-    report.displaced = len(selection.displaced)
+    return by_id
 
-    report.finished_at = datetime.now(UTC)
-    return report
+
+def choose(
+    stories: Sequence[ScoredStory], pool: dict[str, Item], embedder: Embedder, k: int
+) -> Selection:
+    """The digest's K stories from an ordered list, with the diversity penalty."""
+    return select(stories, embed_stories([story.cluster for story in stories], pool, embedder), k)

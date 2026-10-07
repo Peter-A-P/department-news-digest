@@ -51,6 +51,8 @@ def extract_one(item: Item, audience: Audience, context: FetchContext) -> Extrac
         return ExtractOutcome(item.id, None, "post carries its own text")
     if not context.permitted(item.source_key):
         return ExtractOutcome(item.id, None, "terms do not allow it")
+    if item.source_kind == "rss" and not _feed_allows_extraction(item, audience):
+        return ExtractOutcome(item.id, None, "feed cleared for its summary only")
     if is_blocked(item.domain, audience):
         return ExtractOutcome(item.id, None, "blocked source")
     if not context.robots.allows(item.url):
@@ -75,3 +77,16 @@ def extract_one(item: Item, audience: Audience, context: FetchContext) -> Extrac
         item.id,
         ItemText(item_id=item.id, text=text, extracted_at=datetime.now(UTC), words=words),
     )
+
+
+def _feed_allows_extraction(item: Item, audience: Audience) -> bool:
+    """False when the feed this item came from is marked `extract: false`.
+
+    An RSS item's origin is the feed URL it was read from. An origin that matches no
+    configured feed (the audience file changed since the item was stored) is refused rather
+    than allowed: the flag exists to keep a request from leaving, so not knowing is a no.
+    """
+    for feed in audience.sources.feeds:
+        if feed.url == item.origin:
+            return feed.extract
+    return False

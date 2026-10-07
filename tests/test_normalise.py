@@ -101,3 +101,10 @@ def test_an_item_with_no_date_is_dated_at_the_fetch_time(audience: Audience) -> 
     one = normalise(undated, audience, fetched_at=NOW)
     assert one is not None
     assert one.published_at == NOW
+
+
+def test_entities_in_a_feed_title_are_decoded_once() -> None:
+    from clippings.ingest.normalise import clean_text
+
+    assert clean_text("St. John&#039;s council <b>votes</b>") == "St. John's council votes"
+    assert clean_text("A &amp;amp; B") == "A &amp; B"

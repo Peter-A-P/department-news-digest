@@ -1,0 +1,68 @@
+# Gateway configuration for the digest (PLAN.md section 2.3 and section 6).
+#
+# Every model call this project makes goes through the portfolio gateway, so a model can be
+# swapped in this file, every call has a ledger row with its cost, and this project's spend
+# caps are enforced before a request leaves. Keys come from the environment variable named
+# below, or a gitignored .env at the repository root, and never from this file.
+#
+# The code names aliases, never vendor model identifiers. `clippings.gateway` maps each
+# purpose to one of the aliases here, and changing a route moves every call that uses it.
+
+version: 1
+
+providers:
+  anthropic:
+    kind: anthropic
+    base_url: https://api.anthropic.com
+    api_key_env: ANTHROPIC_API_KEY
+    api_version: "2023-06-01"
+
+routes:
+  # Re-ranking reads up to `rerank_candidates` short candidate lines against the audience's
+  # rubric and answers with a score per line. It is a classification over titles and feed
+  # summaries, which a small model does well, and it is the call whose input grows with the
+  # candidate count, so it gets the cheapest model (PLAN.md section 6: Haiku 4.5 at US$1/5).
+  clippings-rerank:
+    provider: anthropic
+    model: claude-haiku-4-5-20251001
+  # Summaries are where a wrong word costs the most, and the verifier drops what it cannot
+  # check, so a stronger writer means fewer dropped sentences. PLAN.md section 6 priced
+  # Sonnet 5 at US$2/10; Sonnet 5.5 is the same rate in the gateway's 2026-10-01 price list
+  # and newer, so the plan's cost line holds unchanged.
+  clippings-summarise:
+    provider: anthropic
+    model: claude-sonnet-5-5
+  # The repair step rewrites a sentence the verifier refused, told exactly why. The same
+  # writer, so a repaired sentence is not a different model's style beside the first draft's.
+  clippings-repair:
+    provider: anthropic
+    model: claude-sonnet-5-5
+
+# The dated price files that ship inside the pinned boundary, so the pin decides the rates
+# and a digest's cost is reproducible from this checkout alone.
+prices: builtin
+caps: caps.yaml
+
+defaults:
+  max_tokens: 1024
+  timeouts:
+    connect_s: 10
+    read_s: 120
+
+retry:
+  max_attempts: 4
+  base_delay_s: 0.5
+  max_delay_s: 30
+
+# The CLI passes the ledger path next to the DuckDB file, so this is only the fallback.
+ledger:
+  path: ../../../data/boundary.sqlite
+  env: local
+
+telemetry:
+  exporter: none
+
+# Off. A daily digest is a new question every day, and a cached answer to yesterday's
+# candidate list would be a cost saving that hides a bug.
+cache:
+  enabled: false

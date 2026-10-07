@@ -59,7 +59,10 @@ def ranked_ids_for_day(
 ) -> list[str]:
     """The day's pool in the order the system put it.
 
-    With an audience and an embedder this is the real ranking: stories best first, each
+    When the day's run saved its ranking (the re-ranked candidates, then the rest of the pool
+    in pre-filter order), that is the order used, because it is what the digest was actually
+    chosen from. Otherwise, with an audience and an embedder, the pre-filter ranking is
+    recomputed: stories best first, each
     represented by the item the digest would link to, then the rest of each story's items.
     That is the order the sampler calls "top thirty", so precision at K is measured against
     what the system would actually have shown.
@@ -72,6 +75,20 @@ def ranked_ids_for_day(
     clusters = store.clusters_for(audience_id, day)
     if not clusters:
         return [item.id for item in store.items_for(audience_id)]
+
+    # The order the day's run actually used, re-ranker included, when one was saved. This is
+    # the honest top stratum: what the digest was chosen from, not a re-scoring of it.
+    saved = store.ranking_for(audience_id, day)
+    by_cluster = {cluster.id: cluster for cluster in clusters}
+    if saved and all(cluster_id in by_cluster for cluster_id in saved):
+        ordered_clusters = [by_cluster[cluster_id] for cluster_id in saved]
+        ordered_clusters += [c for c in clusters if c.id not in set(saved)]
+        ordered = [cluster.representative_id for cluster in ordered_clusters]
+        seen = set(ordered)
+        for cluster in ordered_clusters:
+            ordered.extend(item_id for item_id in cluster.item_ids if item_id not in seen)
+            seen.update(cluster.item_ids)
+        return ordered
 
     if audience is not None and embedder is not None:
         items = {item.id: item for item in store.items_for(audience_id)}
