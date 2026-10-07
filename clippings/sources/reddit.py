@@ -5,8 +5,8 @@ the feeds and GDELT on its own terms, and clustering puts the two together; taki
 target here instead would mean fetching a publisher's page on the strength of Reddit's
 terms, which is exactly the kind of bending PLAN.md section 2.2 rules out.
 
-Credentials come from the environment (`REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`) and are
-never committed. Without them this source reports itself unavailable and the run continues:
+Credentials come from the environment (`REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, and
+`REDDIT_USERNAME` for the user agent) and are never committed. Without them this source reports itself unavailable and the run continues:
 the pipeline runs with any subset of sources.
 """
 
@@ -27,6 +27,17 @@ API = "https://oauth.reddit.com"
 SOURCE_KEY = "reddit"
 
 
+def user_agent(context: FetchContext) -> dict[str, str]:
+    """The user agent Reddit's API rules ask for: platform, app id, version, and the account
+    that owns the application, so Reddit knows whom to contact. Reddit throttles a generic
+    one. Still this project's product token and still true; only the shape is Reddit's."""
+    username = context.secrets.get("REDDIT_USERNAME", "")
+    client_id = context.secrets.get("REDDIT_CLIENT_ID", "")
+    if not username or not client_id:
+        return {}
+    return {"User-Agent": f"python:clippings:{client_id}:0.1 (by /u/{username})"}
+
+
 class RedditAuthError(RuntimeError):
     """The application credentials were refused."""
 
@@ -41,6 +52,7 @@ def access_token(context: FetchContext) -> str:
         TOKEN_URL,
         data={"grant_type": "client_credentials"},
         auth=(client_id, client_secret),
+        headers=user_agent(context),
     )
     if response.status_code != httpx.codes.OK:
         raise RedditAuthError(f"token request returned {response.status_code}")
@@ -125,7 +137,7 @@ class RedditSource:
             response = context.client.get(
                 f"{API}/r/{subreddit}/{listing}",
                 params={"limit": str(limit)},
-                headers={"Authorization": f"Bearer {token}"},
+                headers={"Authorization": f"Bearer {token}", **user_agent(context)},
             )
             response.raise_for_status()
             payload = response.json()

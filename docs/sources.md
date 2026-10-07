@@ -56,6 +56,17 @@ Then `clippings sources check` confirms every source in every audience file has 
 | theindependent.ca | The Independent, St. John's (RSS) | https://theindependent.ca/about/ | 2026-10-02 | allowed | Reader-funded independent outlet. Read by Peter 2026-10-02 and cleared for this use |
 | saltwire.com | SaltWire Network, incl. The Telegram (RSS) | https://www.saltwire.com/terms-of-service | 2026-10-02 | allowed | Paywalled in part. Cleared by Peter 2026-10-02 for the feed only: the feed is set `extract: false` in the audience file, so the digest uses the publisher's own feed title and summary and a link, and no article page is ever requested |
 | gazette.mun.ca | Memorial University Gazette (RSS) | https://www.mun.ca/main/legal/ | 2026-10-02 | allowed | University publication. Read by Peter 2026-10-02 and cleared for this use |
+| techcrunch.com | TechCrunch, AI section (RSS) | https://techcrunch.com/rss-terms-of-use/ | - | pending | Summary prepared 2026-10-07 for Peter's reading: RSS terms allow displaying "the content that is provided in the feed, with attribution" with a link; the site terms are personal non-commercial and ban scrapers; no AI clause found. Unclear whether a machine-written summary is display. Feed only if allowed |
+| theverge.com | The Verge, AI section (RSS) | https://www.pmc.com/terms-of-use/ | 2026-10-07 | dropped | Read 2026-10-07: The Verge is now Penske Media; s.19 allows feeds in aggregators, but the terms bar using content "to train or ground" AI or "automated processing tools". A machine-written summary is that. Not permitted |
+| arstechnica.com | Ars Technica, AI section (RSS) | https://www.condenast.com/user-agreement | 2026-10-07 | dropped | Read 2026-10-07: Conde Nast agreement bans crawling, extracting or storing content for any purpose but search indexing, naming grounding and RAG; RSS content is under the same restriction. Not permitted |
+| wired.com | Wired, AI tag (RSS) | https://www.condenast.com/user-agreement | 2026-10-07 | dropped | Read 2026-10-07: the same Conde Nast agreement as arstechnica.com. Not permitted |
+| technologyreview.com | MIT Technology Review, AI topic (RSS) | https://www.technologyreview.com/terms-of-service/ | 2026-10-07 | dropped | Read 2026-10-07: services "for personal use only"; bans any robot or scraper used to "extract data from, copy, or distribute" content, search engines excepted; separate ban on AI/ML use. Not permitted |
+| spectrum.ieee.org | IEEE Spectrum, AI topic (RSS) | https://www.ieee.org/about/help/site-terms-conditions.html | - | pending | Summary prepared 2026-10-07: the live terms page did not load (HTTP 202, empty); a 2024 copy says informational or personal use, no retransmission without consent. Needs reading in a browser |
+| theguardian.com | The Guardian, AI section (RSS) | https://www.theguardian.com/help/terms-of-service | 2026-10-07 | dropped | Read 2026-10-07: feeds are for personal, non-commercial use under the terms, which ban use with machine learning or AI "to generate any data or content" and text and data mining, and say they prevail over robots.txt. The Open Platform API carries the same clause. Not permitted |
+| openai.com | OpenAI news (RSS) | https://openai.com/policies/terms-of-use/ | - | pending | Summary prepared 2026-10-07: the terms page answered 403 to an automated reader; the terms found govern OpenAI's products, not its public news site. Robots allows the feed. Needs reading in a browser |
+| deepmind.google | Google DeepMind blog (RSS) | https://policies.google.com/terms | - | pending | Summary prepared 2026-10-07: Google's terms bar automated access only in violation of robots.txt, which allows this feed; no RSS or summarising restriction found. Looks permitted; awaiting Peter's reading |
+| blog.google | Google blog, AI (RSS) | https://policies.google.com/terms | - | pending | Summary prepared 2026-10-07: the same Google terms as deepmind.google; robots allows the feed. Looks permitted; awaiting Peter's reading |
+| huggingface.co | Hugging Face blog (RSS) | https://huggingface.co/terms-of-service | - | pending | Summary prepared 2026-10-07: no clause on RSS, scraping or AI use of site content; robots allows the feed. Looks permitted; awaiting Peter's reading |
 
 ## Recorded, but not currently in any audience file
 
@@ -107,6 +118,26 @@ The cost is real and worth naming: a publisher reading their logs can no longer 
 through to find out what this is. That is CBC's filter making the web slightly less legible,
 and this project declining to be the only one paying for it.
 
+## The AI desks: what their terms say about this use
+
+Read on 2026-10-07 when the `ai` audience was widened from policy to AI broadly. The large
+technology publishers have each added terms that cover exactly what this project does: an
+automated reader whose output is a machine-written summary. Robots.txt allows this project's
+user agent everywhere below, and the terms still say no; the Guardian's say in terms that
+they prevail over robots.txt. Robots permission was never the test here, the terms are.
+
+Dropped, and recorded so nobody adds them again: MIT Technology Review, The Verge (now Penske
+Media), Ars Technica and Wired (Conde Nast), and The Guardian. Waiting on a reading by hand:
+TechCrunch (its RSS terms allow display with attribution, and whether a summary is display is
+a judgement), IEEE Spectrum and OpenAI (neither terms page could be read by an automated
+client). Looking permitted, and still `pending` until read: Google DeepMind, the Google blog
+and Hugging Face.
+
+This is also a reason to re-read the news sources allowed on 2026-09-13 and 2026-10-02 with
+these clauses in mind before the measurement month, as step 5 above already asks: several
+of those terms say "personal and non-commercial", and some publishers have added AI clauses
+since.
+
 ## The provincial government's own releases
 
 `https://www.gov.nl.ca/releases/feed/` works and would be the highest-value source in the
@@ -128,6 +159,8 @@ test of the ranking.
 | X (Twitter) | Official API only, and no tier fits the budget at plan time (PLAN.md section 2.2). Scraping it breaks the terms, so it is out rather than bent. The `Source` protocol leaves the door open. |
 | Any paywalled outlet | Extraction would mean circumventing the paywall. Out by rule, not by cost. |
 | Google News and aggregator scrapes | Redistribution of others' content without the publishers' terms being readable per item. |
+| The Register (AI section) | Its robots.txt disallows this project's user agent for the feed path (probed 2026-10-07). Not read further. |
+| VentureBeat (AI section) | Answered 429 on the first request (2026-10-07). Not read further. |
 
 ## Retention and republication
 

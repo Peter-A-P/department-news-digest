@@ -105,7 +105,7 @@ class FakeGateway:
 
 
 def call() -> ModelCall:
-    return ModelCall(purpose=Purpose.RERANK, audience_id="ai-policy", system="s", user="u")
+    return ModelCall(purpose=Purpose.RERANK, audience_id="ai", system="s", user="u")
 
 
 def test_every_call_declares_public_names_the_audience_and_uses_an_alias() -> None:
@@ -113,7 +113,7 @@ def test_every_call_declares_public_names_the_audience_and_uses_an_alias() -> No
     reply = GatewayClient(gateway=fake).complete(call(), run_id="run-1")  # type: ignore[arg-type]
     sent = fake.calls[0]
     assert sent["data_class"] == "public"
-    assert sent["purpose"] == "rerank/ai-policy"
+    assert sent["purpose"] == "rerank/ai"
     assert sent["run_id"] == "run-1"
     assert sent["request"].model == "clippings-rerank", "aliases, never vendor model ids"
     assert (reply.call_uid, reply.cost_usd) == ("uid-1", 0.00002)

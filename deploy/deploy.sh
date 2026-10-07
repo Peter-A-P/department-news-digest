@@ -32,7 +32,7 @@ IMAGE="${REPO}/clippings:${TAG}"
 JOB_SA="clippings-job@${PROJECT}.iam.gserviceaccount.com"
 WEB_SA="clippings-web@${PROJECT}.iam.gserviceaccount.com"
 SCHEDULER_SA="clippings-scheduler@${PROJECT}.iam.gserviceaccount.com"
-SECRETS=(anthropic-api-key reddit-client-id reddit-client-secret bluesky-handle bluesky-app-password)
+SECRETS=(anthropic-api-key reddit-client-id reddit-client-secret reddit-username bluesky-handle bluesky-app-password)
 
 gcloud config set project "$PROJECT" >/dev/null
 
@@ -99,6 +99,7 @@ has_value() { [ -n "$(gcloud secrets versions list "$1" --limit=1 --format='valu
 has_value anthropic-api-key || { echo "add a value to the anthropic-api-key secret first" >&2; exit 1; }
 MAPPED="ANTHROPIC_API_KEY=anthropic-api-key:latest"
 for pair in REDDIT_CLIENT_ID=reddit-client-id REDDIT_CLIENT_SECRET=reddit-client-secret \
+    REDDIT_USERNAME=reddit-username \
     BLUESKY_HANDLE=bluesky-handle BLUESKY_APP_PASSWORD=bluesky-app-password; do
   if has_value "${pair#*=}"; then MAPPED="${MAPPED},${pair}:latest"; fi
 done

@@ -51,7 +51,7 @@ read -rs KEY && printf %s "$KEY" | gcloud secrets versions add anthropic-api-key
 | Secret | Needed for | Required |
 |---|---|---|
 | `anthropic-api-key` | Re-ranking and summaries, through the gateway | yes |
-| `reddit-client-id`, `reddit-client-secret` | The Reddit sources, from a registered application on the free tier | no |
+| `reddit-client-id`, `reddit-client-secret`, `reddit-username` | The Reddit sources, from a registered application on the free tier; the username goes in the user agent Reddit's rules ask for | no |
 | `bluesky-handle`, `bluesky-app-password` | The Bluesky sources; an app password, revocable on its own | no |
 
 A source whose credential is absent reports itself unavailable and the run carries on.
@@ -63,16 +63,23 @@ gcloud run jobs execute clippings-daily --region=us-east1 --wait     # one run, 
 gcloud run jobs executions list --job=clippings-daily --region=us-east1
 ```
 
-The pages are at the service URL the script prints. `digest.peterparker.ca` is a domain
-mapping on the service plus a DNS record at the registrar:
+The pages are at the service URL the script prints. `digest.peterparker.ca` takes three
+steps, two of them at the domain's owner's accounts:
 
-```
-gcloud beta run domain-mappings create --service=clippings-web \
-  --domain=digest.peterparker.ca --region=us-east1
-```
+1. Verify the domain for the Google account that deploys, once:
+   `gcloud domains verify peterparker.ca` opens Search Console, which asks for a `TXT`
+   record at the domain's DNS host (Cloudflare). Verifying the apex covers `digest.`.
+2. Map it to the service:
 
-then a `CNAME` from `digest` to `ghs.googlehosted.com.`, which only the domain's owner can
-add.
+   ```
+   gcloud beta run domain-mappings create --service=clippings-web \
+     --domain=digest.peterparker.ca --region=us-east1 --project=clippings-digest
+   ```
+
+3. At Cloudflare, a `CNAME` from `digest` to `ghs.googlehosted.com`, **DNS only** (grey
+   cloud, not proxied): Google issues the certificate only when it sees its own front end
+   answer for the name, which a proxied record hides. The certificate takes from a few
+   minutes to an hour after the record resolves.
 
 ## What it costs
 

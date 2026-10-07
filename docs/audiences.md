@@ -4,7 +4,7 @@ An audience is one YAML file. Adding a department is adding one of these; there 
 other configuration and no code to change.
 
 The four files in [`clippings/config/examples/`](../clippings/config/examples/) are worked
-examples, deliberately generic: AI policy and regulation, public health in Canada,
+examples, deliberately generic: artificial intelligence, public health in Canada,
 municipal affairs in Toronto, and regional affairs in Newfoundland and Labrador.
 
 The fourth is there because the other three are national or big-city, and the product's
@@ -40,10 +40,12 @@ precision and recall numbers, so a reader can see what "relevant" meant. A rubri
 than ten words is rejected at load.
 
 Write it as two halves: what counts, and what does not. The second half is the useful one.
-From the AI policy example:
+From the artificial intelligence example, which draws the line between an item about AI
+and an item that mentions it:
 
-> ... It excludes product launches, funding rounds, model benchmarks, opinion columns
-> without new facts, and company announcements that carry no regulatory consequence.
+> ... It excludes items that mention AI in passing while being about something else, such
+> as a phone review that lists an AI feature, an earnings report with one line on AI, or a
+> policy story where AI is one item of many; deals, discounts and shopping guides; ...
 
 ## Every source needs a row in the terms record
 
@@ -62,7 +64,8 @@ check before any request leaves.
 
 Reddit and Bluesky both need an account of your own, and neither is committed. Reddit reads
 `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` from a registered application on the free
-tier. Bluesky reads `BLUESKY_HANDLE` and `BLUESKY_APP_PASSWORD`: an app password, which is
+tier, and `REDDIT_USERNAME`, the account that owns it, for the user agent Reddit's API
+rules ask for (`python:clippings:<client id>:0.1 (by /u/<username>)`). Bluesky reads `BLUESKY_HANDLE` and `BLUESKY_APP_PASSWORD`: an app password, which is
 revocable on its own and cannot change the account. Bluesky's search endpoint began
 refusing unauthenticated requests with a 403, and an app password is the official way in,
 so that is the way this takes.

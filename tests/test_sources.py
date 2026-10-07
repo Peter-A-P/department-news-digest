@@ -435,3 +435,20 @@ def test_the_user_agent_identifies_the_project_without_carrying_a_url() -> None:
         "a URL in the user agent gets this project refused by at least one publisher; "
         "robots.txt addresses the 'clippings' product token instead"
     )
+
+
+def test_reddit_gets_the_user_agent_its_rules_ask_for() -> None:
+    import httpx
+
+    from clippings.sources.base import FetchContext
+    from clippings.sources.reddit import user_agent
+    from clippings.sources.robots import AllowAll
+    from tests.conftest import gate
+
+    with httpx.Client() as client:
+        context = FetchContext(client=client, gate=gate(), robots=AllowAll())
+        assert user_agent(context) == {}
+        context.secrets = {"REDDIT_CLIENT_ID": "abc", "REDDIT_USERNAME": "someone"}
+        agent = user_agent(context)["User-Agent"]
+    assert agent == "python:clippings:abc:0.1 (by /u/someone)"
+    assert "http" not in agent.split("(")[0], "no URL: CBC-style edges refuse one"

@@ -55,9 +55,15 @@ The numbers a stranger can check:
 An audience is a YAML file: topics as short phrases, named entities (organisations,
 people, places), geography, languages, trusted and blocked sources, digest length, and
 delivery time. Everything downstream reads from it. Four example audiences ship,
-deliberately not the employer's: AI policy and regulation; public health in Canada;
+deliberately not the employer's: artificial intelligence; public health in Canada;
 municipal affairs in one large city; and regional affairs in Newfoundland and Labrador.
 Adding a department is adding a file.
+
+The first was "AI policy and regulation" until 2026-10-07. On its first deployed day it kept
+one story of 27, because its feeds were government newsrooms where AI is a rare subject and
+the rubric rightly excluded the rest. It is now artificial intelligence broadly, read from
+technology desks' AI sections and the labs' own blogs, with a rubric that requires AI to be
+the item's primary subject rather than a mention. Regulation stays inside it as one topic.
 
 The fourth was added on 2026-09-13, after the first live run, because the three original
 audiences are all national or big-city and the product's claim is that a small regional
@@ -147,7 +153,7 @@ never as article text.
 
 ```
 clippings/
-  config/      audience.py (pydantic schema), examples/ (ai-policy.yaml, public-health-canada.yaml,
+  config/      audience.py (pydantic schema), examples/ (ai.yaml, public-health-canada.yaml,
                municipal-<city>.yaml), load.py
   sources/     base.py (Source protocol: fetch since watermark, record terms), rss.py, gdelt.py,
                reddit.py, bluesky.py, robots.py

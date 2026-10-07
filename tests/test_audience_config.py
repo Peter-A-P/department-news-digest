@@ -89,7 +89,7 @@ def test_the_file_name_must_match_the_id(tmp_path) -> None:  # type: ignore[no-u
 def test_the_example_audiences_load() -> None:
     audiences = load_audiences(EXAMPLES)
     assert {audience.id for audience in audiences} == {
-        "ai-policy",
+        "ai",
         "public-health-canada",
         "municipal-toronto",
         "newfoundland-labrador",
