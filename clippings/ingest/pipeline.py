@@ -27,11 +27,12 @@ from clippings.sources.bluesky import BlueskySource
 from clippings.sources.gdelt import GdeltSource
 from clippings.sources.reddit import RedditSource
 from clippings.sources.rss import RssSource
+from clippings.sources.sitemap import SitemapSource
 
 
 def default_sources() -> tuple[Source, ...]:
     """Every adapter. Which ones do anything is decided by the audience file."""
-    return (RssSource(), GdeltSource(), RedditSource(), BlueskySource())
+    return (RssSource(), SitemapSource(), GdeltSource(), RedditSource(), BlueskySource())
 
 
 @dataclass(frozen=True)
@@ -120,6 +121,10 @@ def _watermarks(store: Store, audience: Audience) -> dict[tuple[str, str], datet
         mark = store.watermark(audience.id, feed.terms, feed.url)
         if mark:
             marks[(feed.terms, feed.url)] = mark
+    for sitemap in audience.sources.sitemaps:
+        mark = store.watermark(audience.id, sitemap.terms, sitemap.url)
+        if mark:
+            marks[(sitemap.terms, sitemap.url)] = mark
     for key, origins in (
         ("gdelt", audience.sources.gdelt.queries),
         ("reddit", audience.sources.reddit.subreddits),

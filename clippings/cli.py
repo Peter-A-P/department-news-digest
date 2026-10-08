@@ -327,13 +327,7 @@ def sources_check(audiences: AudienceDir = EXAMPLES) -> None:
     not_allowed: list[str] = []
     allowed: list[str] = []
     for audience in load_audiences(audiences):
-        keys = {feed.terms for feed in audience.sources.feeds}
-        if audience.sources.gdelt.queries:
-            keys.add("gdelt")
-        if audience.sources.reddit.subreddits:
-            keys.add("reddit")
-        if audience.sources.bluesky.queries:
-            keys.add("bluesky")
+        keys = audience.terms_keys()
         for key in sorted(keys):
             row = rows.get(key)
             if row is None:

@@ -12,7 +12,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-SourceKind = Literal["rss", "gdelt", "reddit", "bluesky"]
+SourceKind = Literal["rss", "sitemap", "gdelt", "reddit", "bluesky"]
 
 # Discussion platforms. Their items are posts, not reports: they carry their own text, and
 # since 2026-10-08 they reach a digest only inside a story that a news source also carries

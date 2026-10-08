@@ -157,7 +157,9 @@ class BlueskySource:
                 yield FetchResult.failure(SOURCE_KEY, query, f"unavailable: {exc}")
             return
         for query in config.queries:
-            yield self._fetch_one(query, config.limit, token, context, audience.languages)
+            yield self._fetch_one(
+                query, config.limit, token, context, audience.languages, config.sort
+            )
 
     def _fetch_one(
         self,
@@ -166,9 +168,10 @@ class BlueskySource:
         token: str,
         context: FetchContext,
         languages: tuple[str, ...] = (),
+        sort: str = "top",
     ) -> FetchResult:
         since = context.since(SOURCE_KEY, query)
-        params = {"q": query, "limit": str(limit), "sort": "latest"}
+        params = {"q": query, "limit": str(limit), "sort": sort}
         if len(languages) == 1:
             # The search filters by one language server-side; with several, parse_posts does.
             params["lang"] = languages[0]

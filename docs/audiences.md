@@ -24,7 +24,7 @@ almost everything is local but little of it matters.
 | `entities` | no | `organisations`, `people`, `places`. Matched in item text; also used to build GDELT queries. |
 | `geography` | no | Places this audience is about, as part of the profile. |
 | `languages` | no | ISO 639-1 codes, default `["en"]`. Restricts GDELT server-side. |
-| `sources` | no | `feeds`, `gdelt`, `reddit`, `bluesky`. Any subset. A feed takes `url`, `publisher`, `terms`, and `extract` (default true); `extract: false` means the article pages are never requested and the item is summarised from the feed's own title and summary, for a publisher whose terms clear the feed but not the page. |
+| `sources` | no | `feeds`, `sitemaps`, `gdelt`, `reddit`, `bluesky`. Any subset. A sitemap takes `url`, `publisher`, `terms`, `include` (the news section's path prefix, such as `/news/`) and `extract`, for a publisher that posts news with no feed; new pages are found by the sitemap's dates and kept only if the page's own publication date is new. Bluesky takes `sort`, `top` by default. A feed takes `url`, `publisher`, `terms`, and `extract` (default true); `extract: false` means the article pages are never requested and the item is summarised from the feed's own title and summary, for a publisher whose terms clear the feed but not the page. |
 | `trusted_sources` | no | Bare domains, subdomains included. Ranked up, and preferred when choosing which item represents a story. |
 | `blocked_sources` | no | Bare domains, subdomains included. Never stored, never extracted, never shown. |
 | `digest` | no | `max_stories`, `rerank_candidates`, `max_sentences_per_story`. `rerank_candidates` is how many stories the model re-ranker is shown, and so the cost of that call; the model never sees more. |

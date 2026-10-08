@@ -102,6 +102,14 @@ sources:
       publisher: National Institute of Standards and Technology
       terms: nist.gov
 
+  # Anthropic posts news with no feed; its sitemap lists every page with a date
+  # (clippings/sources/sitemap.py).
+  sitemaps:
+    - url: https://www.anthropic.com/sitemap.xml
+      publisher: Anthropic
+      terms: anthropic.com
+      include: /news/
+
   gdelt:
     queries:
       - '"artificial intelligence"'

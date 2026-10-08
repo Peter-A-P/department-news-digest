@@ -55,6 +55,39 @@ class Feed(Strict):
         return value
 
 
+class Sitemap(Strict):
+    """A publisher's sitemap, for a news section that has no feed.
+
+    Some publishers (Anthropic, measured 2026-10-08) post news with no RSS or Atom feed but
+    list every page in a sitemap, the machine-readable index a site publishes for crawlers.
+    The adapter reads the sitemap, takes pages under `include` it has not seen, and reads
+    each page's own title, description and publication date. `terms` is the key into
+    docs/sources.md, exactly as for a feed.
+    """
+
+    url: str
+    publisher: str
+    terms: str
+    # The path prefix of the news pages, for example "/news/". The section's index page
+    # itself is never an item.
+    include: str
+    extract: bool = True
+
+    @field_validator("url")
+    @classmethod
+    def _https(cls, value: str) -> str:
+        if not value.startswith("https://"):
+            raise ValueError("sitemap URLs must be https")
+        return value
+
+    @field_validator("include")
+    @classmethod
+    def _path(cls, value: str) -> str:
+        if not value.startswith("/") or not value.endswith("/"):
+            raise ValueError("include must be a path prefix such as '/news/'")
+        return value
+
+
 class RedditSource(Strict):
     """Public subreddits, read through a registered application on the free tier."""
 
@@ -83,6 +116,16 @@ class BlueskySource(Strict):
 
     queries: tuple[str, ...] = ()
     limit: int = Field(default=50, ge=1, le=100)
+    # "top" since 2026-10-08. Posts now count only as corroboration of a news story, and the
+    # top posts are the substantial ones; "latest" returned the first minutes of replies.
+    sort: str = "top"
+
+    @field_validator("sort")
+    @classmethod
+    def _known_sort(cls, value: str) -> str:
+        if value not in {"top", "latest"}:
+            raise ValueError("sort must be one of: top, latest")
+        return value
 
 
 class GdeltSource(Strict):
@@ -100,6 +143,7 @@ class Sources(Strict):
     """
 
     feeds: tuple[Feed, ...] = ()
+    sitemaps: tuple[Sitemap, ...] = ()
     gdelt: GdeltSource = GdeltSource()
     reddit: RedditSource = RedditSource()
     bluesky: BlueskySource = BlueskySource()
@@ -208,6 +252,18 @@ class Audience(Strict):
         if both:
             raise ValueError(f"domains both trusted and blocked: {sorted(both)}")
         return self
+
+    def terms_keys(self) -> set[str]:
+        """Every key this audience needs allowed in docs/sources.md."""
+        keys = {feed.terms for feed in self.sources.feeds}
+        keys |= {sitemap.terms for sitemap in self.sources.sitemaps}
+        if self.sources.gdelt.queries:
+            keys.add("gdelt")
+        if self.sources.reddit.subreddits:
+            keys.add("reddit")
+        if self.sources.bluesky.queries:
+            keys.add("bluesky")
+        return keys
 
     def profile_text(self) -> str:
         """The audience as one string, embedded once per run as the ranking target."""

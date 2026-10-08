@@ -51,7 +51,7 @@ def extract_one(item: Item, audience: Audience, context: FetchContext) -> Extrac
         return ExtractOutcome(item.id, None, "post carries its own text")
     if not context.permitted(item.source_key):
         return ExtractOutcome(item.id, None, "terms do not allow it")
-    if item.source_kind == "rss" and not _feed_allows_extraction(item, audience):
+    if item.source_kind in {"rss", "sitemap"} and not _feed_allows_extraction(item, audience):
         return ExtractOutcome(item.id, None, "feed cleared for its summary only")
     if is_blocked(item.domain, audience):
         return ExtractOutcome(item.id, None, "blocked source")
@@ -86,7 +86,6 @@ def _feed_allows_extraction(item: Item, audience: Audience) -> bool:
     configured feed (the audience file changed since the item was stored) is refused rather
     than allowed: the flag exists to keep a request from leaving, so not knowing is a no.
     """
-    for feed in audience.sources.feeds:
-        if feed.url == item.origin:
-            return feed.extract
-    return False
+    flags = {feed.url: feed.extract for feed in audience.sources.feeds}
+    flags |= {sitemap.url: sitemap.extract for sitemap in audience.sources.sitemaps}
+    return flags.get(item.origin, False)

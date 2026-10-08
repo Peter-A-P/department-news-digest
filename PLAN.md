@@ -84,6 +84,12 @@ republished: the digest shows a summary, a link, and quotes of at most twenty-fi
 Each source's terms are recorded in `docs/sources.md` with the date read, and a source is
 dropped rather than bent.
 
+A publisher that posts news with no feed but publishes a sitemap is read through the
+sitemap (added 2026-10-08 for Anthropic, which has no RSS): the sitemap is a machine-readable
+index the site publishes for crawlers, its dates choose which pages to look at, and each
+page's own metadata gives the title, the description and the publication date. Nothing is
+read from a page that the publisher does not put in its metadata for machines.
+
 ### 2.3 Cluster before ranking, rank before the model
 
 Near-duplicates collapse by MinHash on shingles; stories cluster by local sentence

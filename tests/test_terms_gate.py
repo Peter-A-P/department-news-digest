@@ -85,13 +85,7 @@ def test_every_source_in_every_example_audience_has_a_row() -> None:
     """
     rows = load_terms(SOURCES_DOC)
     for audience in load_audiences(EXAMPLES):
-        keys = {feed.terms for feed in audience.sources.feeds}
-        if audience.sources.gdelt.queries:
-            keys.add("gdelt")
-        if audience.sources.reddit.subreddits:
-            keys.add("reddit")
-        if audience.sources.bluesky.queries:
-            keys.add("bluesky")
+        keys = audience.terms_keys()
         missing = keys - set(rows)
         assert not missing, f"{audience.id} uses sources with no row in docs/sources.md: {missing}"
 
