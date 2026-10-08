@@ -27,6 +27,13 @@ WORD = re.compile(r"[a-z0-9]+")
 
 Vector = tuple[float, ...]
 
+# Texts embedded per ONNX call. fastembed's default is 256, and a story text runs to the
+# model's 512-token limit, so a batch's attention matrices alone are gigabytes: measured
+# 2026-10-08, 120 long texts peaked at 2.5 GB resident at 256 and 0.86 GB at 16. The daily
+# job was killed for memory at 2 GiB on its second audience. Throughput barely changes on
+# one CPU, which is what the job has.
+BATCH_SIZE = 16
+
 
 class Embedder(Protocol):
     """Turns text into unit-length vectors."""
@@ -90,7 +97,7 @@ class FastEmbed:
             return []
         return [
             normalise([float(value) for value in vector])
-            for vector in self._model.embed(list(texts))
+            for vector in self._model.embed(list(texts), batch_size=BATCH_SIZE)
         ]
 
 

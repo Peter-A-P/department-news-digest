@@ -26,6 +26,42 @@ from typing import Protocol, Self, runtime_checkable
 DEFAULT_LOCK_TTL = timedelta(hours=2)
 
 
+def execution_id() -> str:
+    """The Cloud Run job execution this process belongs to, or empty outside Cloud Run.
+
+    A retried task runs in a new container with the same execution name, which is what lets
+    a retry recognise a lock its own crashed first attempt left behind.
+    """
+    return os.environ.get("CLOUD_RUN_EXECUTION", "")
+
+
+def lock_payload(holder: str) -> str:
+    return json.dumps(
+        {"holder": holder, "taken_at": datetime.now(UTC).isoformat(), "execution": execution_id()}
+    )
+
+
+def breakable(payload: dict[str, str], ttl: timedelta, execution: str | None = None) -> bool:
+    """Whether a lock found in place may be broken.
+
+    Two cases. The holder is presumed dead because the lock is older than the TTL. Or the
+    lock was taken by an earlier attempt of this same job execution: Cloud Run only retries
+    a task after the attempt has ended, so that holder is certainly dead. The second case is
+    from 2026-10-08, when the first attempt was killed for running out of memory, its lock
+    outlived it, and the retry refused to start, losing the day for three audiences.
+    """
+    execution = execution_id() if execution is None else execution
+    if execution and payload.get("execution") == execution:
+        return True
+    taken = payload.get("taken_at")
+    if not taken:
+        return True
+    try:
+        return datetime.now(UTC) - datetime.fromisoformat(taken) > ttl
+    except ValueError:
+        return True
+
+
 class RunLockHeld(RuntimeError):
     """Another run holds the lock. The second job exits rather than writing."""
 
@@ -53,12 +89,11 @@ class LocalRunLock:
         self._held = False
 
     def acquire(self, holder: str | None = None) -> None:
-        holder = holder or holder_id()
-        payload = json.dumps({"holder": holder, "taken_at": datetime.now(UTC).isoformat()})
+        payload = lock_payload(holder or holder_id())
         try:
             self._write_exclusive(payload)
         except FileExistsError:
-            if self._is_stale():
+            if breakable(self._payload(), self.ttl):
                 # The previous holder died without releasing. Break the lock, then take it
                 # the same way, so two processes breaking it at once still leaves one winner.
                 self.path.unlink(missing_ok=True)
@@ -85,16 +120,6 @@ class LocalRunLock:
 
     def _holder(self) -> str:
         return self._payload().get("holder", "an unknown run")
-
-    def _is_stale(self) -> bool:
-        taken = self._payload().get("taken_at")
-        if not taken:
-            # A lock file we cannot read is broken, not held.
-            return True
-        try:
-            return datetime.now(UTC) - datetime.fromisoformat(taken) > self.ttl
-        except ValueError:
-            return True
 
     def release(self) -> None:
         if self._held:
@@ -138,13 +163,12 @@ class GcsRunLock:
     def acquire(self, holder: str | None = None) -> None:
         from google.api_core.exceptions import PreconditionFailed
 
-        holder = holder or holder_id()
-        payload = json.dumps({"holder": holder, "taken_at": datetime.now(UTC).isoformat()})
+        payload = lock_payload(holder or holder_id())
         blob = self._blob()
         try:
             blob.upload_from_string(payload, if_generation_match=0)  # type: ignore[attr-defined]
         except PreconditionFailed:
-            if self._is_stale(blob):
+            if self._is_breakable(blob):
                 blob.delete()  # type: ignore[attr-defined]
                 try:
                     blob.upload_from_string(payload, if_generation_match=0)  # type: ignore[attr-defined]
@@ -154,13 +178,12 @@ class GcsRunLock:
                 raise RunLockHeld(f"gs://{self.bucket_name}/{self.name}: held") from None
         self._held = True
 
-    def _is_stale(self, blob: object) -> bool:
+    def _is_breakable(self, blob: object) -> bool:
         try:
             payload = json.loads(blob.download_as_text())  # type: ignore[attr-defined]
-            taken = datetime.fromisoformat(payload["taken_at"])
         except Exception:
             return True
-        return datetime.now(UTC) - taken > self.ttl
+        return breakable(payload if isinstance(payload, dict) else {}, self.ttl)
 
     def release(self) -> None:
         if self._held:

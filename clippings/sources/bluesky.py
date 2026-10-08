@@ -77,8 +77,15 @@ def _created_at(record: Any) -> datetime | None:
         return None
 
 
-def parse_posts(payload: Any, query: str, since: datetime) -> tuple[RawItem, ...]:
-    """Turn a search response into raw items posted since the watermark."""
+def parse_posts(
+    payload: Any, query: str, since: datetime, languages: tuple[str, ...] = ()
+) -> tuple[RawItem, ...]:
+    """Turn a search response into raw items posted since the watermark.
+
+    A post whose author tagged its languages and named none of the audience's is skipped.
+    The first deployed AI digest (2026-10-08) carried a Japanese roundup post as a must-read
+    for an English audience; the audience file's `languages` was being ignored here.
+    """
     if not isinstance(payload, dict):
         return ()
     posts = payload.get("posts")
@@ -99,6 +106,14 @@ def parse_posts(payload: Any, query: str, since: datetime) -> tuple[RawItem, ...
             continue
         created = _created_at(record)
         if created is not None and created <= since:
+            continue
+        tagged = record.get("langs")
+        spoken = (
+            {str(code).split("-")[0].lower() for code in tagged}
+            if isinstance(tagged, list)
+            else set()
+        )
+        if languages and spoken and not spoken & set(languages):
             continue
         # A post has no title. The first line stands in for one, which is what a reader of
         # the digest sees before the quote.
@@ -142,14 +157,25 @@ class BlueskySource:
                 yield FetchResult.failure(SOURCE_KEY, query, f"unavailable: {exc}")
             return
         for query in config.queries:
-            yield self._fetch_one(query, config.limit, token, context)
+            yield self._fetch_one(query, config.limit, token, context, audience.languages)
 
-    def _fetch_one(self, query: str, limit: int, token: str, context: FetchContext) -> FetchResult:
+    def _fetch_one(
+        self,
+        query: str,
+        limit: int,
+        token: str,
+        context: FetchContext,
+        languages: tuple[str, ...] = (),
+    ) -> FetchResult:
         since = context.since(SOURCE_KEY, query)
+        params = {"q": query, "limit": str(limit), "sort": "latest"}
+        if len(languages) == 1:
+            # The search filters by one language server-side; with several, parse_posts does.
+            params["lang"] = languages[0]
         try:
             response = context.client.get(
                 SEARCH,
-                params={"q": query, "limit": str(limit), "sort": "latest"},
+                params=params,
                 headers={"Authorization": f"Bearer {token}"},
             )
             response.raise_for_status()
@@ -159,5 +185,7 @@ class BlueskySource:
         except ValueError as exc:
             return FetchResult.failure(SOURCE_KEY, query, f"not JSON: {exc}")
         return FetchResult(
-            source_key=SOURCE_KEY, origin=query, items=parse_posts(payload, query, since)
+            source_key=SOURCE_KEY,
+            origin=query,
+            items=parse_posts(payload, query, since, languages),
         )

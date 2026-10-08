@@ -452,3 +452,25 @@ def test_reddit_gets_the_user_agent_its_rules_ask_for() -> None:
         agent = user_agent(context)["User-Agent"]
     assert agent == "python:clippings:abc:0.1 (by /u/someone)"
     assert "http" not in agent.split("(")[0], "no URL: CBC-style edges refuse one"
+
+
+def test_bluesky_posts_in_another_language_are_skipped() -> None:
+    from datetime import UTC, datetime
+
+    from clippings.sources.bluesky import parse_posts
+
+    def post(rkey: str, langs: list[str] | None) -> dict[str, object]:
+        record: dict[str, object] = {"text": f"post {rkey}", "createdAt": "2026-10-08T08:00:00Z"}
+        if langs is not None:
+            record["langs"] = langs
+        return {
+            "uri": f"at://did:plc:x/app.bsky.feed.post/{rkey}",
+            "author": {"handle": "someone.bsky.social"},
+            "record": record,
+        }
+
+    payload = {"posts": [post("ja", ["ja"]), post("en", ["en-US"]), post("untagged", None)]}
+    since = datetime(2026, 10, 7, tzinfo=UTC)
+    kept = parse_posts(payload, "q", since, languages=("en",))
+    assert [item.title for item in kept] == ["post en", "post untagged"]
+    assert len(parse_posts(payload, "q", since)) == 3

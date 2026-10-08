@@ -204,6 +204,11 @@ def run(
                 typer.echo("No further model call was made. Raise the cap in a commit.", err=True)
                 raise typer.Exit(code=4) from exc
             _print_report(state["report"])
+            if bucket:
+                store.checkpoint()
+                # Each audience's work is saved as soon as it is done, so a run killed on the
+                # third audience keeps the first two (2026-10-08 lost one this way).
+                sync.push()
             if "digest" in state:
                 _print_digest(state["digest"], state.get("published", []))
                 # A failed call is not a crash, so it would otherwise be invisible here.

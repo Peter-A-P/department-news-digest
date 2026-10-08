@@ -198,6 +198,10 @@ class Store:
     def close(self) -> None:
         self._connection.close()
 
+    def checkpoint(self) -> None:
+        """Write everything to the database file, so a copy of the file taken now is whole."""
+        self._connection.execute("CHECKPOINT")
+
     # -- items ---------------------------------------------------------------------------
 
     def add_items(self, items: Iterable[Item], audience_id: str) -> int:

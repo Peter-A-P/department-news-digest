@@ -91,3 +91,19 @@ def test_downloading_a_database_that_is_not_there_yet_is_not_an_error(tmp_path) 
     """The first run of a new environment has no file in the bucket."""
     bucket = LocalObjectStore(tmp_path / "bucket")
     assert bucket.download("state/clippings.duckdb", tmp_path / "x.duckdb") is False
+
+
+def test_a_retry_breaks_the_lock_its_own_crashed_attempt_left() -> None:
+    """2026-10-08: the first attempt ran out of memory holding the lock, and the retry, the
+    same Cloud Run execution, refused to start because the lock was not yet two hours old."""
+    from datetime import UTC, datetime, timedelta
+
+    from clippings.ingest.remote import breakable
+
+    fresh = {"taken_at": datetime.now(UTC).isoformat(), "execution": "clippings-daily-kwbz2"}
+    hour = timedelta(hours=2)
+    assert breakable(fresh, hour, execution="clippings-daily-kwbz2")
+    assert not breakable(fresh, hour, execution="clippings-daily-other")
+    assert not breakable(fresh, hour, execution=""), "outside Cloud Run, only age breaks it"
+    old = {**fresh, "taken_at": (datetime.now(UTC) - timedelta(hours=3)).isoformat()}
+    assert breakable(old, hour, execution="")

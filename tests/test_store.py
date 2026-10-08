@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from clippings.ingest.store import Store
 from clippings.models import ItemText
@@ -120,3 +121,19 @@ def test_times_come_back_in_utc_whatever_the_machine_says() -> None:
     assert published == NOW
     assert published.utcoffset() == timedelta(0)
     assert published.tzinfo is not None and published.astimezone(UTC).hour == NOW.hour
+
+
+def test_a_checkpointed_file_copied_mid_run_holds_what_was_written(tmp_path: Path) -> None:
+    """The daily job uploads the database after each audience while it is still open."""
+    import shutil
+
+    from clippings.ingest.store import Store
+    from tests.conftest import item
+
+    path = tmp_path / "live.duckdb"
+    with Store.open(path) as store:
+        store.add_items([item("a")], "test-audience")
+        store.checkpoint()
+        shutil.copy(path, tmp_path / "copy.duckdb")
+    with Store.open(tmp_path / "copy.duckdb") as copy:
+        assert copy.count_items() == 1
