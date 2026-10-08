@@ -117,7 +117,7 @@ def publish_indexes(
     rows: list[tuple[str, str, str, str | None]] = []
     for audience_id, name, description in audiences:
         days = sorted(days_by_audience.get(audience_id, []), reverse=True)
-        page = render.audience_index(name, days, description)
+        page = render.audience_index(name, days, description, audience_id)
         site.write(f"{audience_id}/index.html", page.encode("utf-8"))
         rows.append((audience_id, name, description, days[0] if days else None))
     site.write("index.html", render.site_index(rows).encode("utf-8"))

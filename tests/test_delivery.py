@@ -309,3 +309,11 @@ def test_a_short_summary_folds_only_its_sources() -> None:
     lead, folded = html_page(digest()).split("<details>", 1)
     assert "it passed" in lead
     assert "Read more" not in folded and "Sources" in folded
+
+
+def test_each_example_audience_has_its_own_colour() -> None:
+    from clippings.assemble.render import hue
+    from clippings.config.load import EXAMPLES, load_audiences
+
+    ids = [audience.id for audience in load_audiences(EXAMPLES)]
+    assert len({hue(audience_id) for audience_id in ids}) == len(ids)

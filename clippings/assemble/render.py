@@ -17,6 +17,7 @@ which may be closed. The Markdown and the draft file show everything.
 
 from __future__ import annotations
 
+import zlib
 from collections.abc import Sequence
 from datetime import UTC
 from email.message import EmailMessage
@@ -41,7 +42,11 @@ STYLE = """
   color-scheme: light dark;
   --paper: #f5f3ee; --paper-soft: #fdfcf9; --ink: #16181d; --ink-soft: #3c4048;
   --ink-faint: #6b7079; --line: #e3dfd6; --line-2: #cfc9bd;
-  --accent: #0f5c6e; --accent-ink: #0b4653; --accent-soft: #e4eff1; --amber: #9a6700;
+  --accent: #0f5c6e; --accent-ink: #0b4653; --accent-soft: #e4eff1;
+  --teal: #0f5c6e; --teal-soft: #e4eff1; --violet: #6d3f9e; --violet-soft: #efe8f7;
+  --green: #1e7a4c; --green-soft: #e3f2ea; --amber: #9a6700; --amber-soft: #f7eed9;
+  --rose: #b4434f; --rose-soft: #f8e6e8; --paper-deep: #ebe8e0;
+  --aud: var(--teal); --aud-soft: var(--teal-soft);
   --serif: "Newsreader", Georgia, "Times New Roman", serif;
   --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --radius: 10px; --column: 46rem; --wide: 60rem;
@@ -50,7 +55,10 @@ STYLE = """
   :root {
     --paper: #0e1013; --paper-soft: #15181d; --ink: #ece9e2; --ink-soft: #c9c6bf;
     --ink-faint: #969ba5; --line: #262a31; --line-2: #363b44;
-    --accent: #7cc7d6; --accent-ink: #a9dde7; --accent-soft: #14262b; --amber: #e0b35a;
+    --accent: #7cc7d6; --accent-ink: #a9dde7; --accent-soft: #14262b;
+    --teal: #7cc7d6; --teal-soft: #14262b; --violet: #b191e0; --violet-soft: #221a2e;
+    --green: #58c286; --green-soft: #13261c; --amber: #e0b35a; --amber-soft: #2a2312;
+    --rose: #f08a93; --rose-soft: #2c1a1d; --paper-deep: #0a0c0e;
   }
 }
 * { box-sizing: border-box; }
@@ -81,13 +89,21 @@ main { max-width: var(--wide); margin: 0 auto; padding: 0 1.5rem 4rem; }
 .hero { position: relative; padding: 2.75rem 0 2rem; border-bottom: 1px solid var(--line); }
 .hero::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: 50%;
   width: 100vw; margin-left: -50vw;
-  background: linear-gradient(180deg, var(--accent-soft), var(--paper) 85%); }
+  background: radial-gradient(55rem 20rem at 88% 0%,
+      color-mix(in srgb, var(--violet) 16%, transparent), transparent 70%),
+    radial-gradient(40rem 16rem at 8% 100%,
+      color-mix(in srgb, var(--amber) 10%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--aud-soft), var(--paper) 85%); }
+.aud-teal { --aud: var(--teal); --aud-soft: var(--teal-soft); }
+.aud-violet { --aud: var(--violet); --aud-soft: var(--violet-soft); }
+.aud-green { --aud: var(--green); --aud-soft: var(--green-soft); }
+.aud-rose { --aud: var(--rose); --aud-soft: var(--rose-soft); }
 .hero > * { max-width: var(--column); }
 .hero .points { max-width: none; }
 .crumbs { font-size: 0.82rem; color: var(--ink-faint); margin: 0 0 1.4rem; }
 .crumbs a { color: var(--ink-soft); }
 .eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem;
-  font-weight: 600; color: var(--accent-ink); margin: 0 0 0.6rem; }
+  font-weight: 600; color: var(--aud); margin: 0 0 0.6rem; }
 h1 { font-size: clamp(2rem, 4.4vw, 2.7rem); line-height: 1.12; margin: 0 0 0.9rem; }
 h1 .hl { color: var(--accent); }
 .lead { font-size: 1.05rem; color: var(--ink-soft); }
@@ -96,10 +112,15 @@ h1 .hl { color: var(--accent); }
   gap: 0.8rem; margin: 1.5rem 0 1rem; }
 .point, .card { background: var(--paper-soft); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 0.9rem 1rem; min-width: 0; }
-.point { border-top: 3px solid var(--accent); }
+.card { border-top: 3px solid var(--aud); }
+.card .latest a { color: var(--aud); }
+.point { --c: var(--teal); border-top: 3px solid var(--c); }
+.point:nth-child(2) { --c: var(--green); }
+.point:nth-child(3) { --c: var(--violet); }
+.point:nth-child(4) { --c: var(--amber); }
 .figure { display: block; font-family: var(--serif); font-size: 1.7rem; font-weight: 500;
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1.15;
-  color: var(--accent-ink); }
+  color: var(--c); }
 .unit { display: block; margin-top: 0.25rem; font-size: 0.8rem; color: var(--ink-soft);
   line-height: 1.4; }
 .warn { margin: 1rem 0 0; background: var(--paper-soft); border: 1px solid var(--line);
@@ -108,12 +129,22 @@ h1 .hl { color: var(--accent); }
 
 .stories { max-width: var(--column); }
 .story { padding: 1.7rem 0 1.5rem; border-bottom: 1px solid var(--line); }
-.story .pos { font-family: var(--serif); color: var(--accent); font-size: 1rem;
-  margin-right: 0.35rem; }
+.story .pos { display: inline-flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; margin-right: 0.55rem; border-radius: 50%;
+  background: var(--aud-soft); color: var(--aud); font-family: var(--sans);
+  font-size: 0.78rem; font-weight: 600; vertical-align: 0.2rem; }
 .story h2 { font-size: 1.45rem; line-height: 1.25; margin: 0 0 0.3rem; }
 .story h2 a { color: var(--ink); }
 .story h2 a:hover { color: var(--accent-ink); }
 .meta { font-size: 0.8rem; color: var(--ink-faint); margin: 0 0 0.7rem; }
+.tag { display: inline-block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em;
+  border-radius: 999px; padding: 0.05rem 0.55rem; margin-right: 0.5rem;
+  color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+.tag.must { --c: var(--rose); }
+.tag.relevant { --c: var(--teal); }
+.tag.marginal { --c: var(--amber); }
+.tag.news { --c: var(--teal); }
+.tag.post { --c: var(--violet); }
 .story p { color: var(--ink-soft); }
 sup a { font-size: 0.68rem; font-weight: 600; margin-left: 0.1rem; }
 .none { color: var(--ink-faint); font-style: italic; }
@@ -126,7 +157,7 @@ summary::-webkit-details-marker { display: none; }
 summary::after { content: " \\25BE"; }
 details[open] > summary::after { content: " \\25B4"; }
 details[open] > summary .more, details:not([open]) > summary .less { display: none; }
-.fold { margin-top: 0.9rem; padding-left: 1rem; border-left: 2px solid var(--line); }
+.fold { margin-top: 0.9rem; padding-left: 1rem; border-left: 2px solid var(--aud); }
 .sources { font-size: 0.82rem; color: var(--ink-faint); margin: 0.6rem 0 0;
   padding-left: 1.1rem; }
 .sources li { margin: 0 0 0.3rem; }
@@ -144,8 +175,9 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 .days li { border-bottom: 1px solid var(--line); }
 .days a { display: block; padding: 0.6rem 0; font-family: var(--serif); font-size: 1.15rem; }
 
+.footer-band { background: var(--paper-deep); border-top: 1px solid var(--line); }
 footer { max-width: var(--wide); margin: 0 auto; padding: 2rem 1.5rem 3rem;
-  font-size: 0.84rem; color: var(--ink-faint); border-top: 1px solid var(--line); }
+  font-size: 0.84rem; color: var(--ink-faint); }
 footer .footer-lead { color: var(--ink); font-weight: 600; font-size: 0.92rem; }
 footer p { max-width: var(--column); }
 @media (max-width: 46rem) {
@@ -178,21 +210,22 @@ INTRO = (
 )
 
 
-def _page(title: str, body: str, *, nav: str = "") -> str:
+def _page(title: str, body: str, *, nav: str = "", hue: str = "teal") -> str:
     nav_html = f'<p class="top-nav">{nav}</p>' if nav else ""
     return (
         '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{escape(title)}</title>\n<style>{STYLE}</style>\n</head>\n<body>\n"
+        f"<title>{escape(title)}</title>\n<style>{STYLE}</style>\n</head>\n"
+        f'<body class="aud-{hue}">\n'
         '<header class="top"><div class="top-inner">\n'
         '<a class="brand" href="https://peterparker.ca">'
         '<span class="mono-mark" aria-hidden="true">P</span>Peter Parker</a>\n'
         f"{nav_html or _project_link()}\n</div></header>\n"
         f"<main>\n{body}\n</main>\n"
-        f'<footer>\n<p class="footer-lead">{escape(FOOTER)}</p>\n'
+        f'<div class="footer-band"><footer>\n<p class="footer-lead">{escape(FOOTER)}</p>\n'
         f'<p><a href="/">All digests</a> &middot; <a href="{PROJECT_PAGE}">The project page</a>'
         ' &middot; <a href="https://peterparker.ca">The rest of the portfolio</a></p>\n'
-        "</footer>\n</body>\n</html>\n"
+        "</footer></div>\n</body>\n</html>\n"
     )
 
 
@@ -217,6 +250,22 @@ def _summary_line(digest: Digest) -> str:
         f"{c.sentences_shown} sentences shown, {c.sentences_dropped} refused by the verifier"
         f"{quotes}. Model cost US${digest.cost_usd:.4f}."
     )
+
+
+# Each audience keeps one colour across its card, its archive and its digests. It is drawn
+# from the id, so it needs no configuration and stays put from day to day; the four example
+# audiences land on four different colours.
+HUES = ("rose", "violet", "teal", "green")
+
+# Posts are commentary attached to a news story (models.SOCIAL_KINDS); the source list marks
+# them apart from the reporting. A link carries its domain, not its kind, hence the domains.
+POST_DOMAINS = frozenset({"bsky.app", "reddit.com", "www.reddit.com", "old.reddit.com"})
+
+RUBRIC_TAGS = {3: ("must", "Must read"), 2: ("relevant", "Relevant"), 1: ("marginal", "Marginal")}
+
+
+def hue(audience_id: str) -> str:
+    return HUES[zlib.crc32(audience_id.encode("utf-8")) % len(HUES)]
 
 
 def _rerank_note(digest: Digest) -> str:
@@ -250,6 +299,11 @@ def _paragraph(sentences: Sequence[DigestSentence], story: DigestStory) -> str:
     return "<p>" + " ".join(_sentence_html(sentence, story) for sentence in sentences) + "</p>"
 
 
+def _rubric_tag(story: DigestStory) -> str:
+    tag = RUBRIC_TAGS.get(story.rerank_score) if story.rerank_score is not None else None
+    return f'<span class="tag {tag[0]}">{tag[1]}</span>' if tag else ""
+
+
 def _story_html(story: DigestStory) -> str:
     anchor = f"story-{story.position}"
     outlets = f" and {story.outlets - 1} more" if story.outlets > 1 else ""
@@ -258,7 +312,8 @@ def _story_html(story: DigestStory) -> str:
         f'<article class="story" id="{anchor}">',
         f'<h2><span class="pos">{story.position}.</span>'
         f'<a href="{escape(story.url)}">{escape(story.headline)}</a></h2>',
-        f'<p class="meta">{escape(story.domain)}{escape(outlets)} &middot; {published}</p>',
+        f'<p class="meta">{_rubric_tag(story)}'
+        f"{escape(story.domain)}{escape(outlets)} &middot; {published}</p>",
     ]
     rest: list[DigestSentence] = []
     if story.sentences:
@@ -282,9 +337,10 @@ def _story_html(story: DigestStory) -> str:
     parts.append('<ol class="sources">')
     for source in story.sources:
         read = "" if source.extracted else " (feed summary only)"
+        kind = ("post", "Post") if source.domain in POST_DOMAINS else ("news", "News")
         parts.append(
             f'<li id="{anchor}-{escape(source.sid)}">[{escape(source.sid)}] '
-            f"{escape(source.domain)}: "
+            f'<span class="tag {kind[0]}">{kind[1]}</span>{escape(source.domain)}: '
             f'<a href="{escape(source.url)}">{escape(source.title)}</a>{escape(read)}</li>'
         )
     parts.append("</ol>")
@@ -351,7 +407,7 @@ def html_page(digest: Digest, description: str = "") -> str:
     body.extend(_story_html(story) for story in digest.stories)
     body.append(f'<p class="note">Run {escape(digest.run_id)}.</p>')
     body.append("</div>")
-    return _page(title, "\n".join(body))
+    return _page(title, "\n".join(body), hue=hue(digest.audience_id))
 
 
 def markdown(digest: Digest) -> str:
@@ -391,7 +447,9 @@ def eml_draft(digest: Digest) -> bytes:
     return message.as_bytes()
 
 
-def audience_index(audience_name: str, days: Sequence[str], description: str = "") -> str:
+def audience_index(
+    audience_name: str, days: Sequence[str], description: str = "", audience_id: str = ""
+) -> str:
     items = "\n".join(f'<li><a href="{escape(day)}/">{escape(day)}</a></li>' for day in days)
     lead = f'<p class="lead">{escape(description)}</p>' if description else ""
     body = (
@@ -401,7 +459,7 @@ def audience_index(audience_name: str, days: Sequence[str], description: str = "
         f"<h1>{escape(audience_name)}</h1>{lead}</header>\n"
         f'<ul class="days">\n{items}\n</ul>'
     )
-    return _page(audience_name, body)
+    return _page(audience_name, body, hue=hue(audience_id) if audience_id else "teal")
 
 
 def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
@@ -415,7 +473,7 @@ def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
             else '<p class="latest">No digest yet</p>'
         )
         cards.append(
-            f'<div class="card"><h3><a href="{escape(audience_id)}/">{escape(name)}</a></h3>'
+            f'<div class="card aud-{hue(audience_id)}"><h3><a href="{escape(audience_id)}/">{escape(name)}</a></h3>'
             f"<p>{escape(description)}</p>{latest_link}</div>"
         )
     body = (
