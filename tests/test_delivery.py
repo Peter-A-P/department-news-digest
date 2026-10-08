@@ -284,3 +284,21 @@ def test_temperature_is_not_sent_unless_a_call_asks_for_it() -> None:
     fake = FakeGateway()
     GatewayClient(gateway=fake).complete(call(), run_id="r")  # type: ignore[arg-type]
     assert fake.calls[0]["request"].temperature is None
+
+
+def test_a_story_leads_with_two_sentences_and_the_rest_opens_under_read_more() -> None:
+    sentences = tuple(DigestSentence(text=f"Sentence {n}.", cites=("s1",)) for n in range(1, 5))
+    story = digest().stories[0].model_copy(update={"sentences": sentences})
+    page = html_page(digest().model_copy(update={"stories": (story,)}))
+    lead, folded = page.split("<details>", 1)
+    assert "Sentence 1." in lead and "Sentence 2." in lead
+    assert "Sentence 3." not in lead and "Sentence 3." in folded and "Sentence 4." in folded
+    assert "Read more" in folded and 'class="sources"' in folded
+    # A mark in the lead cannot point into a closed <details>, so it links to the article.
+    assert '<a href="https://gov.example/a">[s1]</a>' in lead
+
+
+def test_a_short_summary_folds_only_its_sources() -> None:
+    lead, folded = html_page(digest()).split("<details>", 1)
+    assert "it passed" in lead
+    assert "Read more" not in folded and "Sources" in folded

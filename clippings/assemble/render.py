@@ -7,6 +7,12 @@ circulate it opens it, addresses it and presses send themselves. Nothing here ca
 
 Every string from a publisher or a model is escaped before it reaches HTML. A feed is input
 from the open web, and a headline containing markup is a headline, not markup.
+
+On the page a story shows its headline and the first two sentences of its summary; the rest
+of the summary, the sources and the ranking note open under "Read more". That is a
+`<details>` element, because the service's content policy allows no script. For the same
+reason a citation mark links straight to the article it cites rather than to the source list,
+which may be closed. The Markdown and the draft file show everything.
 """
 
 from __future__ import annotations
@@ -17,7 +23,10 @@ from email.message import EmailMessage
 from email.policy import SMTP
 from html import escape
 
-from clippings.assemble.digest import Digest, DigestStory
+from clippings.assemble.digest import Digest, DigestSentence, DigestStory
+
+# Sentences shown before "Read more"; the rest of the summary is one click away.
+LEAD_SENTENCES = 2
 
 STYLE = """
 :root { --bg: #fbfaf7; --fg: #1d1d1b; --muted: #66645e; --rule: #e2dfd6; --accent: #1f5f8b;
@@ -44,6 +53,13 @@ sup a { color: var(--accent); text-decoration: none; font-family: system-ui, san
 .sources { font-size: .82rem; margin: .5rem 0 0; padding-left: 1.1rem; color: var(--muted); }
 .sources a { color: var(--accent); overflow-wrap: anywhere; }
 .why { font-size: .75rem; color: var(--muted); }
+details { margin-top: .4rem; }
+summary { cursor: pointer; color: var(--accent); font-family: system-ui, sans-serif;
+  font-size: .82rem; list-style: none; display: inline-block; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: " \25BE"; }
+details[open] > summary::after { content: " \25B4"; }
+details[open] > summary .more, details:not([open]) > summary .less { display: none; }
 .none { color: var(--muted); font-style: italic; }
 .warn { background: var(--warn-bg); color: var(--warn-fg); padding: .6rem .8rem;
   border-radius: 4px; font-family: system-ui, sans-serif; font-size: .88rem; }
@@ -90,6 +106,16 @@ def _summary_line(digest: Digest) -> str:
     )
 
 
+def _sentence_html(sentence: DigestSentence, story: DigestStory) -> str:
+    urls = {source.sid: source.url for source in story.sources}
+    marks = "".join(
+        f'<sup><a href="{escape(urls.get(cite, f"#story-{story.position}-{cite}"))}">'
+        f"[{escape(cite)}]</a></sup>"
+        for cite in sentence.cites
+    )
+    return f"<p>{escape(sentence.text)} {marks}</p>"
+
+
 def _story_html(story: DigestStory) -> str:
     anchor = f"story-{story.position}"
     outlets = f" and {story.outlets - 1} more" if story.outlets > 1 else ""
@@ -99,13 +125,10 @@ def _story_html(story: DigestStory) -> str:
         f'<h2><a href="{escape(story.url)}">{escape(story.headline)}</a></h2>',
         f'<div class="meta">{escape(story.domain)}{escape(outlets)}, {published}</div>',
     ]
+    rest: list[DigestSentence] = []
     if story.sentences:
-        for sentence in story.sentences:
-            marks = "".join(
-                f'<sup><a href="#{anchor}-{escape(cite)}">[{escape(cite)}]</a></sup>'
-                for cite in sentence.cites
-            )
-            parts.append(f"<p>{escape(sentence.text)} {marks}</p>")
+        lead, rest = list(story.sentences[:LEAD_SENTENCES]), list(story.sentences[LEAD_SENTENCES:])
+        parts.extend(_sentence_html(sentence, story) for sentence in lead)
     else:
         why = (
             "The summary could not be produced today"
@@ -113,6 +136,13 @@ def _story_html(story: DigestStory) -> str:
             else "No summary passed verification"
         )
         parts.append(f'<p class="none">{why}; the link is the story.</p>')
+    more = "Read more" if rest else "Sources"
+    less = "Show less" if rest else "Hide sources"
+    parts.append(
+        f'<details><summary><span class="more">{more}</span>'
+        f'<span class="less">{less}</span></summary>'
+    )
+    parts.extend(_sentence_html(sentence, story) for sentence in rest)
     parts.append('<ol class="sources">')
     for source in story.sources:
         read = "" if source.extracted else " (feed summary only)"
@@ -128,6 +158,7 @@ def _story_html(story: DigestStory) -> str:
             f'<div class="why">Rubric score {story.rerank_score} of 3{escape(reason)}. '
             f"Pre-filter {story.prefilter_score:.2f} ({escape(story.why)}).</div>"
         )
+    parts.append("</details>")
     parts.append("</article>")
     return "\n".join(parts)
 
