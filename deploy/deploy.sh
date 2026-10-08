@@ -13,6 +13,7 @@
 #   BUCKET          default $PROJECT-clippings
 #   SCHEDULE        default "0 9 * * *" (09:00 UTC, before 07:00 in St. John's and Toronto)
 #   BUDGET_CAD      default 10, the monthly budget the alert fires against
+#   BUILDER         default "cloud" (Cloud Build); "local" builds and pushes with local Docker
 #
 # Secrets are created empty-handed: this script never sees a key. Add each value with
 #   printf %s "$VALUE" | gcloud secrets versions add NAME --data-file=-
@@ -88,9 +89,24 @@ done
 echo "== Image"
 gcloud artifacts repositories describe clippings --location="$REGION" >/dev/null 2>&1 || \
   gcloud artifacts repositories create clippings --repository-format=docker --location="$REGION"
-gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
-docker build --platform linux/amd64 -f deploy/Dockerfile -t "$IMAGE" .
-docker push "$IMAGE"
+if [ "${BUILDER:-cloud}" = "cloud" ]; then
+  echo "  building on Cloud Build"
+  gcloud services enable cloudbuild.googleapis.com
+  BUILD_SA="clippings-build@${PROJECT}.iam.gserviceaccount.com"
+  gcloud iam service-accounts describe "$BUILD_SA" >/dev/null 2>&1 || \
+    gcloud iam service-accounts create clippings-build --display-name=clippings-build
+  for role in roles/artifactregistry.writer roles/logging.logWriter roles/storage.objectViewer; do
+    retry gcloud projects add-iam-policy-binding "$PROJECT" --condition=None \
+      --member="serviceAccount:${BUILD_SA}" --role="$role" >/dev/null
+  done
+  # New roles take a minute or two to reach Cloud Build, and until then it answers only
+  # "PERMISSION_DENIED" (2026-10-08), so the submit is retried like the bindings.
+  retry gcloud builds submit --config=deploy/cloudbuild.yaml --substitutions="_IMAGE=${IMAGE}" .
+else
+  gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+  docker build --platform linux/amd64 -f deploy/Dockerfile -t "$IMAGE" .
+  docker push "$IMAGE"
+fi
 
 echo "== The daily job"
 # Only secrets that hold a value are mapped: Cloud Run refuses to start a job whose secret

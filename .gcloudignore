@@ -1,0 +1,12 @@
+# What Cloud Build is sent: the repository as committed, without local state.
+.git
+.venv
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.env
+.env.*
+data/
+out/
+**/__pycache__
+CLAUDE.local.md

@@ -1,0 +1,16 @@
+# Builds the image on Cloud Build instead of the deploying machine, which deploy.sh does by
+# default since 2026-10-08: every local build left a 1 GB image in Docker's disk until the
+# laptop's disk filled and Docker could no longer write. Nothing about the image differs.
+#
+# It runs as its own service account, clippings-build, which may push to Artifact Registry,
+# read the uploaded source and write logs, and nothing else. A new project has no default
+# build account (the Compute Engine one does not exist until that API is on), and
+# `gcloud builds submit` without one answers only "PERMISSION_DENIED".
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "--platform", "linux/amd64", "-f", "deploy/Dockerfile", "-t", "${_IMAGE}", "."]
+images: ["${_IMAGE}"]
+serviceAccount: projects/${PROJECT_ID}/serviceAccounts/clippings-build@${PROJECT_ID}.iam.gserviceaccount.com
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1800s

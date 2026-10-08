@@ -27,8 +27,10 @@ emailed.
    the gateway: US$2 a run, US$5 a day, US$60 a month, confirmed by Peter on 2026-10-07.
    Mirror the project line in the gateway repository's own caps file. The Anthropic console's hard cap is the
    first line of defence; these are the second.
-3. Docker, for building the image locally (Cloud Build is not used, so nothing is built on
-   a machine this project does not control).
+3. Nothing local for the image: it is built on Cloud Build (`deploy/cloudbuild.yaml`) as its
+   own `clippings-build` service account. `BUILDER=local` builds with local Docker instead;
+   that was the default until 2026-10-08, when the images it left behind filled the
+   laptop's disk.
 
 ## Deploy
 
