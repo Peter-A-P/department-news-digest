@@ -14,6 +14,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 SourceKind = Literal["rss", "gdelt", "reddit", "bluesky"]
 
+# Discussion platforms. Their items are posts, not reports: they carry their own text, and
+# since 2026-10-08 they reach a digest only inside a story that a news source also carries
+# (`rank.score.has_news`), where they count as corroboration. Peter's decision, after Toronto
+# commentary posts filled six of ten slots on the first day Bluesky was on.
+SOCIAL_KINDS: frozenset[str] = frozenset({"reddit", "bluesky"})
+
 
 class RawItem(BaseModel):
     """What a source adapter yields, before normalisation.

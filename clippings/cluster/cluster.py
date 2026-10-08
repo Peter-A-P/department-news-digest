@@ -28,7 +28,7 @@ from clippings.cluster.shingles import (
 )
 from clippings.config.audience import Audience
 from clippings.ingest.normalise import is_trusted
-from clippings.models import Cluster, Item
+from clippings.models import SOCIAL_KINDS, Cluster, Item
 
 # Two items whose embeddings agree this much are the same story. Lower than the
 # near-duplicate threshold because these are different words about one event; measured
@@ -94,11 +94,13 @@ def representative(items: Sequence[Item], audience: Audience) -> Item:
 
     Earliest because the digest links to the report that broke it, and trusted first
     because a department would rather be linked to the regulator's own notice than to an
-    outlet's summary of it.
+    outlet's summary of it. A news item before any post, whatever its time: the headline a
+    story is shown under is a publisher's, and a post is commentary on the story.
     """
     return min(
         items,
         key=lambda item: (
+            item.source_kind in SOCIAL_KINDS,
             not is_trusted(item.domain, audience),
             item.published_at,
             item.id,

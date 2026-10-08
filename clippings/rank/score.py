@@ -14,7 +14,7 @@ from datetime import datetime
 
 from clippings.cluster.embed import Embedder, Vector
 from clippings.config.audience import Audience
-from clippings.models import Cluster, Item
+from clippings.models import SOCIAL_KINDS, Cluster, Item
 from clippings.rank.features import (
     Features,
     Informativeness,
@@ -65,6 +65,19 @@ class ScoredStory:
         return ", ".join(f"{name.replace('_', ' ')} {value:.2f}" for name, value in ranked)
 
 
+def has_news(cluster: Cluster, items: Mapping[str, Item]) -> bool:
+    """Whether a news source (a feed or GDELT) carries this story, not only posts.
+
+    A story made only of Reddit or Bluesky posts is discussion, not a report, and is not a
+    candidate for the digest. A post that joins a story a news source carries stays in it,
+    where it adds to the corroboration feature and can be cited beside the report.
+    """
+    return any(
+        item_id in items and items[item_id].source_kind not in SOCIAL_KINDS
+        for item_id in cluster.item_ids
+    )
+
+
 def combine(features: Features) -> float:
     """The weighted sum. Weights sum to one and every feature is in [0, 1]."""
     return sum(value * WEIGHTS[name] for name, value in features.as_dict().items())
@@ -96,6 +109,8 @@ def score_stories(
     for cluster in clusters:
         if cluster.representative_id not in items:
             # The representative was deleted by retention between clustering and ranking.
+            continue
+        if not has_news(cluster, items):
             continue
         features = features_for(
             cluster, items, audience, profile, story_vectors, now, informativeness

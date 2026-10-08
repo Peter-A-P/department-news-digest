@@ -93,6 +93,15 @@ recency. Only the top candidates per day go to a model re-ranker with the audien
 rubric, through the gateway. The model never sees the whole day's pool; that is what
 keeps a digest at cents. The LLM-over-everything alternative is a Rule C candidate.
 
+Posts are not stories (decided by Peter, 2026-10-08). A Reddit or Bluesky post reaches a
+digest only inside a story that a feed or GDELT also carries, where it counts towards
+corroboration and can be cited beside the report; a story made only of posts is not a
+candidate, and a story is always headed by a news item. On the first day Bluesky was on,
+commentary posts ("Lmfao former Liberal MPP...") took six of Toronto's ten slots, because
+they were on topic and the rubric had no reason to exclude them. Measured on that day's
+pools, posts join a news story rarely (one to three stories per audience), so their main
+effect now is corroboration, and the cost of the re-ranker falls with the smaller pool.
+
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 
 The summariser writes each digest sentence with the item ids it draws on and marks quotes

@@ -20,7 +20,7 @@ import trafilatura
 
 from clippings.config.audience import Audience
 from clippings.ingest.normalise import is_blocked
-from clippings.models import Item, ItemText
+from clippings.models import SOCIAL_KINDS, Item, ItemText
 from clippings.sources.base import FetchContext
 
 # Below this the extractor found a navigation page, a consent wall or a stub, not an
@@ -29,7 +29,7 @@ MIN_WORDS = 60
 
 # Posts are their own text: the title and body arrived with the item, and fetching the page
 # would be fetching a discussion platform's rendering of what is already in hand.
-SELF_DESCRIBING = frozenset({"reddit", "bluesky"})
+SELF_DESCRIBING = SOCIAL_KINDS
 
 
 @dataclass(frozen=True)

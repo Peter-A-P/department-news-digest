@@ -70,6 +70,10 @@ revocable on its own and cannot change the account. Bluesky's search endpoint be
 refusing unauthenticated requests with a 403, and an app password is the official way in,
 so that is the way this takes.
 
+Posts from either platform are discussion, not reports: one reaches a digest only inside a
+story that a feed or GDELT also carries, and a story made only of posts is never shown
+(PLAN.md section 2.3).
+
 Without those variables each source reports itself unavailable and the run carries on with
 the rest. That is deliberate: the pipeline runs with any subset of its sources, which is
 what makes dropping one cheap.

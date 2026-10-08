@@ -390,3 +390,61 @@ def test_the_outlet_cap_does_not_pull_a_marginal_story_above_a_relevant_one() ->
     vectors = {s.id: (1.0, 0.0) for s in stories}
     chosen = select(stories, vectors, 5, tiers=tiers, diversity=0.0, max_per_domain=3)
     assert [s.id for s in chosen.stories] == ["cbc0", "cbc1", "cbc2", "cbc3", "other"]
+
+
+def test_a_story_made_only_of_posts_is_not_a_candidate() -> None:
+    """Peter's decision, 2026-10-08: a post reaches the digest only inside a news story."""
+    from datetime import UTC, datetime
+
+    from clippings.cluster.embed import Hashing
+    from clippings.config.audience import Audience
+    from clippings.models import Cluster
+    from clippings.rank.score import has_news, score_stories
+    from tests.conftest import item
+
+    news = item("news", "Council passes transit budget")
+    post = item("post", "Council passes transit budget, finally").model_copy(
+        update={"source_kind": "bluesky", "domain": "bsky.app"}
+    )
+    alone = item("alone", "Lmfao the council again").model_copy(
+        update={"source_kind": "bluesky", "domain": "bsky.app"}
+    )
+    items = {i.id: i for i in (news, post, alone)}
+    joined = Cluster(
+        id="j", audience_id="a", day="d", representative_id="news", item_ids=("news", "post")
+    )
+    solo = Cluster(id="s", audience_id="a", day="d", representative_id="alone", item_ids=("alone",))
+    assert has_news(joined, items) and not has_news(solo, items)
+
+    audience = Audience(
+        id="a",
+        name="A",
+        description="Council news.",
+        topics=("transit",),
+        rubric="Relevant means council decisions that change what happens in the city, nothing else.",
+    )
+    scored = score_stories(
+        [joined, solo], items, audience, Hashing(), datetime(2026, 9, 12, tzinfo=UTC)
+    )
+    assert [story.id for story in scored] == ["j"]
+
+
+def test_the_story_is_headed_by_the_report_not_the_post() -> None:
+    from datetime import timedelta
+
+    from clippings.cluster.cluster import representative
+    from clippings.config.audience import Audience
+    from tests.conftest import NOW, item
+
+    report = item("report", published_at=NOW)
+    earlier_post = item("post", published_at=NOW - timedelta(hours=3)).model_copy(
+        update={"source_kind": "reddit", "domain": "reddit.com"}
+    )
+    audience = Audience(
+        id="a",
+        name="A",
+        description="d",
+        topics=("t",),
+        rubric="Relevant means council decisions that change what happens in the city, nothing else.",
+    )
+    assert representative([earlier_post, report], audience).id == "report"
