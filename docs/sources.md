@@ -75,7 +75,7 @@ Then `clippings sources check` confirms every source in every audience file has 
 | deepmind.google | Google DeepMind blog (RSS) | https://policies.google.com/terms | 2026-10-07 | allowed | Summary prepared 2026-10-07: Google's terms bar automated access only in violation of robots.txt, which allows this feed; no RSS or summarising restriction found. Read by Peter 2026-10-07 and allowed |
 | blog.google | Google blog, AI (RSS) | https://policies.google.com/terms | 2026-10-07 | allowed | Summary prepared 2026-10-07: the same Google terms as deepmind.google; robots allows the feed. Read by Peter 2026-10-07 and allowed |
 | huggingface.co | Hugging Face blog (RSS) | https://huggingface.co/terms-of-service | 2026-10-07 | allowed | Summary prepared 2026-10-07: no clause on RSS, scraping or AI use of site content; robots allows the feed. Read by Peter 2026-10-07 and allowed |
-| anthropic.com | Anthropic news, through its sitemap (no feed is published) | https://www.anthropic.com/legal | - | pending | Added 2026-10-08. No RSS or Atom feed exists (every usual path 404); the sitemap lists /news/ pages with dates, and robots.txt allows all. The legal page lists product terms (consumer, commercial, usage policy); no separate website terms were found. Not yet read |
+| anthropic.com | Anthropic news, through its sitemap (no feed is published) | https://www.anthropic.com/legal | 2026-10-08 | allowed | Added 2026-10-08. No RSS or Atom feed exists (every usual path 404); the sitemap lists /news/ pages with dates, and robots.txt allows all. The legal page lists product terms (consumer, commercial, usage policy); no separate website terms were found. Read by Peter 2026-10-08 and allowed |
 
 ## Recorded, but not currently in any audience file
 
