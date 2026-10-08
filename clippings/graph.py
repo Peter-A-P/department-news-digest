@@ -235,7 +235,7 @@ def node_publish(state: State) -> State:
     p = state["pipeline"]
     if p.site is None:
         return {"published": [], "trace": _trace(state, "publish:no site")}
-    paths = publish_digest(p.site, state["digest"])
+    paths = publish_digest(p.site, state["digest"], p.audience.description)
     return {"published": paths, "trace": _trace(state, f"publish:{len(paths)} files")}
 
 

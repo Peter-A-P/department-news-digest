@@ -224,7 +224,7 @@ def run(
         )
         publish_indexes(
             published,
-            [(one.id, one.name) for one in load_audiences(audiences)],
+            [(one.id, one.name, one.description) for one in load_audiences(audiences)],
             {one.id: store.digest_days(one.id) for one in load_audiences(audiences)},
         )
 
@@ -285,11 +285,11 @@ def render(
                 if digest is None:
                     typer.echo(f"  no digest for {one.id} on {each}")
                     continue
-                publish_digest(target, digest)
+                publish_digest(target, digest, one.description)
                 typer.echo(f"  rendered {one.id} {each}")
         publish_indexes(
             target,
-            [(one.id, one.name) for one in load_audiences(audiences)],
+            [(one.id, one.name, one.description) for one in load_audiences(audiences)],
             {one.id: store.digest_days(one.id) for one in load_audiences(audiences)},
         )
 

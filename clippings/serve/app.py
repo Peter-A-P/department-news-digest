@@ -13,20 +13,29 @@ Choosing a framework would add a dependency for routing four kinds of path.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from socketserver import ThreadingMixIn
 from typing import Any
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
 from clippings.assemble.publish import CONTENT_TYPES, Site, safe_path
 
+FONTS = {
+    f"/fonts/{path.name}": path.read_bytes()
+    for path in (Path(__file__).parent / "fonts").glob("*.woff2")
+}
+
 StartResponse = Callable[[str, list[tuple[str, str]]], Any]
 Environ = dict[str, Any]
 
 # Nothing on these pages runs script or loads anything from elsewhere. Saying so in a header
-# means a headline that somehow carried markup still could not.
+# means a headline that somehow carried markup still could not. The two fonts are this
+# service's own, packaged beside this file (SIL Open Font License, see fonts/LICENSE.txt).
 SECURITY_HEADERS = [
-    ("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'"),
+    (
+        "Content-Security-Policy",
+        "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'",
+    ),
     ("X-Content-Type-Options", "nosniff"),
     ("Referrer-Policy", "no-referrer"),
 ]
@@ -51,6 +60,15 @@ def application(site: Site) -> Callable[[Environ, StartResponse], Iterable[bytes
         # request never reaches the container (found on the first deploy, 2026-10-07).
         if path in {"/health", "/healthz"}:
             return _respond(start_response, "200 OK", b"ok\n", "text/plain; charset=utf-8", method)
+        if path in FONTS and method in {"GET", "HEAD"}:
+            return _respond(
+                start_response,
+                "200 OK",
+                FONTS[path],
+                "font/woff2",
+                method,
+                extra=[("Cache-Control", "public, max-age=604800")],
+            )
         if method not in {"GET", "HEAD"}:
             return _respond(
                 start_response,

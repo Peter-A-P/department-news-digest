@@ -95,11 +95,11 @@ class GcsSite:
         return data
 
 
-def publish_digest(site: Site, digest: Digest) -> list[str]:
+def publish_digest(site: Site, digest: Digest, description: str = "") -> list[str]:
     """Write one digest's three files. Returns the paths written."""
     base = f"{digest.audience_id}/{digest.day}"
     files = {
-        f"{base}/index.html": render.html_page(digest).encode("utf-8"),
+        f"{base}/index.html": render.html_page(digest, description).encode("utf-8"),
         f"{base}/digest.md": render.markdown(digest).encode("utf-8"),
         f"{base}/digest.eml": render.eml_draft(digest),
     }
@@ -110,13 +110,14 @@ def publish_digest(site: Site, digest: Digest) -> list[str]:
 
 def publish_indexes(
     site: Site,
-    audiences: Sequence[tuple[str, str]],
+    audiences: Sequence[tuple[str, str, str]],
     days_by_audience: dict[str, list[str]],
 ) -> None:
     """The front page and each audience's archive, newest day first."""
-    rows: list[tuple[str, str, str | None]] = []
-    for audience_id, name in audiences:
+    rows: list[tuple[str, str, str, str | None]] = []
+    for audience_id, name, description in audiences:
         days = sorted(days_by_audience.get(audience_id, []), reverse=True)
-        site.write(f"{audience_id}/index.html", render.audience_index(name, days).encode("utf-8"))
-        rows.append((audience_id, name, days[0] if days else None))
+        page = render.audience_index(name, days, description)
+        site.write(f"{audience_id}/index.html", page.encode("utf-8"))
+        rows.append((audience_id, name, description, days[0] if days else None))
     site.write("index.html", render.site_index(rows).encode("utf-8"))

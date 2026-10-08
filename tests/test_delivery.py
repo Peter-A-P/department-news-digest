@@ -219,7 +219,11 @@ def get(app: Any, path: str, method: str = "GET") -> tuple[str, dict[str, str], 
 def test_the_service_serves_pages_and_nothing_else(tmp_path: Path) -> None:
     site = LocalSite(tmp_path / "site")
     publish_digest(site, digest())
-    publish_indexes(site, [("test-audience", "Test audience")], {"test-audience": ["2026-09-12"]})
+    publish_indexes(
+        site,
+        [("test-audience", "Test audience", "What the test audience follows.")],
+        {"test-audience": ["2026-09-12"]},
+    )
     (tmp_path / "secret.txt").write_text("not for the web")
     app = application(site)
 
@@ -233,6 +237,9 @@ def test_the_service_serves_pages_and_nothing_else(tmp_path: Path) -> None:
     eml = get(app, "/test-audience/2026-09-12/digest.eml")
     assert eml[1]["Content-Disposition"].startswith("attachment")
     assert get(app, "/health")[2] == b"ok\n"
+    font = get(app, "/fonts/inter-latin.woff2")
+    assert font[0].startswith("200") and font[1]["Content-Type"] == "font/woff2"
+    assert b"What the test audience follows." in get(app, "/")[2]
 
 
 # -- what survives, and what is never fetched ------------------------------------------------
