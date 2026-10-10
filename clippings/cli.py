@@ -28,6 +28,7 @@ import typer
 from clippings import graph
 from clippings.assemble.digest import Digest
 from clippings.assemble.publish import GcsSite, LocalSite, Site, publish_digest, publish_indexes
+from clippings.assemble.sources_panel import panel_for
 from clippings.cluster.embed import Hashing, default_embedder
 from clippings.config.audience import Audience
 from clippings.config.load import EXAMPLES, AudienceFileError, load_audience, load_audiences
@@ -232,10 +233,12 @@ def run(
             f"\nretention   deleted {deleted['items']} items and {deleted['texts']} texts "
             f"older than {RETENTION_DAYS} days"
         )
+        everyone = load_audiences(audiences)
         publish_indexes(
             published,
-            [(one.id, one.name, one.description) for one in load_audiences(audiences)],
-            {one.id: store.digest_days(one.id) for one in load_audiences(audiences)},
+            [(one.id, one.name, one.description) for one in everyone],
+            {one.id: store.digest_days(one.id) for one in everyone},
+            {one.id: panel_for(one, store) for one in everyone},
         )
 
 
@@ -295,12 +298,14 @@ def render(
                 if digest is None:
                     typer.echo(f"  no digest for {one.id} on {each}")
                     continue
-                publish_digest(target, digest, one.description)
+                publish_digest(target, digest, one.description, panel_for(one, store))
                 typer.echo(f"  rendered {one.id} {each}")
+        everyone = load_audiences(audiences)
         publish_indexes(
             target,
-            [(one.id, one.name, one.description) for one in load_audiences(audiences)],
-            {one.id: store.digest_days(one.id) for one in load_audiences(audiences)},
+            [(one.id, one.name, one.description) for one in everyone],
+            {one.id: store.digest_days(one.id) for one in everyone},
+            {one.id: panel_for(one, store) for one in everyone},
         )
 
 

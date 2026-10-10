@@ -15,7 +15,7 @@ Layout, the same in both:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Protocol
 
@@ -95,11 +95,14 @@ class GcsSite:
         return data
 
 
-def publish_digest(site: Site, digest: Digest, description: str = "") -> list[str]:
-    """Write one digest's three files. Returns the paths written."""
+def publish_digest(
+    site: Site, digest: Digest, description: str = "", sources: str = ""
+) -> list[str]:
+    """Write one digest's three files. Returns the paths written. `sources` is the
+    audience's "Sources checked" panel, already rendered."""
     base = f"{digest.audience_id}/{digest.day}"
     files = {
-        f"{base}/index.html": render.html_page(digest, description).encode("utf-8"),
+        f"{base}/index.html": render.html_page(digest, description, sources).encode("utf-8"),
         f"{base}/digest.md": render.markdown(digest).encode("utf-8"),
         f"{base}/digest.eml": render.eml_draft(digest),
     }
@@ -112,12 +115,15 @@ def publish_indexes(
     site: Site,
     audiences: Sequence[tuple[str, str, str]],
     days_by_audience: dict[str, list[str]],
+    panels: Mapping[str, str] | None = None,
 ) -> None:
-    """The front page and each audience's archive, newest day first."""
+    """The front page and each audience's archive, newest day first. `panels` holds each
+    audience's "Sources checked" panel, already rendered."""
     rows: list[tuple[str, str, str, str | None]] = []
     for audience_id, name, description in audiences:
         days = sorted(days_by_audience.get(audience_id, []), reverse=True)
-        page = render.audience_index(name, days, description, audience_id)
+        panel = (panels or {}).get(audience_id, "")
+        page = render.audience_index(name, days, description, audience_id, panel)
         site.write(f"{audience_id}/index.html", page.encode("utf-8"))
         rows.append((audience_id, name, description, days[0] if days else None))
     site.write("index.html", render.site_index(rows).encode("utf-8"))

@@ -317,3 +317,41 @@ def test_each_example_audience_has_its_own_colour() -> None:
 
     ids = [audience.id for audience in load_audiences(EXAMPLES)]
     assert len({hue(audience_id) for audience_id in ids}) == len(ids)
+
+
+def test_the_sources_panel_lists_every_source_and_how_its_last_check_went() -> None:
+    from datetime import date
+
+    from clippings.assemble.sources_panel import sources_panel
+    from clippings.config.load import EXAMPLES, load_audience
+    from clippings.ingest.store import FetchRecord
+    from clippings.sources.terms import TermsRow
+
+    audience = load_audience(EXAMPLES / "ai.yaml")
+    terms = {
+        "techcrunch.com": TermsRow(
+            "techcrunch.com", "TechCrunch", "https://x", date(2026, 10, 7), "allowed", ""
+        )
+    }
+    fetches = {
+        ("techcrunch.com", "https://techcrunch.com/category/artificial-intelligence/feed/"): (
+            FetchRecord(NOW, 9, True, "")
+        ),
+        ("reddit", "MachineLearning"): FetchRecord(
+            NOW, 0, False, "unavailable: REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET are not set"
+        ),
+    }
+    panel = sources_panel(audience, terms, fetches)
+    configured = (
+        len(audience.sources.feeds)
+        + len(audience.sources.sitemaps)
+        + len(audience.sources.gdelt.queries)
+        + len(audience.sources.reddit.subreddits)
+        + len(audience.sources.bluesky.queries)
+    )
+    assert panel.count("<tr><td>") == configured
+    assert f"Sources checked ({configured})" in panel
+    assert "2026-10-07" in panel and "9 new items" in panel
+    # A failure is shown in plain words, not hidden and not as an internal message.
+    assert "not active yet" in panel and "REDDIT_CLIENT_ID" not in panel
+    assert "not checked yet" in panel

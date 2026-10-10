@@ -175,6 +175,18 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 .days li { border-bottom: 1px solid var(--line); }
 .days a { display: block; padding: 0.6rem 0; font-family: var(--serif); font-size: 1.15rem; }
 
+.src-panel { margin-top: 1rem; }
+.src-body { margin-top: 0.8rem; }
+.src-wrap { overflow-x: auto; }
+.src-table { border-collapse: collapse; width: 100%; font-size: 0.8rem; background: var(--paper-soft);
+  border: 1px solid var(--line); border-radius: var(--radius); }
+.src-table th, .src-table td { text-align: left; padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--line); vertical-align: top; }
+.src-table th { font-weight: 600; color: var(--ink-soft); }
+.src-table a { overflow-wrap: anywhere; }
+.src-table td:nth-child(3) { white-space: nowrap; }
+.src-note { display: block; color: var(--ink-faint); font-size: 0.74rem; }
+.failed { color: var(--amber); font-weight: 600; }
 .footer-band { background: var(--paper-deep); border-top: 1px solid var(--line); }
 footer { max-width: var(--wide); margin: 0 auto; padding: 2rem 1.5rem 3rem;
   font-size: 0.84rem; color: var(--ink-faint); }
@@ -355,7 +367,7 @@ def _story_html(story: DigestStory) -> str:
     return "\n".join(parts)
 
 
-def html_page(digest: Digest, description: str = "") -> str:
+def html_page(digest: Digest, description: str = "", sources: str = "") -> str:
     """One audience's digest for one day. `description` is the audience's own, if known."""
     c = digest.counts
     title = f"{digest.audience_name}, {digest.day}"
@@ -394,6 +406,8 @@ def html_page(digest: Digest, description: str = "") -> str:
         '<a href="digest.md">Markdown</a> &middot; '
         '<a href="digest.eml">Email draft (unsent)</a></p>',
     ]
+    if sources:
+        body.append(sources)
     if not digest.reranked:
         body.append(
             '<p class="warn">The model re-ranker did not run for this digest '
@@ -448,7 +462,11 @@ def eml_draft(digest: Digest) -> bytes:
 
 
 def audience_index(
-    audience_name: str, days: Sequence[str], description: str = "", audience_id: str = ""
+    audience_name: str,
+    days: Sequence[str],
+    description: str = "",
+    audience_id: str = "",
+    sources: str = "",
 ) -> str:
     items = "\n".join(f'<li><a href="{escape(day)}/">{escape(day)}</a></li>' for day in days)
     lead = f'<p class="lead">{escape(description)}</p>' if description else ""
@@ -456,7 +474,7 @@ def audience_index(
         '<header class="hero">'
         '<p class="crumbs"><a href="../">All digests</a></p>'
         '<p class="eyebrow">Archive</p>'
-        f"<h1>{escape(audience_name)}</h1>{lead}</header>\n"
+        f"<h1>{escape(audience_name)}</h1>{lead}{sources}</header>\n"
         f'<ul class="days">\n{items}\n</ul>'
     )
     return _page(audience_name, body, hue=hue(audience_id) if audience_id else "teal")

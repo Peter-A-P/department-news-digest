@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import TracebackType
@@ -154,6 +155,16 @@ CREATE TABLE IF NOT EXISTS digests (
     PRIMARY KEY (audience_id, day, run_id)
 );
 """
+
+
+@dataclass(frozen=True)
+class FetchRecord:
+    """One attempt at one source: when, how many new items, and what went wrong if anything."""
+
+    at: datetime
+    items: int
+    ok: bool
+    detail: str
 
 
 class Store:
@@ -374,6 +385,19 @@ class Store:
             "items, ok, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [run_id, audience_id, source_key, origin, started_at, items, ok, detail],
         )
+
+    def last_fetches(self, audience_id: str) -> dict[tuple[str, str], FetchRecord]:
+        """Each source's most recent attempt for this audience, by (source key, origin)."""
+        rows = self._connection.execute(
+            "SELECT source_key, origin, max(started_at), arg_max(items, started_at), "
+            "arg_max(ok, started_at), arg_max(detail, started_at) FROM fetch_log "
+            "WHERE audience_id = ? GROUP BY source_key, origin",
+            [audience_id],
+        ).fetchall()
+        return {
+            (str(row[0]), str(row[1])): FetchRecord(row[2], int(row[3]), bool(row[4]), str(row[5]))
+            for row in rows
+        }
 
     # -- labels --------------------------------------------------------------------------
 

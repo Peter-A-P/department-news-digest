@@ -30,6 +30,7 @@ from typing import Any, Literal, TypedDict
 
 from clippings.assemble.digest import Digest, build_digest
 from clippings.assemble.publish import Site, publish_digest
+from clippings.assemble.sources_panel import panel_for
 from clippings.cluster.embed import Embedder
 from clippings.config.audience import Audience
 from clippings.gateway import ModelClient
@@ -235,7 +236,8 @@ def node_publish(state: State) -> State:
     p = state["pipeline"]
     if p.site is None:
         return {"published": [], "trace": _trace(state, "publish:no site")}
-    paths = publish_digest(p.site, state["digest"], p.audience.description)
+    panel = panel_for(p.audience, p.store)
+    paths = publish_digest(p.site, state["digest"], p.audience.description, panel)
     return {"published": paths, "trace": _trace(state, f"publish:{len(paths)} files")}
 
 
