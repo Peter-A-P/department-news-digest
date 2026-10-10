@@ -69,6 +69,11 @@ sources:
     - url: https://ntv.ca/feed/
       publisher: NTV News
       terms: ntv.ca
+    # Dropped 2026-10-02 when every path answered 403 to a non-browser client; restored
+    # 2026-10-10, when the feed and the site answered 200 to this project's user agent.
+    - url: https://vocm.com/feed/
+      publisher: VOCM News
+      terms: vocm.com
     - url: https://theindependent.ca/feed/
       publisher: The Independent
       terms: theindependent.ca
