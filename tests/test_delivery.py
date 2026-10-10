@@ -355,3 +355,23 @@ def test_the_sources_panel_lists_every_source_and_how_its_last_check_went() -> N
     # A failure is shown in plain words, not hidden and not as an internal message.
     assert "not active yet" in panel and "REDDIT_CLIENT_ID" not in panel
     assert "not checked yet" in panel
+
+
+def test_the_bluesky_pick_is_shown_as_a_post_and_escaped() -> None:
+    from clippings.assemble.digest import Spotlight
+
+    pick = Spotlight(
+        item_id="p",
+        url="https://bsky.app/profile/a/post/1",
+        author="a.bsky.social",
+        quote='<b>bold</b> claim about the "budget"',
+        likes=171,
+        replies=8,
+        posted_at=NOW,
+        rubric_score=2,
+        reason="Council decision on bike lanes",
+    )
+    page = html_page(digest().model_copy(update={"spotlight": pick}))
+    assert "Most discussed on Bluesky" in page and "not reporting" in page
+    assert "<b>bold</b>" not in page and "171 likes" in page
+    assert "Most discussed on Bluesky" not in html_page(digest())

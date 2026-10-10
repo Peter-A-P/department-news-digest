@@ -45,12 +45,16 @@ class Purpose(StrEnum):
     RERANK = "rerank"
     SUMMARISE = "summarise"
     REPAIR = "repair"
+    # Scoring the day's most discussed Bluesky posts against the rubric (rank/spotlight.py).
+    SPOTLIGHT = "spotlight"
 
 
 ALIASES: dict[Purpose, str] = {
     Purpose.RERANK: "clippings-rerank",
     Purpose.SUMMARISE: "clippings-summarise",
     Purpose.REPAIR: "clippings-repair",
+    # The same small classifier as re-ranking: it is a score per line against the rubric.
+    Purpose.SPOTLIGHT: "clippings-rerank",
 }
 
 

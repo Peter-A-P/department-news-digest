@@ -104,6 +104,11 @@ def parse_posts(
         text = str(record.get("text", "")).strip()
         if not handle or not text:
             continue
+        # A reply is half a conversation, and quoted alone it misleads; an account with no
+        # display name is most often a bot or an empty account. Neither is kept, inside a
+        # story or as the day's most discussed post (2026-10-10).
+        if record.get("reply") or not str(author.get("displayName") or "").strip():
+            continue
         created = _created_at(record)
         if created is not None and created <= since:
             continue

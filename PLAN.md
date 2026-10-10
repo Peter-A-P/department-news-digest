@@ -126,6 +126,15 @@ set `min_rubric_score` so that marginal stories are left out rather than used to
 digest, and `measure_from` so that relevance is measured only on days made under the
 current rubric.
 
+One Bluesky post a day may appear outside the stories (2026-10-10): the most discussed post
+that joined no news story, has at least ten likes, and is scored relevant by the model
+against the rubric, with rules for posts on top (no jokes, attacks, private individuals,
+link-only posts or promotion). It sits below the stories as "Most discussed on Bluesky",
+marked as a post: its own words cut to twenty-five, its counts and a link, and nothing the
+model writes except the reason it was picked. It never takes a story's slot, is not counted
+in precision or recall, and is labelled on its own ("worth showing?"). Replies and accounts
+with no display name are no longer ingested from Bluesky at all.
+
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 
 The summariser writes each digest sentence with the item ids it draws on and marks quotes

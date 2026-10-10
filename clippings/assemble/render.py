@@ -24,7 +24,7 @@ from email.message import EmailMessage
 from email.policy import SMTP
 from html import escape
 
-from clippings.assemble.digest import Digest, DigestSentence, DigestStory
+from clippings.assemble.digest import Digest, DigestSentence, DigestStory, Spotlight
 
 # Sentences shown before "Read more"; the rest of the summary is one click away.
 LEAD_SENTENCES = 2
@@ -187,6 +187,12 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 .src-table td:nth-child(3) { white-space: nowrap; }
 .src-note { display: block; color: var(--ink-faint); font-size: 0.74rem; }
 .failed { color: var(--amber); font-weight: 600; }
+.spotlight { max-width: var(--column); margin: 1.6rem 0 0; padding: 1.1rem 1.2rem;
+  background: var(--paper-soft); border: 1px solid var(--line);
+  border-left: 3px solid var(--violet); border-radius: var(--radius); }
+.spotlight .eyebrow { color: var(--violet); }
+.spotlight blockquote { margin: 0.2rem 0 0.6rem; font-family: var(--serif);
+  font-size: 1.2rem; line-height: 1.4; color: var(--ink); }
 .footer-band { background: var(--paper-deep); border-top: 1px solid var(--line); }
 footer { max-width: var(--wide); margin: 0 auto; padding: 2rem 1.5rem 3rem;
   font-size: 0.84rem; color: var(--ink-faint); }
@@ -367,6 +373,23 @@ def _story_html(story: DigestStory) -> str:
     return "\n".join(parts)
 
 
+def _spotlight_html(post: Spotlight) -> str:
+    """The day's most discussed Bluesky post, as a post: its words, its counts, a link."""
+    posted = post.posted_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+    reason = f'<p class="why">Picked because: {escape(post.reason)}.</p>' if post.reason else ""
+    return (
+        '<section class="spotlight">'
+        '<p class="eyebrow">Most discussed on Bluesky</p>'
+        f'<blockquote>"{escape(post.quote)}"</blockquote>'
+        f'<p class="meta"><span class="tag post">Post</span>'
+        f'<a href="{escape(post.url)}">@{escape(post.author)}</a> &middot; {posted} &middot; '
+        f"{post.likes} likes, {post.replies} replies</p>{reason}"
+        '<p class="note">A post, not reporting: its own words, shown because people were '
+        "discussing it and it fits this audience. Nothing in it has been checked.</p>"
+        "</section>"
+    )
+
+
 def html_page(digest: Digest, description: str = "", sources: str = "") -> str:
     """One audience's digest for one day. `description` is the audience's own, if known."""
     c = digest.counts
@@ -419,6 +442,8 @@ def html_page(digest: Digest, description: str = "", sources: str = "") -> str:
     if not digest.stories:
         body.append('<p class="none">No story was chosen today.</p>')
     body.extend(_story_html(story) for story in digest.stories)
+    if digest.spotlight is not None:
+        body.append(_spotlight_html(digest.spotlight))
     body.append(f'<p class="note">Run {escape(digest.run_id)}.</p>')
     body.append("</div>")
     return _page(title, "\n".join(body), hue=hue(digest.audience_id))
@@ -447,6 +472,17 @@ def markdown(digest: Digest) -> str:
         for source in story.sources:
             lines.append(f"- [{source.sid}] {source.domain}: [{source.title}]({source.url})")
         lines.append("")
+    if digest.spotlight is not None:
+        post = digest.spotlight
+        lines += [
+            "## Most discussed on Bluesky",
+            "",
+            f'> "{post.quote}"',
+            "",
+            f"[@{post.author}]({post.url}), {post.likes} likes, {post.replies} replies. "
+            "A post, not reporting; nothing in it has been checked.",
+            "",
+        ]
     lines += ["---", "", FOOTER, ""]
     return "\n".join(lines)
 

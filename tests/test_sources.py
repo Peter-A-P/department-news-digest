@@ -298,7 +298,7 @@ def test_bluesky_posts_are_parsed() -> None:
         "posts": [
             {
                 "uri": "at://did:plc:xyz/app.bsky.feed.post/3abc",
-                "author": {"handle": "someone.bsky.social"},
+                "author": {"handle": "someone.bsky.social", "displayName": "Someone"},
                 "record": {"text": "First line\nSecond line", "createdAt": "2026-09-12T09:00:00Z"},
                 "likeCount": 3,
                 "replyCount": 1,
@@ -479,7 +479,7 @@ def test_bluesky_posts_in_another_language_are_skipped() -> None:
             record["langs"] = langs
         return {
             "uri": f"at://did:plc:x/app.bsky.feed.post/{rkey}",
-            "author": {"handle": "someone.bsky.social"},
+            "author": {"handle": "someone.bsky.social", "displayName": "Someone"},
             "record": record,
         }
 
@@ -488,3 +488,20 @@ def test_bluesky_posts_in_another_language_are_skipped() -> None:
     kept = parse_posts(payload, "q", since, languages=("en",))
     assert [item.title for item in kept] == ["post en", "post untagged"]
     assert len(parse_posts(payload, "q", since)) == 3
+
+
+def test_bluesky_replies_and_accounts_without_a_name_are_skipped() -> None:
+    def post(uri: str, author: dict[str, str], record: dict[str, object]) -> dict[str, object]:
+        return {"uri": uri, "author": author, "record": record, "likeCount": 50}
+
+    named = {"handle": "a.bsky.social", "displayName": "A"}
+    text = {"text": "A real post", "createdAt": "2026-09-12T09:00:00Z"}
+    payload = {
+        "posts": [
+            post("at://did:plc:x/app.bsky.feed.post/1", named, text),
+            post("at://did:plc:x/app.bsky.feed.post/2", named, {**text, "reply": {"root": {}}}),
+            post("at://did:plc:x/app.bsky.feed.post/3", {"handle": "b.bsky.social"}, text),
+        ]
+    }
+    items = parse_posts(payload, "q", since=NOW - timedelta(days=1))
+    assert [item.url.rsplit("/", 1)[-1] for item in items] == ["1"]

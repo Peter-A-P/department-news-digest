@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal, TypedDict
 
-from clippings.assemble.digest import Digest, build_digest
+from clippings.assemble.digest import Digest, Spotlight, build_digest
 from clippings.assemble.publish import Site, publish_digest
 from clippings.assemble.sources_panel import panel_for
 from clippings.cluster.embed import Embedder
@@ -40,6 +40,7 @@ from clippings.models import Item
 from clippings.rank.rerank import Rerank, rerank
 from clippings.rank.score import ScoredStory
 from clippings.rank.select import candidates_for_rerank
+from clippings.rank.spotlight import Pick, pick, quote
 from clippings.sources.base import FetchContext, Source
 from clippings.summarise.run import (
     StoryWork,
@@ -97,6 +98,7 @@ class State(TypedDict, total=False):
     rerank: Rerank
     chosen: tuple[ScoredStory, ...]
     works: list[StoryWork]
+    spotlight: Pick
     digest: Digest
     published: list[str]
     trace: tuple[str, ...]
@@ -181,6 +183,16 @@ def node_select(state: State) -> State:
     }
 
 
+def node_spotlight(state: State) -> State:
+    """The day's most discussed Bluesky post the rubric wants, if any (rank/spotlight.py)."""
+    p = state["pipeline"]
+    assert p.client is not None
+    clusters = p.store.clusters_for(p.audience.id, p.day)
+    chosen = pick(p.audience, clusters, state["pool"], p.client, run_id=p.run_id)
+    found = chosen.item.author if chosen.item is not None else "none"
+    return {"spotlight": chosen, "trace": _trace(state, f"spotlight:{found}")}
+
+
 def node_summarise(state: State) -> State:
     p = state["pipeline"]
     assert p.client is not None
@@ -225,10 +237,29 @@ def node_assemble(state: State) -> State:
         pool_stories=report.clusters,
         embedder=report.embedder,
         model_client=p.client.name if p.client is not None else "none",
+        spotlight=_spotlight(state.get("spotlight")),
+        spotlight_reply=chosen.reply if (chosen := state.get("spotlight")) else None,
     )
     p.store.save_digest(digest)
     report.finished_at = datetime.now(UTC)
     return {"digest": digest, "trace": _trace(state, f"assemble:{len(digest.stories)} stories")}
+
+
+def _spotlight(chosen: Pick | None) -> Spotlight | None:
+    if chosen is None or chosen.item is None or chosen.score is None:
+        return None
+    post = chosen.item
+    return Spotlight(
+        item_id=post.id,
+        url=post.url,
+        author=post.author or "",
+        quote=quote(post.summary),
+        likes=post.score or 0,
+        replies=post.comments or 0,
+        posted_at=post.published_at,
+        rubric_score=chosen.score,
+        reason=chosen.reason,
+    )
 
 
 def node_publish(state: State) -> State:
@@ -267,6 +298,7 @@ def build_graph() -> Any:
     graph.add_node("stop", node_stop)
     graph.add_node("rerank", node_rerank)
     graph.add_node("select", node_select)
+    graph.add_node("spotlight", node_spotlight)
     graph.add_node("summarise", node_summarise)
     graph.add_node("verify", node_verify)
     graph.add_node("repair", node_repair)
@@ -278,7 +310,8 @@ def build_graph() -> Any:
     graph.add_conditional_edges("rank", after_rank, {"rerank": "rerank", "stop": "stop"})
     graph.add_edge("stop", END)
     graph.add_edge("rerank", "select")
-    graph.add_edge("select", "summarise")
+    graph.add_edge("select", "spotlight")
+    graph.add_edge("spotlight", "summarise")
     graph.add_edge("summarise", "verify")
     graph.add_conditional_edges(
         "verify", after_verify, {"repair": "repair", "assemble": "assemble"}

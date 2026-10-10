@@ -63,6 +63,25 @@ class DigestStory(Frozen):
     why: str
 
 
+class Spotlight(Frozen):
+    """The day's most discussed Bluesky post the rubric wanted (rank/spotlight.py).
+
+    Shown below the stories as a post, not reporting: its own words cut to twenty-five, its
+    counts and a link. Nothing here is model-written except `reason`, shown as the reason it
+    was picked.
+    """
+
+    item_id: str
+    url: str
+    author: str
+    quote: str
+    likes: int
+    replies: int
+    posted_at: datetime
+    rubric_score: int
+    reason: str
+
+
 class VerificationCounts(Frozen):
     """What the verifier saw, summed over the digest's stories.
 
@@ -120,6 +139,8 @@ class Digest(Frozen):
     rerank_excluded: int
     embedder: str
     model_client: str
+    # None when no post qualified, the call failed, or the digest predates the section.
+    spotlight: Spotlight | None = None
 
     @property
     def cost_usd(self) -> float:
@@ -200,7 +221,9 @@ def _story(position: int, work: StoryWork, score: RerankScore | None) -> DigestS
     )
 
 
-def _calls(rerank: Rerank | None, works: Sequence[StoryWork]) -> tuple[CallCost, ...]:
+def _calls(
+    rerank: Rerank | None, works: Sequence[StoryWork], extra: Sequence[ModelReply] = ()
+) -> tuple[CallCost, ...]:
     def cost(purpose: Purpose, story_id: str, reply: ModelReply) -> CallCost:
         return CallCost(
             purpose=purpose.value,
@@ -217,6 +240,7 @@ def _calls(rerank: Rerank | None, works: Sequence[StoryWork]) -> tuple[CallCost,
         calls.append(cost(Purpose.RERANK, "", rerank.reply))
     for work in works:
         calls.extend(cost(purpose, work.id, reply) for purpose, reply in work.replies)
+    calls.extend(cost(Purpose.SPOTLIGHT, "", reply) for reply in extra)
     return tuple(calls)
 
 
@@ -232,6 +256,8 @@ def build_digest(
     pool_stories: int,
     embedder: str,
     model_client: str,
+    spotlight: Spotlight | None = None,
+    spotlight_reply: ModelReply | None = None,
 ) -> Digest:
     scores = {score.story_id: score for score in rerank.scores} if rerank else {}
     return Digest(
@@ -245,7 +271,7 @@ def build_digest(
             for position, work in enumerate(works, start=1)
         ),
         counts=counts_for(works),
-        calls=_calls(rerank, works),
+        calls=_calls(rerank, works, [spotlight_reply] if spotlight_reply else []),
         pool_items=pool_items,
         pool_stories=pool_stories,
         candidates=len(rerank.scores) if rerank else 0,
@@ -255,4 +281,5 @@ def build_digest(
         rerank_excluded=rerank.excluded if rerank else 0,
         embedder=embedder,
         model_client=model_client,
+        spotlight=spotlight,
     )

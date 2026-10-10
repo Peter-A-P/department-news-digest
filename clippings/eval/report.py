@@ -168,6 +168,8 @@ class AudienceResult:
     must_recall: Estimate | None = None
     must_per_day: Estimate | None = None
     graded_days: int = 0
+    # The Bluesky pick (rank/spotlight.py), judged on its own: was it worth showing.
+    spotlight: Estimate | None = None
     kappa: Estimate | None = None
     kappa_with: str = ""
 
@@ -305,6 +307,16 @@ def build_report(
                 result.must_per_day = bootstrap_mean(
                     [sum(day.top) + day.weight * sum(day.random) for day in must_days]
                 )
+        picks = [
+            label.relevant
+            for label in labels
+            if label.audience_id == audience.id
+            and label.labeller == labeller
+            and label.stratum == "spotlight"
+            and label.day >= start
+        ]
+        if picks:
+            result.spotlight = share(picks)
         others = {
             label.labeller
             for label in labels
@@ -480,6 +492,10 @@ def readme_tables(report: Report) -> str:
         f"| {NOT_YET} (hand check) | {num(report.lag_p50, '.0f', ' h')} / "
         f"{num(report.lag_p90, '.0f', ' h')} | {NOT_YET} (reader study) "
         f"| {NOT_YET} (measurement month) |",
+        "",
+        "Most discussed on Bluesky, judged worth showing: "
+        + "; ".join(f"{r.name} {pct(r.spotlight)}" for r in report.audiences)
+        + ". A separate section below the stories, not counted in precision or recall.",
         "",
         f"All four digests together cost {usd(report.cost_per_day)} a day in model calls, from "
         "the gateway's ledger"

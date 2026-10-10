@@ -23,7 +23,7 @@ import random
 import secrets
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from datetime import UTC
+from datetime import UTC, datetime
 from html import escape
 from typing import Any
 from urllib.parse import parse_qs, urlencode
@@ -31,6 +31,7 @@ from urllib.parse import parse_qs, urlencode
 from clippings.config.audience import Audience
 from clippings.eval.labels import LabellingQueue, Question, build_queue, record
 from clippings.ingest.store import Store
+from clippings.models import Label
 
 StartResponse = Callable[[str, list[tuple[str, str]]], Any]
 
@@ -133,6 +134,10 @@ details.rubric { font-size: 0.86rem; color: var(--soft); margin: 0.4rem 0; }
 .prev { font-size: 0.72rem; color: var(--accent); margin-left: 0.4rem; }
 .snip { font-size: 0.86rem; color: var(--soft); margin-top: 0.15rem; display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.spot { border: 1px dashed var(--line); border-radius: 8px; padding: 0.6rem 0.8rem;
+  margin: 0.8rem 0; background: var(--card); cursor: pointer; }
+.spot.yes { background: var(--yes-bg); border: 1px solid var(--yes); }
+.spot .q { font-style: italic; }
 .save { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
   border-top: 1px solid var(--line); padding: 0.7rem 16px; text-align: center; }
 button { font: inherit; font-weight: 600; padding: 0.5rem 1.4rem; border-radius: 999px;
@@ -144,6 +149,10 @@ td.done { background: var(--yes-bg); }
 
 SCRIPT = """
 const rows = [...document.querySelectorAll('.row')];
+const spot = document.getElementById('spot');
+if (spot) spot.addEventListener('click', e => {
+  if (!e.target.closest('a')) spot.classList.toggle('yes');
+});
 let at = 0;
 function show(n) {
   at = Math.max(0, Math.min(rows.length - 1, n));
@@ -176,6 +185,7 @@ async function save() {
   const body = {token: TOKEN, audience: AUDIENCE, day: DAY,
     relevant: rows.filter(r => r.classList.contains('yes')).map(r => r.dataset.id),
     must: rows.filter(r => r.classList.contains('must')).map(r => r.dataset.id),
+    spotlight: spot ? spot.classList.contains('yes') : null,
     shown: rows.map(r => r.dataset.id)};
   const button = document.getElementById('save');
   button.disabled = true; button.textContent = 'Saving...';
@@ -193,6 +203,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'm') { set(at, true, true); show(at + 1); }
   else if (k === 'n') { set(at, false, false); show(at + 1); }
   else if (k === ' ' || k === 'x') { cycle(at); }
+  else if (k === 'b' && spot) { spot.classList.toggle('yes'); }
   else if (k === 'o') { window.open(rows[at].querySelector('a').href, '_blank'); }
   else if (k === 'Enter' && e.shiftKey) { save(); }
   else { return; }
@@ -277,6 +288,20 @@ def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
             f'<div class="snip">{escape(_snippet(item.summary))}</div></div></div>'
         )
     done, total = ws.progress(audience_id, day)
+    digest = ws.store.digest_for(audience_id, day)
+    spot = ""
+    if digest is not None and digest.spotlight is not None:
+        post = digest.spotlight
+        saved = ws.labels.labels_for(audience_id, day, ws.labeller)
+        worth = any(lab.item_id == post.item_id and lab.relevant for lab in saved)
+        spot = (
+            f'<div id="spot" class="spot{" yes" if worth else ""}">'
+            "<b>The digest's Bluesky pick.</b> Worth showing this audience? Click or "
+            "<kbd>b</kbd> to mark yes; unmarked means no.<br>"
+            f'<span class="q">"{escape(post.quote)}"</span> '
+            f'<a href="{escape(post.url)}" target="_blank" rel="noopener">@{escape(post.author)}'
+            f"</a> &middot; {post.likes} likes</div>"
+        )
     body = (
         '<div class="bar">'
         f'<a href="/">All days</a><h1>{escape(audience.name)}, {escape(day)}</h1>'
@@ -293,6 +318,7 @@ def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
         f'<details class="rubric"><summary>The audience and its rubric</summary>'
         f"<p>{escape(audience.description)}</p><p>{escape(audience.rubric)}</p></details>"
         "</div>"
+        + spot
         + "".join(rows)
         + '<div class="save"><button id="save">Save day and continue</button></div>'
     )
@@ -332,6 +358,25 @@ def save_day(ws: Workspace, payload: dict[str, Any]) -> str:
             relevant=item_id in relevant or item_id in must,
             must_read=item_id in must,
             graded=True,
+        )
+    digest = ws.store.digest_for(audience_id, day)
+    if digest is not None and digest.spotlight is not None and payload.get("spotlight") is not None:
+        post = digest.spotlight
+        ws.labels.add_label(
+            Label(
+                audience_id=audience_id,
+                day=day,
+                item_id=post.item_id,
+                labeller=ws.labeller,
+                relevant=bool(payload["spotlight"]),
+                stratum="spotlight",
+                rank=0,
+                weight=0.0,
+                url=post.url,
+                title=post.quote,
+                labelled_at=datetime.now(UTC),
+                graded=True,
+            )
         )
     ws.push()
     following = ws.next_open_day()
