@@ -1,8 +1,10 @@
 """What a labeller is shown, and the weights that make recall estimable.
 
 PLAN.md section 2.6. Labelling a day's whole pool is thousands of labels per audience and
-will not happen, so each day is sampled in two strata: everything the system ranked in its
-top thirty, and a random thirty from everything else.
+will not happen, so each day is sampled in two strata: the thirty stories the system ranked
+highest, and a random thirty from the rest. The unit is a news story, shown by the item the
+digest would link to: a digest misses stories, not reprints of them, and a post is never a
+candidate (PLAN.md section 2.3), so neither is put to the labeller.
 
 Precision at K comes from the top stratum directly. Recall cannot: the relevant items the
 system buried are, by definition, not in the top stratum. They are estimated from the
@@ -13,6 +15,7 @@ importance-weighted estimate rather than a measurement.
 
 from __future__ import annotations
 
+import hashlib
 import random
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -71,7 +74,11 @@ def stratified_sample(
     fresh set nobody has labelled.
     """
     if seed is None:
-        seed = abs(hash((audience_id, day))) % (2**31)
+        # Derived with a fixed hash, not `hash()`: Python salts `hash()` per process, so the
+        # seed, and with it the random stratum, changed every time the command started and a
+        # half-labelled day came back with different items (found 2026-10-10).
+        digest = hashlib.blake2b(f"{audience_id}|{day}".encode(), digest_size=4).digest()
+        seed = int.from_bytes(digest, "big") % (2**31)
     head = list(ranked_ids[:top_k])
     tail = list(ranked_ids[top_k:])
     drawn = random.Random(seed).sample(tail, min(random_n, len(tail)))

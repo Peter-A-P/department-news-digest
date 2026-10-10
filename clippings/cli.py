@@ -15,11 +15,13 @@ command, and there will not be one.
 from __future__ import annotations
 
 import os
-from contextlib import ExitStack
+import webbrowser
+from contextlib import ExitStack, suppress
 from datetime import UTC, date, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Annotated
+from wsgiref.simple_server import make_server
 
 import typer
 
@@ -30,7 +32,8 @@ from clippings.cluster.embed import Hashing, default_embedder
 from clippings.config.audience import Audience
 from clippings.config.load import EXAMPLES, AudienceFileError, load_audience, load_audiences
 from clippings.constants import RETENTION_DAYS
-from clippings.eval.labels import build_queue, record
+from clippings.eval.label_ui import Workspace
+from clippings.eval.label_ui import application as label_application
 from clippings.gateway import (
     GatewayClient,
     ModelClient,
@@ -428,35 +431,57 @@ def audiences_list(audiences: AudienceDir = EXAMPLES) -> None:
 
 @app.command()
 def label(
-    audience: Annotated[str, typer.Argument(help="Audience id.")],
     labeller: Annotated[str, typer.Option(help="Who is labelling; two are needed for kappa.")],
-    day: Annotated[str | None, typer.Option(help="Day to label, YYYY-MM-DD.")] = None,
+    bucket: Annotated[
+        str | None,
+        typer.Option(
+            envvar="CLIPPINGS_BUCKET",
+            help="Take the run's store from this bucket and keep the labels there.",
+        ),
+    ] = None,
     audiences: AudienceDir = EXAMPLES,
     db: DbPath = DEFAULT_DB,
-    limit: Annotated[int, typer.Option(help="Stop after this many labels.")] = 60,
+    port: Annotated[int, typer.Option(help="Local port for the labelling page.")] = 8766,
+    open_browser: Annotated[bool, typer.Option("--open/--no-open")] = True,
 ) -> None:
-    """Label a day's sample: the top thirty, plus thirty drawn at random from the rest."""
-    one = _pick(audiences, audience)[0]
-    day = day or datetime.now(UTC).date().isoformat()
-    with Store.open(db) as store:
-        queue = build_queue(store, one.id, day, labeller, audience=one, embedder=default_embedder())
-        if not queue.questions:
-            typer.echo(f"nothing left to label for {one.id} on {day}")
-            return
-        typer.echo(f"\n{one.name} - {day}")
-        typer.echo(f"Rubric: {one.rubric.strip()}\n")
-        typer.echo(f"{queue.remaining} to label. y = relevant, n = not, s = skip, q = stop.\n")
-        done = 0
-        for index, question in enumerate(queue.questions[:limit], start=1):
-            typer.echo(f"[{index}/{min(queue.remaining, limit)}] {question.prompt}")
-            answer = typer.prompt("  relevant?", default="s").strip().lower()[:1]
-            if answer == "q":
-                break
-            if answer in {"y", "n"}:
-                record(store, queue, question, relevant=answer == "y")
-                done += 1
-            typer.echo("")
-        typer.echo(f"{done} labels recorded for {one.id} on {day} by {labeller}.")
+    """Label the days' samples in the browser: one page per audience and day, keyboard-driven.
+
+    With a bucket, a fresh copy of the run's store is taken first, and this labeller's labels
+    file (labels/<labeller>.duckdb) is fetched and sent back after every saved day.
+    """
+    labels_path = Path("data/labels") / f"{labeller}.duckdb"
+    labels_name = f"labels/{labeller}.duckdb"
+    objects = GcsObjectStore(bucket) if bucket else None
+    store_path = db
+    if objects is not None:
+        store_path = Path("data/label-snapshot.duckdb")
+        typer.echo(f"copying the run's store from gs://{bucket}/{StateSync.DB}")
+        objects.download(StateSync.DB, store_path)
+        if not labels_path.exists():
+            objects.download(labels_name, labels_path)
+    with Store.open(store_path) as store, Store.open(labels_path) as labels:
+
+        def push() -> None:
+            labels.checkpoint()
+            if objects is not None:
+                objects.upload(labels_path, labels_name)
+
+        workspace = Workspace(
+            store=store,
+            labels=labels,
+            labeller=labeller,
+            audiences={one.id: one for one in load_audiences(audiences)},
+            push=push,
+        )
+        url = f"http://127.0.0.1:{port}/"
+        typer.echo(f"labelling page at {url}  (ctrl+c to stop; every saved day is kept)")
+        if open_browser:
+            webbrowser.open(url)
+        with (
+            make_server("127.0.0.1", port, label_application(workspace)) as server,
+            suppress(KeyboardInterrupt),
+        ):
+            server.serve_forever()
 
 
 @app.command()

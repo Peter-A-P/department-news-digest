@@ -75,7 +75,7 @@ uv run clippings sources probe            # fetch each feed once and check it is
 uv run clippings run ai                   # today's digest, written to out/site/
 uv run clippings serve                    # the pages at http://127.0.0.1:8080/
 uv run clippings render                   # re-render stored digests, no fetch, no model
-uv run clippings label ai --labeller you
+uv run clippings label --labeller you     # labelling page in the browser, one page per day
 uv run clippings retention                # delete items past thirty days (run also does this)
 ```
 

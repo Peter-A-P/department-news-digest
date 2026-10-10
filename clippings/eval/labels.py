@@ -15,7 +15,7 @@ from clippings.cluster.embed import Embedder
 from clippings.config.audience import Audience
 from clippings.eval.sample import DaySample, SampleUnit, stratified_sample
 from clippings.ingest.store import Store
-from clippings.models import Item, Label
+from clippings.models import SOCIAL_KINDS, Cluster, Item, Label
 from clippings.rank.score import score_stories
 
 Answer = Literal["yes", "no", "skip"]
@@ -57,55 +57,39 @@ def ranked_ids_for_day(
     embedder: Embedder | None = None,
     now: datetime | None = None,
 ) -> list[str]:
-    """The day's pool in the order the system put it.
+    """The day's news stories in the order the system put them, each as its representative.
 
     When the day's run saved its ranking (the re-ranked candidates, then the rest of the pool
     in pre-filter order), that is the order used, because it is what the digest was actually
     chosen from. Otherwise, with an audience and an embedder, the pre-filter ranking is
-    recomputed: stories best first, each
-    represented by the item the digest would link to, then the rest of each story's items.
-    That is the order the sampler calls "top thirty", so precision at K is measured against
-    what the system would actually have shown.
-
-    Without them it falls back to cluster order, largest story first. The fallback exists so
-    the labelling CLI still works on a store whose audience file is not to hand, and a label
-    taken that way measures the clustering rather than the ranking. The two must not be
+    recomputed. Without them it falls back to cluster order, largest story first; a label
+    taken that way measures the clustering rather than the ranking, and the two must not be
     mixed in one week's numbers.
-    """
-    clusters = store.clusters_for(audience_id, day)
-    if not clusters:
-        return [item.id for item in store.items_for(audience_id)]
 
-    # The order the day's run actually used, re-ranker included, when one was saved. This is
-    # the honest top stratum: what the digest was chosen from, not a re-scoring of it.
+    One entry per story, the item the digest would link to, and only stories headed by a
+    news item: the other items of a story are reprints of it, and a story of posts alone is
+    never a candidate (PLAN.md section 2.3). Labelling either would spend the labeller's time
+    on judgements no number uses.
+    """
+    items = {item.id: item for item in store.items_for(audience_id)}
+    clusters = store.clusters_for(audience_id, day)
     saved = store.ranking_for(audience_id, day)
     by_cluster = {cluster.id: cluster for cluster in clusters}
+    ordered: list[Cluster]
     if saved and all(cluster_id in by_cluster for cluster_id in saved):
-        ordered_clusters = [by_cluster[cluster_id] for cluster_id in saved]
-        ordered_clusters += [c for c in clusters if c.id not in set(saved)]
-        ordered = [cluster.representative_id for cluster in ordered_clusters]
-        seen = set(ordered)
-        for cluster in ordered_clusters:
-            ordered.extend(item_id for item_id in cluster.item_ids if item_id not in seen)
-            seen.update(cluster.item_ids)
-        return ordered
-
-    if audience is not None and embedder is not None:
-        items = {item.id: item for item in store.items_for(audience_id)}
+        ordered = [by_cluster[cluster_id] for cluster_id in saved]
+        ordered += [cluster for cluster in clusters if cluster.id not in set(saved)]
+    elif clusters and audience is not None and embedder is not None:
         scored = score_stories(clusters, items, audience, embedder, now or datetime.now(UTC))
-        ordered = [story.representative.id for story in scored]
-        seen = set(ordered)
-        for story in scored:
-            ordered.extend(item_id for item_id in story.cluster.item_ids if item_id not in seen)
-            seen.update(story.cluster.item_ids)
-        return ordered
-
-    ordered = [cluster.representative_id for cluster in clusters]
-    seen = set(ordered)
-    for cluster in clusters:
-        ordered.extend(item_id for item_id in cluster.item_ids if item_id not in seen)
-        seen.update(cluster.item_ids)
-    return ordered
+        ordered = [story.cluster for story in scored]
+    else:
+        ordered = list(clusters)
+    return [
+        cluster.representative_id
+        for cluster in ordered
+        if cluster.representative_id in items
+        and items[cluster.representative_id].source_kind not in SOCIAL_KINDS
+    ]
 
 
 def build_queue(
@@ -120,17 +104,21 @@ def build_queue(
     top_k: int = 30,
     random_n: int = 30,
     seed: int | None = None,
+    labels: Store | None = None,
+    include_done: bool = False,
 ) -> LabellingQueue:
     """The items this labeller still has to judge for this day, in order.
 
     Items already labelled by this person are dropped, so the command resumes; the sample
     itself does not change, because its seed is derived from the audience and the day.
+    `labels` is where this labeller's labels are kept, when that is not the run's store, and
+    `include_done` keeps the labelled items in, so a finished day can be reopened.
     """
     ranked = ranked_ids_for_day(
         store, audience_id, day, audience=audience, embedder=embedder, now=now
     )
     sample = stratified_sample(ranked, audience_id, day, top_k=top_k, random_n=random_n, seed=seed)
-    done = store.labelled_ids(audience_id, day, labeller)
+    done = set() if include_done else (labels or store).labelled_ids(audience_id, day, labeller)
     by_id = {item.id: item for item in store.items_for(audience_id)}
     questions = tuple(
         Question(unit=unit, item=by_id[unit.item_id])

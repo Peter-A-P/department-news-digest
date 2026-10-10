@@ -144,10 +144,19 @@ cheapest way to run a daily pipeline that a department could copy.
 ### 2.6 Measured on the harness, labelled the honest way
 
 Labelling every ingested item for a week is thousands of labels per audience and not a
-hobby. Instead, per audience per day, the labeller sees every item the system ranked in its
+hobby. Instead, per audience per day, the labeller sees every story the system ranked in its
 top thirty plus a random sample of thirty from the rest; precision comes from the top,
 recall from the random sample with importance weights, both with bootstrap intervals
 through the 03 gate's eval spec. One audience is labelled by two people for kappa.
+
+The unit is a news story, shown by the item the digest would link to (2026-10-10). Labelling
+items put reprints of one story and posts, which are never candidates, in front of the
+labeller: on 2026-10-08 the AI pool was 133 items, 100 of them posts, in 33 news stories.
+Labelling is a local page, one screen per audience and day, in a shuffled order that hides
+the system's rank and stratum; a story starts as not relevant, or at the labeller's answer
+from an earlier day, and saving the day records an answer for every story shown. Labels go to
+a file per labeller in the bucket, which the daily job never writes. Measured on the first
+four days: 676 story judgements across the four audiences, about 400 of them new.
 
 ### 2.7 Out of scope, on purpose
 

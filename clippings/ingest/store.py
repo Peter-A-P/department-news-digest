@@ -444,6 +444,20 @@ class Store:
         ).fetchall()
         return {str(row[0]) for row in rows}
 
+    def previous_labels(self, audience_id: str, labeller: str) -> dict[str, tuple[bool, str]]:
+        """This labeller's latest judgement of each item, with the day it was given on.
+
+        A story stays in the pool for two days, so most of a day's sample was judged the day
+        before. The labelling page shows that judgement as the starting answer; it is still
+        the labeller who confirms it for the new day.
+        """
+        rows = self._connection.execute(
+            "SELECT item_id, relevant, day FROM labels WHERE audience_id = ? AND labeller = ? "
+            "ORDER BY labelled_at",
+            [audience_id, labeller],
+        ).fetchall()
+        return {str(row[0]): (bool(row[1]), str(row[2])) for row in rows}
+
     def add_pair_label(
         self,
         audience_id: str,
@@ -476,6 +490,13 @@ class Store:
         }
 
     # -- rankings and digests ------------------------------------------------------------
+
+    def cluster_days(self, audience_id: str) -> list[str]:
+        """The days this audience's pool was clustered, oldest first: the days there are to label."""
+        rows = self._connection.execute(
+            "SELECT DISTINCT day FROM clusters WHERE audience_id = ? ORDER BY day", [audience_id]
+        ).fetchall()
+        return [str(row[0]) for row in rows]
 
     def save_ranking(
         self,
