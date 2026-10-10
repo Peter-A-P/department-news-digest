@@ -11,28 +11,47 @@
 # publishers' terms now forbid this use (docs/sources.md), so it leans on the labs' own
 # blogs, GDELT, Reddit and Bluesky, and on whichever desks clear a reading.
 #
+# Raised on 2026-10-10 from "about AI" to "important in AI". Labelling the first day, Peter
+# found the digest in the weeds: small startups' funding rounds and routine model releases
+# (Hugging Face publishes hundreds) were relevant under the old rubric and worthless to the
+# reader it is for, a busy person who wants the week's important developments. The rubric
+# now sets a significance bar, and `min_rubric_score: 2` shows only stories that clear it,
+# so a quiet day is a short digest rather than ten marginal stories. Relevance is measured
+# from `measure_from`, the first day made under this rubric.
+#
 # Every `terms` key below must appear in docs/sources.md with a date read and status
 # `allowed`, or the fetcher refuses the source. Run `clippings sources check`.
 
 id: ai
 name: Artificial intelligence
 description: >-
-  What is happening in artificial intelligence: new models and research, products and
-  deployments built on AI, the companies, chips and money behind it, law, regulation and
-  standards, safety and security incidents, and measured effects on work and society.
+  The most important developments in artificial intelligence, for busy readers who want to
+  stay informed without following the field day to day: frontier models and research that
+  move the state of the art, major products and deployments, the biggest deals and moves in
+  the industry, chips and compute, law and regulation, serious safety and security
+  incidents, and measured effects on work and society.
+
+measure_from: "2026-10-10"
 
 rubric: >-
-  Relevant means an item whose primary subject is artificial intelligence: take AI out and
-  there is no story. That includes new models, capabilities and research results; products
-  and deployments where AI is the point; funding, acquisitions, leadership changes and
-  layoffs at AI companies or AI divisions; chips, data centres and compute built for AI;
-  law, regulation, enforcement, litigation and standards about AI; safety and security
-  incidents involving AI systems; and measured effects of AI on work, education, science
-  and public services. It excludes items that mention AI in passing while being about
-  something else, such as a phone review that lists an AI feature, an earnings report with
-  one line on AI, or a policy story where AI is one item of many; deals, discounts and
-  shopping guides; how-to guides and listicles; opinion without new facts; and event
-  promotion.
+  Relevant means a development a busy, well-informed reader would regret missing: it changes
+  what AI can do, who leads the field, what AI costs, how it is governed, or how it is used
+  at scale, and it matters beyond the company that announced it. AI must be the story: take
+  AI out and there is no story. That includes frontier model releases and research results
+  that clearly move the state of the art or that very many people will use; major products
+  and deployments at scale; funding rounds, valuations and acquisitions of about a billion
+  dollars or more, or involving the leading AI companies; leadership changes and large
+  layoffs at the leading AI companies; significant moves in AI chips, data centres and
+  compute; law, regulation, enforcement, major litigation and standards about AI; serious
+  safety and security incidents involving AI systems; and measured effects of AI on work,
+  education, science and public services. It excludes routine funding rounds, valuations
+  and launches of small and mid-sized startups; routine model releases, fine-tunes,
+  checkpoints, datasets, library updates and benchmark posts, including most Hugging Face
+  releases, unless the model sets a clear new state of the art or is being widely adopted;
+  customer case studies and vendor marketing; minor product features and updates; items
+  that mention AI in passing while being about something else; deals, discounts and
+  shopping guides; how-to guides, tutorials and listicles; opinion without new facts; and
+  event promotion.
 
 topics:
   - AI models and research
@@ -54,7 +73,6 @@ entities:
     - Nvidia
     - Mistral AI
     - xAI
-    - Hugging Face
     - European Commission
     - NIST
     - UK AI Security Institute
@@ -141,6 +159,7 @@ digest:
   max_stories: 10
   rerank_candidates: 60
   max_sentences_per_story: 3
+  min_rubric_score: 2
 
 delivery:
   time_local: "07:00"

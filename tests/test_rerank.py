@@ -104,3 +104,13 @@ def test_a_reply_with_no_usable_scores_is_a_failure_not_an_empty_digest(
     result = rerank(audience, candidates, ScriptedClient(lambda call: "I cannot help"), run_id="r")
     assert not result.reranked
     assert [s.id for s in result.selectable()] == ["k00"]
+
+
+def test_a_minimum_score_leaves_out_the_marginal_and_the_unscored(audience: Audience) -> None:
+    candidates = [story(0, 0.9), story(1, 0.8), story(2, 0.7), story(3, 0.6)]
+    client = ScriptedClient(lambda call: lines(("c01", 3), ("c02", 1), ("c03", 2)))
+    result = rerank(audience, candidates, client, run_id="r")
+    assert result.reranked
+    assert {s.id for s in result.selectable(2)} == {"k00", "k02"}
+    # At the default, marginal and unscored stay in, as before.
+    assert {s.id for s in result.selectable()} == {"k00", "k01", "k02", "k03"}

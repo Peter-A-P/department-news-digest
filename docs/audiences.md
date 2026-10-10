@@ -27,7 +27,8 @@ almost everything is local but little of it matters.
 | `sources` | no | `feeds`, `sitemaps`, `gdelt`, `reddit`, `bluesky`. Any subset. A sitemap takes `url`, `publisher`, `terms`, `include` (the news section's path prefix, such as `/news/`) and `extract`, for a publisher that posts news with no feed; new pages are found by the sitemap's dates and kept only if the page's own publication date is new. Bluesky takes `sort`, `top` by default. A feed takes `url`, `publisher`, `terms`, and `extract` (default true); `extract: false` means the article pages are never requested and the item is summarised from the feed's own title and summary, for a publisher whose terms clear the feed but not the page. |
 | `trusted_sources` | no | Bare domains, subdomains included. Ranked up, and preferred when choosing which item represents a story. |
 | `blocked_sources` | no | Bare domains, subdomains included. Never stored, never extracted, never shown. |
-| `digest` | no | `max_stories`, `rerank_candidates`, `max_sentences_per_story`. `rerank_candidates` is how many stories the model re-ranker is shown, and so the cost of that call; the model never sees more. |
+| `digest` | no | `max_stories`, `rerank_candidates`, `max_sentences_per_story`, `min_rubric_score`. `rerank_candidates` is how many stories the model re-ranker is shown, and so the cost of that call; the model never sees more. `min_rubric_score` (default 1) is the lowest rubric score a story may be shown with: 2 leaves out "marginal" stories, so a quiet day is a shorter digest. |
+| `measure_from` | no | The first day whose digest was made under the current rubric, `YYYY-MM-DD`. Labelling and the relevance numbers start there. Set it whenever the rubric changes. |
 | `delivery` | no | `time_local` and `timezone`. When the digest is built. Nothing is sent. |
 
 Unknown fields are rejected rather than ignored, at every level of the file. A typo must
@@ -40,12 +41,16 @@ precision and recall numbers, so a reader can see what "relevant" meant. A rubri
 than ten words is rejected at load.
 
 Write it as two halves: what counts, and what does not. The second half is the useful one.
-From the artificial intelligence example, which draws the line between an item about AI
-and an item that mentions it:
+For an audience of busy readers, say how important a story must be, not only what it must
+be about. The artificial intelligence example was "about AI" until its first labelled day
+showed a digest full of small startups' funding rounds and routine model releases; it now
+reads:
 
-> ... It excludes items that mention AI in passing while being about something else, such
-> as a phone review that lists an AI feature, an earnings report with one line on AI, or a
-> policy story where AI is one item of many; deals, discounts and shopping guides; ...
+> ... It excludes routine funding rounds, valuations and launches of small and mid-sized
+> startups; routine model releases, fine-tunes, checkpoints, datasets, library updates and
+> benchmark posts, including most Hugging Face releases, unless the model sets a clear new
+> state of the art or is being widely adopted; customer case studies and vendor marketing;
+> ...
 
 ## Every source needs a row in the terms record
 

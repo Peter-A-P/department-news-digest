@@ -234,7 +234,12 @@ def build_report(
             stories_per_day=bootstrap_mean([float(len(d.stories)) for d in mine]),
             cost=bootstrap_mean([d.cost_usd for d in mine]),
         )
-        complete = _complete_days(store, labels, audience.id, labeller)
+        start = audience.measure_from or ""
+        complete = {
+            day: day_labels
+            for day, day_labels in _complete_days(store, labels, audience.id, labeller).items()
+            if day >= start
+        }
         result.labelled_days = sorted(complete)
         if complete:
             shown_flags: list[bool] = []

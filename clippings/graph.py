@@ -165,7 +165,7 @@ def node_select(state: State) -> State:
     p = state["pipeline"]
     result = state["rerank"]
     selection = choose(
-        result.selectable(),
+        result.selectable(p.audience.digest.min_rubric_score if result.reranked else 1),
         state["pool"],
         p.embedder,
         p.audience.digest.max_stories,

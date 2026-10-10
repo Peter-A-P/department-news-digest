@@ -175,6 +175,10 @@ class Digest(Strict):
     max_stories: int = Field(default=10, ge=1, le=40)
     rerank_candidates: int = Field(default=60, ge=1, le=200)
     max_sentences_per_story: int = Field(default=3, ge=1, le=10)
+    # The lowest rubric score a story may be shown with: 1 "marginal", 2 "relevant", 3 "must
+    # read". At 2 a digest shows fewer stories rather than fill its length with marginal ones,
+    # which is what an audience of busy readers asked for (the AI audience, 2026-10-10).
+    min_rubric_score: int = Field(default=1, ge=1, le=3)
 
     @model_validator(mode="after")
     def _candidates_cover_the_digest(self) -> Digest:
@@ -213,6 +217,10 @@ class Audience(Strict):
     name: str
     description: str
     rubric: str
+    # The first day whose digest was made under this rubric. Labels and relevance numbers
+    # start here: a day judged against a rubric its digest was not chosen by measures the
+    # change, not the system.
+    measure_from: str | None = None
     topics: tuple[str, ...]
     entities: Entities = Entities()
     geography: tuple[str, ...] = ()

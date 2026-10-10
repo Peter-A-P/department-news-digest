@@ -118,10 +118,22 @@ class Rerank:
             for score in self.scores
         }
 
-    def selectable(self) -> tuple[ScoredStory, ...]:
-        """The stories the digest may be chosen from: everything not scored 0."""
-        excluded = {score.story_id for score in self.scores if score.excluded}
-        return tuple(story for story in self.stories if story.id not in excluded)
+    def selectable(self, min_score: int = 1) -> tuple[ScoredStory, ...]:
+        """The stories the digest may be chosen from: everything scored at least `min_score`.
+
+        At the default of 1 that is everything not scored 0, and a candidate the model gave no
+        score stays in. Above 1 an unscored candidate is left out with the marginal ones: the
+        audience asked for only what clears the bar, and no score is not a pass.
+        """
+        given = {score.story_id: score.model_score for score in self.scores}
+
+        def keep(story_id: str) -> bool:
+            model_score = given.get(story_id)
+            if model_score is None:
+                return min_score <= 1
+            return model_score >= min_score
+
+        return tuple(story for story in self.stories if keep(story.id))
 
 
 def local_ids(count: int) -> list[str]:

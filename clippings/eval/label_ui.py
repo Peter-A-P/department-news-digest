@@ -51,7 +51,10 @@ class Workspace:
     token: str = field(default_factory=lambda: secrets.token_urlsafe(16))
 
     def days(self, audience_id: str) -> list[str]:
-        return self.store.cluster_days(audience_id)
+        # Only days made under the audience's current rubric: a label against a rubric the
+        # digest was not chosen by measures the rubric change, not the system.
+        start = self.audiences[audience_id].measure_from or ""
+        return [day for day in self.store.cluster_days(audience_id) if day >= start]
 
     def queue(self, audience_id: str, day: str, *, remaining_only: bool = False) -> LabellingQueue:
         # The whole sample unless asked otherwise, so a finished day can be reopened.
