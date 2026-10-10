@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+from collections.abc import Sequence
 from datetime import timedelta
 
 from clippings.cluster.cluster import (
@@ -10,7 +12,7 @@ from clippings.cluster.cluster import (
     collapse_rate,
     representative,
 )
-from clippings.cluster.embed import Hashing, cosine
+from clippings.cluster.embed import Hashing, Vector, cosine
 from clippings.cluster.metrics import pairs_within, purity, score_pairs
 from clippings.cluster.shingles import (
     connected_components,
@@ -20,7 +22,7 @@ from clippings.cluster.shingles import (
     similarity,
 )
 from clippings.config.audience import Audience
-from clippings.models import Cluster
+from clippings.models import Cluster, Item
 from tests.conftest import NOW, item
 
 WIRE = (
@@ -187,3 +189,47 @@ def test_purity_counts_the_majority_story_in_each_cluster() -> None:
     ]
     assert purity(clusters, {"x": "s1", "y": "s1", "z": "s2"}) == 2 / 3
     assert purity(clusters, {}) == 0.0
+
+
+class Placed:
+    """An embedder that puts each text where the test says, by the first word of its title."""
+
+    dimensions = 2
+
+    def __init__(self, angles: dict[str, float]) -> None:
+        self.angles = angles
+
+    def embed(self, texts: Sequence[str]) -> list[Vector]:
+        return [
+            (math.cos(self.angles[text.split()[0]]), math.sin(self.angles[text.split()[0]]))
+            for text in texts
+        ]
+
+
+def post(item_id: str, title: str) -> Item:
+    return item(item_id, title, domain="bsky.app").model_copy(update={"source_kind": "bluesky"})
+
+
+def test_posts_do_not_chain_an_unrelated_post_into_a_story(audience: Audience) -> None:
+    """News, a post close to it, and a post close only to that post: the second stays out.
+
+    The shape of 2026-10-08, when posts about AI regulation reached OpenAI's mathematics
+    story one post at a time and one was listed as its source.
+    """
+    # cos(0.5) = 0.88 between neighbours; cos(1.0) = 0.54 from the news item to the far post.
+    embedder = Placed({"News": 0.0, "Near": 0.5, "Far": 1.0})
+    items = [item("n", "News headline"), post("p1", "Near post"), post("p2", "Far post")]
+    clusters = build_clusters(items, audience, embedder, "2026-09-12")
+    groups = sorted(sorted(cluster.item_ids) for cluster in clusters)
+    assert groups == [["n", "p1"], ["p2"]]
+
+
+def test_a_post_close_to_two_stories_joins_one_and_does_not_merge_them(
+    audience: Audience,
+) -> None:
+    # Two news items 0.80 apart (separate stories); the post sits between, nearer the first.
+    embedder = Placed({"First": 0.0, "Second": 0.64, "Between": 0.30})
+    items = [item("a", "First headline"), item("b", "Second headline"), post("p", "Between")]
+    clusters = build_clusters(items, audience, embedder, "2026-09-12")
+    groups = sorted(sorted(cluster.item_ids) for cluster in clusters)
+    assert groups == [["a", "p"], ["b"]]

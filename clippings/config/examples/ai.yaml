@@ -113,7 +113,7 @@ sources:
   gdelt:
     queries:
       - '"artificial intelligence"'
-      - '"large language model" OR "generative AI"'
+      - '("large language model" OR "generative AI")'
     limit: 75
 
   reddit:

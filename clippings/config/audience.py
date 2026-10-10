@@ -134,6 +134,22 @@ class GdeltSource(Strict):
     queries: tuple[str, ...] = ()
     limit: int = Field(default=75, ge=1, le=250)
 
+    @field_validator("queries")
+    @classmethod
+    def _or_in_parentheses(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        # GDELT refuses a query with an OR outside parentheses, and it says so only at fetch
+        # time: '"large language model" OR "generative AI"' failed every run from 2026-10-07
+        # until it was found in the run log on 2026-10-08. Checked here, it fails at load.
+        for query in value:
+            depth = 0
+            for token in (
+                re.sub(r'"[^"]*"', '""', query).replace("(", " ( ").replace(")", " ) ").split()
+            ):
+                depth += {"(": 1, ")": -1}.get(token, 0)
+                if token == "OR" and depth == 0:
+                    raise ValueError(f"GDELT needs OR'd terms in parentheses: {query!r}")
+        return value
+
 
 class Sources(Strict):
     """Where this audience's pool comes from.

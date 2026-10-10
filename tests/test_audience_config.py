@@ -106,3 +106,20 @@ def test_every_example_audience_has_a_rubric_and_sources() -> None:
             # original thirteen did not. A URL nobody has fetched is a guess.
             assert feed.url.startswith("https://"), f"{audience.id}: {feed.url}"
         assert audience.profile_text(), f"{audience.id}: nothing to embed as a profile"
+
+
+@pytest.mark.parametrize(
+    "query",
+    ['"large language model" OR "generative AI"', 'Canada outbreak OR "public health"'],
+)
+def test_a_gdelt_or_outside_parentheses_is_rejected_at_load(query: str) -> None:
+    from clippings.config.audience import GdeltSource
+
+    with pytest.raises(ValidationError, match="parentheses"):
+        GdeltSource(queries=(query,))
+
+
+def test_a_gdelt_or_inside_parentheses_or_quotes_is_accepted() -> None:
+    from clippings.config.audience import GdeltSource
+
+    GdeltSource(queries=('("large language model" OR "generative AI")', '"rock OR roll" band'))

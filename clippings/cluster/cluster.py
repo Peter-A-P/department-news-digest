@@ -10,6 +10,15 @@ the announcement, B reports A, C reports B with new detail. A threshold that joi
 link joins the chain, which is what a reader means by one story. The cost is that a bad
 threshold merges two stories through one ambiguous item, which is why the deduplication
 numbers are measured on labelled pairs rather than asserted.
+
+Posts do not chain. Only news items form the components; a post then joins the one story
+whose news item it is closest to, and only if it clears the threshold against that news
+item itself. On 2026-10-08 chaining through posts turned OpenAI's mathematics announcement
+into a twenty-item story: posts about AI regulation were within 0.82 of other posts, each
+of which was within 0.82 of the next, and an off-topic post was listed as a source. Directly
+against the announcement those posts scored 0.57 to 0.71. A post near no news item stays out
+of every news story (with any posts it matches), and a story of posts alone is never a
+candidate (PLAN.md section 2.3).
 """
 
 from __future__ import annotations
@@ -129,8 +138,7 @@ def build_clusters(
         zip(by_id, embedder.embed([story_text(by_id[key]) for key in by_id]), strict=True)
     )
     stories = story_pairs(list(items), vectors, threshold=story_threshold)
-
-    components = connected_components(by_id, duplicates | stories)
+    components = _components(by_id, vectors, duplicates, stories)
     clusters = [
         Cluster(
             id=cluster_id(members),
@@ -143,6 +151,40 @@ def build_clusters(
     ]
     clusters.sort(key=lambda cluster: (-cluster.size, cluster.id))
     return clusters
+
+
+def _components(
+    by_id: dict[str, Item],
+    vectors: dict[str, Vector],
+    duplicates: set[tuple[str, str]],
+    stories: set[tuple[str, str]],
+) -> list[list[str]]:
+    """News items chain into stories; each post joins at most one, by its own closest link."""
+    is_post = {key: item.source_kind in SOCIAL_KINDS for key, item in by_id.items()}
+    edges = duplicates | stories
+    news = [key for key in by_id if not is_post[key]]
+    news_edges = [(a, b) for a, b in edges if not is_post[a] and not is_post[b]]
+    groups = connected_components(news, news_edges)
+    group_of = {key: index for index, group in enumerate(groups) for key in group}
+
+    # Each post's links to news items, scored: a near-duplicate is a perfect match, an
+    # embedding link counts by its cosine. The best link decides the story, so a post close
+    # to two stories joins one of them rather than merging them.
+    best: dict[str, tuple[float, str]] = {}
+    for a, b in edges:
+        if is_post[a] == is_post[b]:
+            continue
+        post, news_item = (a, b) if is_post[a] else (b, a)
+        score = 1.0 if (a, b) in duplicates else cosine(vectors[post], vectors[news_item])
+        if post not in best or (score, news_item) > best[post]:
+            best[post] = (score, news_item)
+    for post, (_, news_item) in sorted(best.items()):
+        groups[group_of[news_item]].append(post)
+
+    orphans = [key for key in by_id if is_post[key] and key not in best]
+    orphan_set = set(orphans)
+    orphan_edges = [(a, b) for a, b in edges if a in orphan_set and b in orphan_set]
+    return groups + connected_components(orphans, orphan_edges)
 
 
 def collapse_rate(items_ingested: int, stories: int) -> float:

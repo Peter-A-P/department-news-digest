@@ -108,6 +108,14 @@ they were on topic and the rubric had no reason to exclude them. Measured on tha
 pools, posts join a news story rarely (one to three stories per audience), so their main
 effect now is corroboration, and the cost of the re-ranker falls with the smaller pool.
 
+Posts do not chain (2026-10-09). News items alone form a story's connected component; a post
+joins the single story whose news item it is closest to, and only if it clears the story
+threshold against that news item directly. Chaining through posts had built a twenty-item
+story on 2026-10-08 out of OpenAI's mathematics announcement and posts about AI regulation,
+one of which was listed as a source; against the announcement itself those posts scored 0.57
+to 0.71. The same threshold now also leaves out three on-topic posts that scored 0.78 to 0.81
+against it, which is a recall cost the labelled week will measure.
+
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 
 The summariser writes each digest sentence with the item ids it draws on and marks quotes
