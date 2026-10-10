@@ -73,6 +73,11 @@ sentence, repairing once and dropping otherwise. The digest is rendered as a pag
 draft file. Precision and recall are measured against a hand-labelled week through the AI
 Release Gate's harness, with intervals.
 
+The site's front page explains the same for a visitor, below the audience cards: why this
+exists, the pipeline step by step, how it is measured, the rules it keeps, what is built and
+what is to come. It is in `clippings/assemble/about.py`, states no measured result (those
+are here, with their intervals), and changes with this section.
+
 ## Running it
 
 Python 3.13 and [uv](https://docs.astral.sh/uv/).

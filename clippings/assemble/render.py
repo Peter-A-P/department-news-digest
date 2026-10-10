@@ -24,6 +24,7 @@ from email.message import EmailMessage
 from email.policy import SMTP
 from html import escape
 
+from clippings.assemble.about import about_sections
 from clippings.assemble.digest import Digest, DigestSentence, DigestStory, Spotlight
 from clippings.constants import CAD_PER_USD, cad
 
@@ -197,6 +198,64 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 .full-post { margin: 0 0 0.6rem; }
 .spotlight blockquote { margin: 0.2rem 0 0.6rem; font-family: var(--serif);
   font-size: 1.2rem; line-height: 1.4; color: var(--ink); }
+/* The front page's long read below the audiences, in the manner of gate.peterparker.ca. */
+.section { padding: 2.75rem 0; border-bottom: 1px solid var(--line); }
+.section:last-child { border-bottom: 0; }
+.section > * { max-width: var(--column); }
+.section > .table-wrap, .section > .steps, .section > .panels, .section > .split,
+.section > .chips { max-width: none; }
+.section h2 { font-size: clamp(1.6rem, 3.2vw, 2.1rem); line-height: 1.18; margin: 0 0 0.8rem; }
+.section .eyebrow { color: var(--accent-ink); }
+#how .eyebrow { color: var(--violet); }
+#measure .eyebrow { color: var(--green); }
+#rules .eyebrow { color: var(--rose); }
+#status .eyebrow { color: var(--amber); }
+.section-lead { font-size: 1.02rem; color: var(--ink-soft); }
+.section p { color: var(--ink-soft); }
+.table-wrap { overflow-x: auto; margin: 1.2rem 0 1.2rem; }
+table.idea { width: 100%; border-collapse: collapse; font-size: 0.88rem;
+  background: var(--paper-soft); border: 1px solid var(--line); }
+table.idea th, table.idea td { text-align: left; padding: 0.6rem 0.8rem; vertical-align: top;
+  border-bottom: 1px solid var(--line); }
+table.idea th { font-size: 0.8rem; font-weight: 600; color: var(--ink-soft);
+  background: var(--paper-deep); }
+table.idea td:first-child { width: 30%; }
+table.idea td:last-child { color: var(--ink); }
+table.idea tr.real { background: color-mix(in srgb, var(--green) 9%, transparent); }
+.steps { list-style: none; padding: 0; margin: 1.4rem 0; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.9rem;
+  counter-reset: step; }
+.steps li { --c: var(--teal); counter-increment: step; background: var(--paper-soft);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; margin: 0;
+  font-size: 0.88rem; color: var(--ink-soft); line-height: 1.55; }
+.steps li:nth-child(5n+2) { --c: var(--violet); }
+.steps li:nth-child(5n+3) { --c: var(--green); }
+.steps li:nth-child(5n+4) { --c: var(--amber); }
+.steps li:nth-child(5n+5) { --c: var(--rose); }
+.steps li::before { content: counter(step); display: inline-flex; width: 1.6rem; height: 1.6rem;
+  border-radius: 50%; background: var(--c); color: var(--paper-soft); font-weight: 600;
+  font-size: 0.78rem; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
+.steps strong { display: block; color: var(--ink); font-size: 0.95rem; margin-bottom: 0.25rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1rem 0 0; padding: 0;
+  list-style: none; }
+.chips li { font-size: 0.78rem; padding: 0.2rem 0.7rem; border: 1px solid var(--line-2);
+  border-radius: 999px; background: var(--paper-soft); color: var(--ink-soft); margin: 0; }
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.3rem 0 1rem; }
+.panel { --c: var(--teal); background: var(--paper-soft); border: 1px solid var(--line);
+  border-top: 3px solid var(--c); border-radius: var(--radius); padding: 1rem 1.15rem;
+  min-width: 0; }
+.panels .panel:nth-child(4n+2) { --c: var(--violet); }
+.panels .panel:nth-child(4n+3) { --c: var(--green); }
+.panels .panel:nth-child(4n+4) { --c: var(--amber); }
+.panel h3 { font-size: 1.15rem; line-height: 1.25; margin: 0 0 0.45rem; }
+.panel p { font-size: 0.88rem; margin: 0; }
+.panel ul { margin: 0; padding-left: 1.1rem; font-size: 0.88rem; color: var(--ink-soft); }
+.panel li { margin: 0 0 0.45rem; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.3rem 0 0; }
+.panel.built { --c: var(--green); }
+.panel.tocome { --c: var(--amber); }
+.panel.built h3 { color: var(--green); }
+.panel.tocome h3 { color: var(--amber); }
 .footer-band { background: var(--paper-deep); border-top: 1px solid var(--line); }
 footer { max-width: var(--wide); margin: 0 auto; padding: 2rem 1.5rem 3rem;
   font-size: 0.84rem; color: var(--ink-faint); }
@@ -210,6 +269,12 @@ footer p { max-width: var(--column); }
   footer { padding: 2rem 1rem 3rem; }
   .hero { padding: 2rem 0 1.5rem; }
   .story h2 { font-size: 1.3rem; }
+  .section { padding: 2rem 0; }
+  .panels, .split { grid-template-columns: 1fr; }
+  table.idea thead { display: none; }
+  table.idea tr { display: block; padding: 0.6rem 0.2rem; border-bottom: 1px solid var(--line); }
+  table.idea td { display: block; width: auto !important; border: 0; padding: 0.1rem 0.6rem; }
+  table.idea td[data-label]::before { content: attr(data-label) ": "; color: var(--ink-faint); }
 }
 """
 
@@ -571,8 +636,12 @@ def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
         '<p class="note">Nothing is sent: each digest is a web page and an email draft file '
         "that its owner may send. The four audiences below are examples, built on public "
         "sources whose terms were read and recorded before anything was fetched.</p>"
+        '<p class="note">Below the audiences: <a href="#why">why this exists</a>, '
+        '<a href="#how">how it works</a>, <a href="#measure">how it is measured</a>, '
+        '<a href="#rules">the rules it keeps</a> and <a href="#status">where it stands</a>.</p>'
         "</header>\n"
         '<h2 class="section-title">Audiences</h2>\n'
-        f'<div class="cards">\n{"".join(cards)}\n</div>'
+        f'<div class="cards">\n{"".join(cards)}\n</div>\n'
+        f"{about_sections()}"
     )
     return _page("Department News Digest", body)
