@@ -373,6 +373,11 @@ def _story_html(story: DigestStory) -> str:
     return "\n".join(parts)
 
 
+def _quoted(text: str) -> str:
+    """In quotation marks, unless the post already opens with its own."""
+    return text if text[:1] in {'"', "\u201c"} else f'"{text}"'
+
+
 def _spotlight_html(post: Spotlight) -> str:
     """The day's most discussed Bluesky post, as a post: its words, its counts, a link."""
     posted = post.posted_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
@@ -380,7 +385,7 @@ def _spotlight_html(post: Spotlight) -> str:
     return (
         '<section class="spotlight">'
         '<p class="eyebrow">Most discussed on Bluesky</p>'
-        f'<blockquote>"{escape(post.quote)}"</blockquote>'
+        f"<blockquote>{escape(_quoted(post.quote))}</blockquote>"
         f'<p class="meta"><span class="tag post">Post</span>'
         f'<a href="{escape(post.url)}">@{escape(post.author)}</a> &middot; {posted} &middot; '
         f"{post.likes} likes, {post.replies} replies</p>{reason}"
@@ -477,7 +482,7 @@ def markdown(digest: Digest) -> str:
         lines += [
             "## Most discussed on Bluesky",
             "",
-            f'> "{post.quote}"',
+            f"> {_quoted(post.quote)}",
             "",
             f"[@{post.author}]({post.url}), {post.likes} likes, {post.replies} replies. "
             "A post, not reporting; nothing in it has been checked.",
