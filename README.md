@@ -10,8 +10,9 @@ a month per department, with measured precision and recall instead of a feeling.
 clustering, ranking, the model re-ranker, cited summaries, the verifier with one repair,
 the page, the Markdown and the email draft, the read-only service and the Cloud Run
 deployment. It has run daily on Cloud Run since 2026-10-07, for all four audiences, at about
-US$0.23 a day in model calls, and the digests are at https://digest.peterparker.ca. Nothing
-has been measured yet.
+US$0.23 a day in model calls, and the digests are at https://digest.peterparker.ca. The
+pipeline's own properties are measured below by `clippings report`; relevance waits on the
+hand-labelled week.
 The plan is in [PLAN.md](PLAN.md): a build on Google Cloud Run, then a measurement month
 running daily.
 
@@ -25,19 +26,26 @@ file an owner can send. It has no send path.
 
 ## Result
 
-Not yet measured. The build fills these tables.
+<!-- report:start -->
+Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on 2026-10-10. 95% intervals throughout. 0 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
 
 **Relevance, per audience, against a hand-labelled week**
 
 | Audience | Precision at K (95% CI) | Recall, importance-weighted (95% CI) | Labeller kappa | Stories per day | Cost per digest |
 |---|---|---|---|---|---|
-| _not yet_ | | | | | |
+| Artificial intelligence | _not yet_ | _not yet_ | _not yet_ | 10.0 on all 3 | US$0.052 (US$0.049 to US$0.055) |
+| Municipal affairs, Toronto | _not yet_ | _not yet_ | _not yet_ | 9.5 (8.5 to 10.0) | US$0.072 (US$0.062 to US$0.078) |
+| Regional affairs, Newfoundland and Labrador | _not yet_ | _not yet_ | _not yet_ | 10.0 on all 4 | US$0.060 (US$0.058 to US$0.062) |
+| Public health in Canada | _not yet_ | _not yet_ | _not yet_ | 7.2 (5.5 to 9.0) | US$0.054 (US$0.043 to US$0.065) |
 
 **Pipeline properties**
 
-| Deduplication precision / recall (pairs) | Collapse rate | Quotes verbatim, before / after repair | Citation coverage | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime, measurement month |
+| Deduplication precision / recall (pairs) | Collapse rate | Quotes verbatim, before / after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime, measurement month |
 |---|---|---|---|---|---|---|---|
-| _not yet_ | | | | | | | |
+| _not yet_ (pair labels) | 1.17 (1.14 to 1.22) items per story | 100% (93% to 100%) / 100% (93% to 100%) | 100% (99% to 100%) | _not yet_ (hand check) | 25 h (20 to 29) / 43 h (40 to 44) | _not yet_ (reader study) | _not yet_ (measurement month) |
+
+All four digests together cost US$0.224 (US$0.214 to US$0.235) a day in model calls, from the gateway's ledger. Details, per source and per day: [docs/report.md](docs/report.md).
+<!-- report:end -->
 
 ## What this does not do
 
@@ -76,6 +84,7 @@ uv run clippings run ai                   # today's digest, written to out/site/
 uv run clippings serve                    # the pages at http://127.0.0.1:8080/
 uv run clippings render                   # re-render stored digests, no fetch, no model
 uv run clippings label --labeller you     # labelling page in the browser, one page per day
+uv run clippings report                   # the results tables: README block and docs/report.md
 uv run clippings retention                # delete items past thirty days (run also does this)
 ```
 

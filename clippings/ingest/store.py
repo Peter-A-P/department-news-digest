@@ -436,6 +436,11 @@ class Store:
             for row in rows
         ]
 
+    def all_labels(self) -> list[Label]:
+        """Every label in this file, whoever gave it."""
+        audiences = self._connection.execute("SELECT DISTINCT audience_id FROM labels").fetchall()
+        return [label for (audience_id,) in audiences for label in self.labels_for(audience_id)]
+
     def labelled_ids(self, audience_id: str, day: str, labeller: str) -> set[str]:
         """Which items this labeller has already done, so the CLI can resume."""
         rows = self._connection.execute(

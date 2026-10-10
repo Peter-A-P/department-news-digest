@@ -36,6 +36,10 @@ dependencies = [
   "trafilatura>=2,<3",
   # Command line: clippings run | label | eval | report | render. 0.x is the only line.
   "typer>=0.15,<1",
+  # The measurement statistics (PLAN.md section 2.6): bootstrap and Jeffreys intervals from the
+  # 03 gate's published `drift.analysis.stats`, imported rather than reimplemented, so this
+  # project's intervals are computed exactly as the gate's are. Pinned to 03's v0.1.0 tag.
+  "drift",
 ]
 
 [project.optional-dependencies]
@@ -62,6 +66,13 @@ dev = [
 # Pinned to the tag, not a branch, so the lockfile resolves to one commit and the price list
 # a digest was costed at is the one this checkout names.
 boundary = { git = "https://github.com/Peter-A-P/compliant-ai-gateway", tag = "v0.35.2" }
+drift = { git = "https://github.com/Peter-A-P/ai-release-gate", tag = "v0.1.0" }
+
+[tool.uv]
+# 03 v0.1.0 declares boundary below 0.3, the line it was built on; this project runs 0.35. The
+# only 03 module imported here is drift.analysis.stats, which is plain Python and never touches
+# boundary, so the gateway this project actually calls is the one that governs.
+override-dependencies = ["boundary>=0.35,<1"]
 
 [project.scripts]
 clippings = "clippings.cli:app"
@@ -126,3 +137,9 @@ addopts = "-q"
 # langgraph imports a langchain serializer that warns about a default it does not use: no
 # checkpointer is configured, so nothing is ever serialised.
 filterwarnings = ["ignore::langchain_core._api.deprecation.LangChainPendingDeprecationWarning"]
+
+[[tool.mypy.overrides]]
+# 03's package is typed throughout and checked with mypy --strict in its own CI, but ships no
+# py.typed marker; follow it rather than treat its estimates as Any.
+module = ["drift.*", "gate.*"]
+follow_untyped_imports = true

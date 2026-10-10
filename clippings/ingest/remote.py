@@ -216,6 +216,10 @@ class ObjectStore(Protocol):
 
     def upload(self, source: Path, name: str) -> None: ...
 
+    def names(self, prefix: str) -> list[str]:
+        """Every object name under `prefix`, for the per-labeller label files."""
+        ...
+
 
 class LocalObjectStore:
     """A directory standing in for the bucket, which is how development runs."""
@@ -235,6 +239,12 @@ class LocalObjectStore:
         target = self.root / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
+
+    def names(self, prefix: str) -> list[str]:
+        base = self.root / prefix
+        if not base.is_dir():
+            return []
+        return sorted(f"{prefix.rstrip('/')}/{path.name}" for path in base.iterdir())
 
 
 class GcsObjectStore:
@@ -260,6 +270,10 @@ class GcsObjectStore:
 
     def upload(self, source: Path, name: str) -> None:
         self._bucket().blob(name).upload_from_filename(str(source))  # type: ignore[attr-defined]
+
+    def names(self, prefix: str) -> list[str]:
+        blobs = self._bucket().list_blobs(prefix=prefix)  # type: ignore[attr-defined]
+        return sorted(str(blob.name) for blob in blobs)
 
 
 class StateSync:

@@ -34,6 +34,13 @@ from clippings.config.load import EXAMPLES, AudienceFileError, load_audience, lo
 from clippings.constants import RETENTION_DAYS
 from clippings.eval.label_ui import Workspace
 from clippings.eval.label_ui import application as label_application
+from clippings.eval.report import (
+    all_labels,
+    build_report,
+    detail,
+    readme_tables,
+    replace_between_markers,
+)
 from clippings.gateway import (
     GatewayClient,
     ModelClient,
@@ -482,6 +489,51 @@ def label(
             suppress(KeyboardInterrupt),
         ):
             server.serve_forever()
+
+
+@app.command()
+def report(
+    labeller: Annotated[
+        str, typer.Option(help="Whose labels give precision and recall; others give kappa.")
+    ] = "peter",
+    bucket: Annotated[
+        str | None,
+        typer.Option(envvar="CLIPPINGS_BUCKET", help="Read the run's store and labels from here."),
+    ] = None,
+    audiences: AudienceDir = EXAMPLES,
+    db: DbPath = DEFAULT_DB,
+    readme: Annotated[
+        bool, typer.Option("--readme/--no-readme", help="Rewrite the README's result tables.")
+    ] = True,
+) -> None:
+    """Compute the results tables: the README's block and docs/report.md. No fetch, no model."""
+    label_dir = Path("data/labels")
+    store_path = db
+    if bucket:
+        objects = GcsObjectStore(bucket)
+        store_path = Path("data/report-snapshot.duckdb")
+        objects.download(StateSync.DB, store_path)
+        label_dir = Path("data/labels-report")
+        for name in objects.names("labels/"):
+            objects.download(name, label_dir / Path(name).name)
+    with ExitStack() as stack:
+        store = stack.enter_context(Store.open(store_path))
+        label_stores = [
+            stack.enter_context(Store.open(path)) for path in sorted(label_dir.glob("*.duckdb"))
+        ]
+        result = build_report(
+            store, all_labels([store, *label_stores]), load_audiences(audiences), labeller
+        )
+    Path("docs/report.md").write_text(detail(result), encoding="utf-8")
+    typer.echo(readme_tables(result))
+    typer.echo("\nwrote docs/report.md")
+    if readme:
+        path = Path("README.md")
+        path.write_text(
+            replace_between_markers(path.read_text(encoding="utf-8"), readme_tables(result)),
+            encoding="utf-8",
+        )
+        typer.echo("rewrote the README's result block")
 
 
 @app.command()

@@ -84,6 +84,13 @@ def ranked_ids_for_day(
         ordered = [story.cluster for story in scored]
     else:
         ordered = list(clusters)
+    # The stories the digest showed come first, so precision at K always has its labels: the
+    # digest is chosen from the re-ranked candidates with diversity, and a shown story can sit
+    # below thirtieth in the saved order (none has yet; 22nd is the lowest seen by 2026-10-10).
+    digest = store.digest_for(audience_id, day)
+    shown = [story.story_id for story in digest.stories] if digest else []
+    position = {cluster_id: index for index, cluster_id in enumerate(shown)}
+    ordered.sort(key=lambda cluster: position.get(cluster.id, len(position)))
     return [
         cluster.representative_id
         for cluster in ordered
