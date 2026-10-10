@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -491,7 +492,7 @@ def test_bluesky_posts_in_another_language_are_skipped() -> None:
 
 
 def test_bluesky_replies_and_accounts_without_a_name_are_skipped() -> None:
-    def post(uri: str, author: dict[str, str], record: dict[str, object]) -> dict[str, object]:
+    def post(uri: str, author: dict[str, str], record: Mapping[str, object]) -> dict[str, object]:
         return {"uri": uri, "author": author, "record": record, "likeCount": 50}
 
     named = {"handle": "a.bsky.social", "displayName": "A"}
