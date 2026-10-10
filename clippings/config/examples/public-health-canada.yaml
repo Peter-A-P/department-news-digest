@@ -12,6 +12,9 @@ description: >-
   capacity and public health policy across Canadian federal, provincial and territorial
   authorities.
 
+# The first day made under min_rubric_score 2; relevance is measured from here.
+measure_from: "2026-10-11"
+
 rubric: >-
   Relevant means an item a public health communications officer would need before the
   morning meeting: outbreak and surveillance reporting, immunisation programme changes,
@@ -96,6 +99,9 @@ digest:
   max_stories: 10
   rerank_candidates: 60
   max_sentences_per_story: 3
+  # Marginal stories left out (2026-10-10). Peter's first four labelled days: 7 of 13 marginal stories relevant against 16 of 18 scored relevant or must read.
+  # A quiet day is a shorter digest rather than one padded with filler.
+  min_rubric_score: 2
 
 delivery:
   time_local: "07:00"

@@ -159,6 +159,10 @@ class AudienceResult:
     labelled_days: list[str] = field(default_factory=list)
     precision: Estimate | None = None
     recall: Estimate | None = None
+    # Estimated relevant stories in a day's pool: the top stratum's plus the random stratum's,
+    # weighted. Beside the digest's length it says how much recall a digest of that length
+    # could reach at best.
+    relevant_per_day: Estimate | None = None
     kappa: Estimate | None = None
     kappa_with: str = ""
 
@@ -272,6 +276,9 @@ def build_report(
                 )
             result.precision = share(shown_flags)
             result.recall = recall(days)
+            result.relevant_per_day = bootstrap_mean(
+                [sum(day.top) + day.weight * sum(day.random) for day in days]
+            )
         others = {
             label.labeller
             for label in labels
@@ -411,8 +418,8 @@ def readme_tables(report: Report) -> str:
         "**Relevance, per audience, against a hand-labelled week**",
         "",
         "| Audience | Precision at K (95% CI) | Recall, importance-weighted (95% CI) "
-        "| Labeller kappa | Stories per day | Cost per digest |",
-        "|---|---|---|---|---|---|",
+        "| Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |",
+        "|---|---|---|---|---|---|---|",
     ]
     for result in report.audiences:
         days = (
@@ -422,7 +429,7 @@ def readme_tables(report: Report) -> str:
         )
         lines.append(
             f"| {result.name} | {pct(result.precision)}{days} | {pct(result.recall)} "
-            f"| {num(result.kappa)} | {num(result.stories_per_day, '.1f')} "
+            f"| {num(result.relevant_per_day, '.1f')} | {num(result.kappa)} | {num(result.stories_per_day, '.1f')} "
             f"| {usd(result.cost)} |"
         )
     pairs = (

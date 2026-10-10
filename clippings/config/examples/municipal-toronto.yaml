@@ -12,6 +12,9 @@ description: >-
   City of Toronto council and committee decisions, the municipal budget, transit, housing
   and development approvals, and the provincial decisions that land on the city.
 
+# The first day made under min_rubric_score 2; relevance is measured from here.
+measure_from: "2026-10-11"
+
 rubric: >-
   Relevant means an item a city councillor's assistant would flag before the next council
   or committee meeting: council and committee decisions and the items coming to them,
@@ -93,6 +96,9 @@ digest:
   max_stories: 10
   rerank_candidates: 60
   max_sentences_per_story: 3
+  # Marginal stories left out (2026-10-10). Peter's first four labelled days: 15 of 21 marginal stories relevant against 18 of 19 scored relevant or must read.
+  # A quiet day is a shorter digest rather than one padded with filler.
+  min_rubric_score: 2
 
 delivery:
   time_local: "07:00"
