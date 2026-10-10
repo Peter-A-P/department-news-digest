@@ -370,7 +370,9 @@ def test_gdelt_waits_between_requests() -> None:
     list(source.fetch(audience, context_with(handler, gdelt="allowed")))
 
     assert len(stamps) == 2
-    assert stamps[1] - stamps[0] >= 0.25, "the second request did not wait its turn"
+    # The pacing clock starts just before a request is sent and the handler stamps it a moment
+    # later, so the gap the handler sees can fall short by that moment: a few microseconds.
+    assert stamps[1] - stamps[0] >= 0.24, "the second request did not wait its turn"
 
 
 def test_the_default_gdelt_interval_is_what_gdelt_asked_for() -> None:
