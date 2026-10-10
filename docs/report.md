@@ -2,7 +2,7 @@
 
 Written by `clippings report`; do not edit by hand. 95% intervals throughout.
 
-Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on 2026-10-10. 95% intervals throughout. 3 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
+Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on 2026-10-10. 95% intervals throughout. 4 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
 
 **Relevance, per audience, against a hand-labelled week**
 
@@ -10,7 +10,7 @@ Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on
 |---|---|---|---|---|---|---|
 | Artificial intelligence | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 8.7 (6.0 to 10.0) | US$0.047 (US$0.038 to US$0.055) |
 | Municipal affairs, Toronto | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 10.0 on all 4 | US$0.074 (US$0.070 to US$0.078) |
-| Regional affairs, Newfoundland and Labrador | 90% (80% to 100%), 3 days | 51% (47% to 53%) | 17.7 (12.0 to 23.2) | _not yet_ | 10.0 on all 4 | US$0.060 (US$0.058 to US$0.063) |
+| Regional affairs, Newfoundland and Labrador | 82% (70% to 92%), 4 days | 42% (39% to 44%) | 19.8 (14.8 to 24.6) | _not yet_ | 10.0 on all 4 | US$0.060 (US$0.058 to US$0.063) |
 | Public health in Canada | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 7.8 (5.8 to 9.5) | US$0.057 (US$0.046 to US$0.068) |
 
 **Pipeline properties**
@@ -27,7 +27,7 @@ Labeller for precision and recall: `peter`. A day counts once its whole sample i
 
 - Artificial intelligence: none yet
 - Municipal affairs, Toronto: none yet
-- Regional affairs, Newfoundland and Labrador: 2026-10-07, 2026-10-08, 2026-10-09
+- Regional affairs, Newfoundland and Labrador: 2026-10-07, 2026-10-08, 2026-10-09, 2026-10-10
 - Public health in Canada: none yet
 
 ## Source yield
@@ -52,11 +52,11 @@ Items held (thirty days), items a digest showed or cited, and, once labelled, th
 | municipal-toronto | citynews.ca | 63 | 10 | 16% (8% to 26%) | 10 of 93, 11% (6% to 18%) |
 | municipal-toronto | cbc.ca | 53 | 20 | 38% (26% to 51%) | 37 of 81, 46% (35% to 57%) |
 | municipal-toronto | toronto.ca | 4 | 3 | 75% (28% to 97%) | 5 of 5, 100% (61% to 100%) |
-| newfoundland-labrador | saltwire.com | 55 | 2 | 4% (1% to 11%) | 7 of 89, 8% (4% to 15%) |
-| newfoundland-labrador | ntv.ca | 50 | 17 | 34% (22% to 48%) | 22 of 52, 42% (30% to 56%) |
-| newfoundland-labrador | cbc.ca | 43 | 20 | 47% (32% to 61%) | 36 of 55, 65% (52% to 77%) |
+| newfoundland-labrador | saltwire.com | 55 | 2 | 4% (1% to 11%) | 7 of 93, 8% (3% to 14%) |
+| newfoundland-labrador | ntv.ca | 50 | 17 | 34% (22% to 48%) | 25 of 60, 42% (30% to 54%) |
+| newfoundland-labrador | cbc.ca | 43 | 20 | 47% (32% to 61%) | 38 of 59, 64% (52% to 76%) |
 | newfoundland-labrador | bluesky | 42 | 2 | 5% (1% to 14%) | _not yet_ |
-| newfoundland-labrador | vocm.com | 10 | 4 | 40% (15% to 70%) | _not yet_ |
+| newfoundland-labrador | vocm.com | 10 | 4 | 40% (15% to 70%) | 3 of 8, 38% (12% to 70%) |
 | newfoundland-labrador | gazette.mun.ca | 7 | 0 | 0% (0% to 30%) | 4 of 12, 33% (12% to 61%) |
 | newfoundland-labrador | theindependent.ca | 3 | 0 | 0% (0% to 54%) | 1 of 4, 25% (3% to 72%) |
 | public-health-canada | canada.ca | 106 | 14 | 13% (8% to 21%) | 10 of 145, 7% (4% to 12%) |

@@ -27,7 +27,7 @@ file an owner can send. It has no send path.
 ## Result
 
 <!-- report:start -->
-Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on 2026-10-10. 95% intervals throughout. 3 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
+Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on 2026-10-10. 95% intervals throughout. 4 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
 
 **Relevance, per audience, against a hand-labelled week**
 
@@ -35,7 +35,7 @@ Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on
 |---|---|---|---|---|---|---|
 | Artificial intelligence | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 8.7 (6.0 to 10.0) | US$0.047 (US$0.038 to US$0.055) |
 | Municipal affairs, Toronto | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 10.0 on all 4 | US$0.074 (US$0.070 to US$0.078) |
-| Regional affairs, Newfoundland and Labrador | 90% (80% to 100%), 3 days | 51% (47% to 53%) | 17.7 (12.0 to 23.2) | _not yet_ | 10.0 on all 4 | US$0.060 (US$0.058 to US$0.063) |
+| Regional affairs, Newfoundland and Labrador | 82% (70% to 92%), 4 days | 42% (39% to 44%) | 19.8 (14.8 to 24.6) | _not yet_ | 10.0 on all 4 | US$0.060 (US$0.058 to US$0.063) |
 | Public health in Canada | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 7.8 (5.8 to 9.5) | US$0.057 (US$0.046 to US$0.068) |
 
 **Pipeline properties**
