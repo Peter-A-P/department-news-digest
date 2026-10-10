@@ -376,22 +376,36 @@ def test_the_default_gdelt_interval_is_what_gdelt_asked_for() -> None:
     assert MIN_INTERVAL_SECONDS >= 5.0
 
 
-def test_gdelt_rate_limiting_is_reported_not_retried() -> None:
-    """Asking twice for what we were told to ask once is not a fix."""
-    calls = 0
+def test_gdelt_rate_limiting_is_retried_once_after_a_wait_then_reported() -> None:
+    """Shared Cloud Run addresses get refused on a first request; ask once more, no more."""
+    stamps: list[float] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
-        nonlocal calls
-        calls += 1
+        stamps.append(time.monotonic())
         return httpx.Response(429, text="Please limit requests to one every 5 seconds.")
 
     audience = audience_with({"gdelt": {"queries": ["one"]}})
-    results = list(
-        GdeltSource(min_interval=0.0).fetch(audience, context_with(handler, gdelt="allowed"))
-    )
-    assert calls == 1
+    source = GdeltSource(min_interval=0.0, retry_after=0.2)
+    results = list(source.fetch(audience, context_with(handler, gdelt="allowed")))
+    assert len(stamps) == 2
+    assert stamps[1] - stamps[0] >= 0.2, "the retry did not wait"
     assert results[0].ok is False
     assert "rate limited" in results[0].detail
+
+
+def test_gdelt_answering_the_retry_counts_as_a_success() -> None:
+    answers = iter(
+        [
+            httpx.Response(429, text="Please limit requests to one every 5 seconds."),
+            httpx.Response(200, json={"articles": []}),
+        ]
+    )
+    audience = audience_with({"gdelt": {"queries": ["one"]}})
+    source = GdeltSource(min_interval=0.0, retry_after=0.0)
+    results = list(
+        source.fetch(audience, context_with(lambda request: next(answers), gdelt="allowed"))
+    )
+    assert results[0].ok is True
 
 
 def test_bluesky_without_credentials_reports_itself_unavailable() -> None:

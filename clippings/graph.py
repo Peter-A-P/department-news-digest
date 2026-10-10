@@ -154,7 +154,7 @@ def node_stop(state: State) -> State:
 def node_rerank(state: State) -> State:
     p = state["pipeline"]
     assert p.client is not None
-    result = rerank(p.audience, state["candidates"], p.client, run_id=p.run_id)
+    result = rerank(p.audience, state["candidates"], p.client, run_id=p.run_id, items=state["pool"])
     _save_ranking(p, state["report"].ranked, result)
     step = "rerank:ok" if result.reranked else f"rerank:failed ({result.error})"
     return {"rerank": result, "trace": _trace(state, step)}

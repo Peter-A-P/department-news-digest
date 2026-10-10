@@ -33,6 +33,13 @@ MIN_INTERVAL_SECONDS = 6.0
 # for every publisher, because no feed needs this.
 TIMEOUT = httpx.Timeout(45.0, connect=30.0)
 
+# How long to wait before asking once more after a rate limit or a dropped connection. GDELT
+# counts requests per address, and Cloud Run's outbound addresses are shared with everyone
+# else on Google Cloud who queries it: from 2026-10-07 to 2026-10-10 most of this project's
+# requests were refused as the first request of a run, six seconds after nothing. One retry,
+# half a minute later, is still far inside "one every 5 seconds" from this project.
+RETRY_AFTER_SECONDS = 30.0
+
 # GDELT stamps articles with the time it saw them, as YYYYMMDDTHHMMSSZ.
 SEEN_FORMAT = "%Y%m%dT%H%M%SZ"
 
@@ -86,8 +93,13 @@ class GdeltSource:
 
     kind: SourceKind = "gdelt"
 
-    def __init__(self, min_interval: float = MIN_INTERVAL_SECONDS) -> None:
+    def __init__(
+        self,
+        min_interval: float = MIN_INTERVAL_SECONDS,
+        retry_after: float = RETRY_AFTER_SECONDS,
+    ) -> None:
         self._min_interval = min_interval
+        self._retry_after = retry_after
         self._last_request: float | None = None
 
     def fetch(self, audience: Audience, context: FetchContext) -> Iterator[FetchResult]:
@@ -120,15 +132,26 @@ class GdeltSource:
             "timespan": f"{min(minutes, 60 * 24 * 7)}min",
             "sort": "DateDesc",
         }
-        self._wait_turn()
-        try:
-            response = context.client.get(API, params=params, timeout=TIMEOUT)
-            if response.status_code == httpx.codes.TOO_MANY_REQUESTS:
-                # Reported rather than retried: the interval above is the fix, and a retry
-                # here would be this project asking twice for what it was told to ask once.
+        for attempt in (1, 2):
+            if attempt == 2:
+                time.sleep(self._retry_after)
+            self._wait_turn()
+            try:
+                response = context.client.get(API, params=params, timeout=TIMEOUT)
+            except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.TimeoutException) as exc:
+                if attempt == 1:
+                    continue
+                return FetchResult.failure(SOURCE_KEY, query, f"{type(exc).__name__}: {exc}")
+            except httpx.HTTPError as exc:
+                return FetchResult.failure(SOURCE_KEY, query, f"{type(exc).__name__}: {exc}")
+            if response.status_code != httpx.codes.TOO_MANY_REQUESTS:
+                break
+            if attempt == 2:
+                # Asked once more after waiting, and refused again: reported, not pressed.
                 return FetchResult.failure(
                     SOURCE_KEY, query, f"rate limited: {response.text[:120].strip()}"
                 )
+        try:
             response.raise_for_status()
             payload = response.json()
         except httpx.HTTPError as exc:

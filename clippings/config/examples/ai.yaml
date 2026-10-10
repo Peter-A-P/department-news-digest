@@ -44,7 +44,10 @@ rubric: >-
   layoffs at the leading AI companies; significant moves in AI chips, data centres and
   compute; law, regulation, enforcement, major litigation and standards about AI; serious
   safety and security incidents involving AI systems; and measured effects of AI on work,
-  education, science and public services. It excludes routine funding rounds, valuations
+  education, science and public services. Weigh how widely a story is reported: one that
+  only a specialist AI publication or the company itself reports is rarely important enough,
+  while one that general news outlets also carry, or several independent outlets report,
+  usually is. It excludes routine funding rounds, valuations
   and launches of small and mid-sized startups; routine model releases, fine-tunes,
   checkpoints, datasets, library updates and benchmark posts, including most Hugging Face
   releases, unless the model sets a clear new state of the art or is being widely adopted;
@@ -112,6 +115,15 @@ sources:
     - url: https://huggingface.co/blog/feed.xml
       publisher: Hugging Face
       terms: huggingface.co
+    # General news desks, added 2026-10-10. They carry AI only when it is big, which is the
+    # point: a story they report beside the specialists is evidence of importance, and the
+    # re-ranker is shown who reported each story. CBC's terms are already read and allowed.
+    - url: https://www.cbc.ca/webfeed/rss/rss-technology
+      publisher: CBC News, Technology and Science
+      terms: cbc.ca
+    - url: https://www.cbc.ca/webfeed/rss/rss-business
+      publisher: CBC News, Business
+      terms: cbc.ca
     # Kept from the policy audience: regulation is still part of the subject.
     - url: https://digital-strategy.ec.europa.eu/en/rss.xml
       publisher: European Commission, Shaping Europe's digital future

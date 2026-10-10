@@ -116,6 +116,16 @@ one of which was listed as a source; against the announcement itself those posts
 to 0.71. The same threshold now also leaves out three on-topic posts that scored 0.78 to 0.81
 against it, which is a recall cost the labelled week will measure.
 
+Importance is judged from breadth of coverage as well as subject (2026-10-10). Labelling the
+first AI day showed specialist feeds report hundreds of small stories (a startup's round, a
+routine model release) that a busy reader does not want. The re-ranker is now shown, for
+each candidate, which outlets reported it and how many posts discuss it, and an audience's
+rubric may ask it to weigh that: the AI rubric does, and its feeds now include general news
+desks (CBC technology and business), which carry AI only when it is big. An audience can also
+set `min_rubric_score` so that marginal stories are left out rather than used to fill the
+digest, and `measure_from` so that relevance is measured only on days made under the
+current rubric.
+
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 
 The summariser writes each digest sentence with the item ids it draws on and marks quotes

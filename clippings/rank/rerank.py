@@ -27,11 +27,12 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
 from clippings.config.audience import Audience
 from clippings.gateway import ModelCall, ModelCallFailed, ModelClient, ModelReply, Purpose
+from clippings.models import SOCIAL_KINDS, Item
 from clippings.rank.score import ScoredStory
 
 # The scale, as the model is told it. Kept small on purpose: a four-point scale is one a
@@ -143,24 +144,46 @@ def local_ids(count: int) -> list[str]:
     return [f"c{index:0{width}d}" for index in range(1, count + 1)]
 
 
-def candidate_line(local_id: str, story: ScoredStory) -> str:
+def coverage(story: ScoredStory, items: Mapping[str, Item]) -> str:
+    """Who reported the story, by name: the outlets, then how many posts discuss it.
+
+    Breadth of coverage is the best evidence of importance the pool holds. A small funding
+    round is reported by one specialist desk or by the company itself; a story that matters
+    reaches general news outlets too. The model can only weigh that if it sees the names,
+    so the line says which outlets, not only how many items (2026-10-10).
+    """
+    members = [items[item_id] for item_id in story.cluster.item_ids if item_id in items]
+    outlets = sorted({item.domain for item in members if item.source_kind not in SOCIAL_KINDS})
+    posts = sum(1 for item in members if item.source_kind in SOCIAL_KINDS)
+    text = f"{len(outlets)} outlet{'s' if len(outlets) != 1 else ''}: {', '.join(outlets)}"
+    return f"{text}; {posts} post{'s' if posts != 1 else ''}" if posts else text
+
+
+def candidate_line(
+    local_id: str, story: ScoredStory, items: Mapping[str, Item] | None = None
+) -> str:
     item = story.representative
     words = item.summary.split()
     summary = " ".join(words[:SUMMARY_WORDS]) + (" ..." if len(words) > SUMMARY_WORDS else "")
-    outlets = f" (+{story.cluster.size - 1} other outlets)" if story.cluster.size > 1 else ""
-    line = f"{local_id} | {item.domain}{outlets} | {item.title.strip()}"
+    reported = coverage(story, items or {item.id: item})
+    line = f"{local_id} | {reported} | {item.title.strip()}"
     return f"{line} | {summary}" if summary else line
 
 
-def build_call(audience: Audience, candidates: Sequence[ScoredStory]) -> ModelCall:
+def build_call(
+    audience: Audience,
+    candidates: Sequence[ScoredStory],
+    items: Mapping[str, Item] | None = None,
+) -> ModelCall:
     """The one re-ranking request for one audience's day."""
     ids = local_ids(len(candidates))
-    lines = "\n".join(candidate_line(ids[i], story) for i, story in enumerate(candidates))
+    lines = "\n".join(candidate_line(ids[i], story, items) for i, story in enumerate(candidates))
     user = (
         f"Audience: {audience.name}\n"
         f"About: {audience.description.strip()}\n\n"
         f"Rubric: {audience.rubric.strip()}\n\n"
-        f"Candidates ({len(candidates)}), one per line as id | outlet | headline | summary:\n"
+        f"Candidates ({len(candidates)}), one per line as "
+        "id | who reported it | headline | summary:\n"
         f"{lines}"
     )
     return ModelCall(
@@ -222,6 +245,7 @@ def rerank(
     client: ModelClient,
     *,
     run_id: str,
+    items: Mapping[str, Item] | None = None,
 ) -> Rerank:
     """Re-rank the candidate slice with one model call.
 
@@ -231,7 +255,7 @@ def rerank(
     if not candidates:
         return Rerank(stories=(), scores=(), reply=None)
     ids = local_ids(len(candidates))
-    call = build_call(audience, candidates)
+    call = build_call(audience, candidates, items)
     try:
         reply = client.complete(call, run_id=run_id)
     except ModelCallFailed as exc:

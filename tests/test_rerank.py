@@ -114,3 +114,20 @@ def test_a_minimum_score_leaves_out_the_marginal_and_the_unscored(audience: Audi
     assert {s.id for s in result.selectable(2)} == {"k00", "k02"}
     # At the default, marginal and unscored stay in, as before.
     assert {s.id for s in result.selectable()} == {"k00", "k01", "k02", "k03"}
+
+
+def test_the_model_is_told_which_outlets_reported_a_story(audience: Audience) -> None:
+    """Breadth is the evidence of importance; the model sees the names, posts counted apart."""
+    lead = item("a", "Big model launch", domain="techcrunch.com")
+    general = item("b", "Big model launch, reported", domain="cbc.ca")
+    post = item("c", "wow", domain="bsky.app").model_copy(update={"source_kind": "bluesky"})
+    cluster = Cluster(
+        id="k99",
+        audience_id="test-audience",
+        day="2026-09-12",
+        representative_id="a",
+        item_ids=("a", "b", "c"),
+    )
+    scored = ScoredStory(cluster, lead, Features(0.5, 0.5, 0.5, 0.6, 0.5, 0.0), 0.9)
+    call = build_call(audience, [scored], {"a": lead, "b": general, "c": post})
+    assert "2 outlets: cbc.ca, techcrunch.com; 1 post |" in call.user
