@@ -36,9 +36,8 @@ def test_recall_with_nothing_buried_is_the_share_of_the_top_that_was_shown() -> 
     day = DayLabels("d", shown_relevant=3, top=(True,) * 4, random=(False,) * 10, weight=2.0)
     estimate = recall([day])
     assert estimate.point == pytest.approx(3 / 4)
-    # Nothing relevant was drawn, so every resample finds nothing buried: the interval is the
-    # point, and it is honest about it because the random draws are the only uncertainty.
-    assert estimate.lo == pytest.approx(0.75) and estimate.hi == pytest.approx(0.75)
+    # None found in ten is not none there: the interval reaches below the point.
+    assert estimate.lo < 0.75 and estimate.hi == pytest.approx(0.75)
 
 
 def test_recall_interval_widens_with_what_the_random_stratum_might_have_missed() -> None:

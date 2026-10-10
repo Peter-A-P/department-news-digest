@@ -12,8 +12,8 @@ for a share that came out at none or all, so "100%" of 40 is never printed as a 
 Recall is a ratio estimate over a stratified sample (PLAN.md section 2.6). The top stratum is
 a census of the stories the system ranked highest, the random stratum a sample of the rest in
 which each label stands for `weight` stories. The interval resamples each day's random
-stratum with replacement; the top stratum, being a census, is not resampled. It is printed as
-an importance-weighted estimate, because that is what it is.
+stratum as a binomial (Jeffreys at none or all); the top stratum, being a census, is not
+resampled. It is printed as an importance-weighted estimate, because that is what it is.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from datetime import UTC, datetime
 
 from drift.analysis.stats import Estimate, bootstrap_mean, jeffreys_proportion, percentile
 from gate.judge.calibration import cohens_kappa
+from gate.stats import rate_draw
 
 from clippings.assemble.digest import Digest
 from clippings.config.audience import Audience
@@ -58,25 +59,34 @@ class DayLabels:
     weight: float
 
 
-def _ratio(days: Sequence[DayLabels], randoms: Sequence[Sequence[bool]]) -> float:
+def _ratio(days: Sequence[DayLabels], buried: Sequence[float]) -> float:
     shown = sum(day.shown_relevant for day in days)
-    total = sum(
-        sum(day.top) + day.weight * sum(drawn) for day, drawn in zip(days, randoms, strict=True)
-    )
+    total = sum(sum(day.top) + extra for day, extra in zip(days, buried, strict=True))
     return shown / total if total else float("nan")
 
 
 def recall(days: Sequence[DayLabels], *, resamples: int = RESAMPLES, seed: int = 0) -> Estimate:
-    """Relevant stories the digests showed, over the relevant stories estimated in the pools."""
+    """Relevant stories the digests showed, over the relevant stories estimated in the pools.
+
+    Each replicate redraws every day's random stratum as a binomial at the 03 gate's
+    `rate_draw`: the observed share, or at none or all the Jeffreys posterior. A plain resample
+    of a stratum with no relevant story in it redraws nothing every time and prints a
+    zero-width interval, as if "none found in 18" meant "none there" (the first labelled days,
+    2026-10-10, did exactly that).
+    """
     n = sum(len(day.top) + len(day.random) for day in days)
-    point = _ratio(days, [day.random for day in days])
+    point = _ratio(days, [day.weight * sum(day.random) for day in days])
     if not days or math.isnan(point):
         return Estimate(point, float("nan"), float("nan"), n)
     rng = random.Random(seed)
     draws = []
     for _ in range(resamples):
-        randoms = [[day.random[rng.randrange(len(day.random))] for _ in day.random] for day in days]
-        value = _ratio(days, randoms)
+        buried = []
+        for day in days:
+            size = len(day.random)
+            rate = rate_draw(rng, sum(day.random), size)
+            buried.append(day.weight * sum(1 for _ in range(size) if rng.random() < rate))
+        value = _ratio(days, buried)
         if not math.isnan(value):
             draws.append(value)
     draws.sort()
@@ -405,7 +415,11 @@ def readme_tables(report: Report) -> str:
         "|---|---|---|---|---|---|",
     ]
     for result in report.audiences:
-        days = f", {len(result.labelled_days)} days" if result.labelled_days else ""
+        days = (
+            f", {len(result.labelled_days)} day{'s' if len(result.labelled_days) != 1 else ''}"
+            if result.labelled_days
+            else ""
+        )
         lines.append(
             f"| {result.name} | {pct(result.precision)}{days} | {pct(result.recall)} "
             f"| {num(result.kappa)} | {num(result.stories_per_day, '.1f')} "
