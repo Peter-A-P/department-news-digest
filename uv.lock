@@ -3,7 +3,7 @@ revision = 3
 requires-python = "==3.13.*"
 
 [manifest]
-overrides = [{ name = "boundary", git = "https://github.com/Peter-A-P/compliant-ai-gateway?tag=v0.35.2" }]
+overrides = [{ name = "boundary", git = "https://github.com/Peter-A-P/compliant-ai-gateway?tag=v1.2.0" }]
 
 [[package]]
 name = "annotated-doc"
@@ -56,8 +56,8 @@ wheels = [
 
 [[package]]
 name = "boundary"
-version = "0.35.2"
-source = { git = "https://github.com/Peter-A-P/compliant-ai-gateway?tag=v0.35.2#e3da99f94052181cc44565e1fae14982d571ea44" }
+version = "1.2.0"
+source = { git = "https://github.com/Peter-A-P/compliant-ai-gateway?tag=v1.2.0#480fe917664141bd6d928896bc2a537c8d78bfe6" }
 dependencies = [
     { name = "httpx" },
     { name = "opentelemetry-api" },
@@ -193,7 +193,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boundary", git = "https://github.com/Peter-A-P/compliant-ai-gateway?tag=v0.35.2" },
+    { name = "boundary", git = "https://github.com/Peter-A-P/compliant-ai-gateway?tag=v1.2.0" },
     { name = "drift", git = "https://github.com/Peter-A-P/ai-release-gate?tag=v0.1.0" },
     { name = "duckdb", specifier = ">=1,<2" },
     { name = "fastembed", marker = "extra == 'embed'", specifier = ">=0.7,<1" },

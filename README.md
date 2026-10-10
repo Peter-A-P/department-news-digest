@@ -60,6 +60,14 @@ All four digests together cost CA$0.296 (CA$0.274 to CA$0.317) a day in model ca
 - Recall is an estimate from a random sample with importance weights, and is labelled as
   such.
 
+## Tried and rejected
+
+**Haiku 5.5 at low effort as the re-ranker** (2026-10-10). Haiku 5.5 at its default effort
+replaced Haiku 4.5 at about a sixth of the cost per call, with no difference measurable on the
+labelled days. At low effort it scored relevant stories lower, and its agreement with the
+labels fell by kappa 0.102 (95% interval 0.041 to 0.159), so it was not used:
+[docs/rerank-model.md](docs/rerank-model.md).
+
 ## How it works
 
 See [PLAN.md](PLAN.md). Per audience, a YAML file names topics, entities, geography,

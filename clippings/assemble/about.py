@@ -88,7 +88,7 @@ prices it and enforces hard daily and monthly spending caps.</p>
 <ul class="chips" aria-label="Built with">
 <li>Python 3.13, typed, mypy and ruff clean</li><li>LangGraph pipeline</li><li>DuckDB</li>
 <li>MinHash near-duplicates</li><li>bge-small embeddings on CPU</li>
-<li>Maximal marginal relevance</li><li>Claude Haiku 4.5 re-ranker</li>
+<li>Maximal marginal relevance</li><li>Claude Haiku 5.5 re-ranker</li>
 <li>Claude Sonnet 5.5 summaries</li><li>Mechanical quote verifier</li>
 <li>Cloud Run job and service</li><li>Cloud Storage</li>
 <li>Bootstrap and Jeffreys intervals</li><li>Cohen's kappa</li>

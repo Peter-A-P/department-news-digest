@@ -278,21 +278,25 @@ Sonnet 5 at $2 in and $10 out). Embeddings and clustering run on CPU inside the 
 Summaries route to Sonnet 5.5 since 2026-10-02: newer, and the same $2 and $10 in the
 gateway's 2026-10-01 price list, so no line below moves. The re-ranker is shown about 150
 tokens per candidate (headline, outlet, sixty words of feed summary) rather than the 500
-assumed here, so its line is an upper bound.
+assumed here, so its line is an upper bound. Re-ranking moved to Haiku 5.5 on 2026-10-10
+(US$0.10 in and US$0.50 out in the gateway's 2026-10-08 price list) after it was measured
+against Haiku 4.5 on every labelled day and found no different within the intervals, at about
+a sixth of the cost per call; at low effort it agreed less with the labels and was rejected
+([docs/rerank-model.md](docs/rerank-model.md)).
 
 | Item | Basis | US$ | CA$ |
 |---|---|---:|---:|
-| Re-ranking | 60 candidates per audience per day at about 500 tokens each; Haiku 4.5 | 0.03 per audience-day | |
+| Re-ranking | 60 candidates per audience per day; Haiku 5.5 since 2026-10-10 (Haiku 4.5, about US$0.013 measured, before) | 0.002 per audience-day | |
 | Summaries | About 10 stories per digest at about 3,000 tokens in and 400 out; Sonnet 5 | 0.10 per audience-day | |
-| Running cost, four audiences | About US$0.13 per audience-day, 30 days | 16 per month | 21 per month |
+| Running cost, four audiences | About US$0.10 per audience-day, 30 days | 12 per month | 16 per month |
 | Cloud Run job and service, Scheduler, Storage | Within free tiers at this volume; egress a few GB | 0 to 3 per month | 0 to 4 per month |
 | Build month | Development reruns, the labelled week rerun under five configurations, faithfulness sample | 40 | 54 |
 | **Build** | | **40** | **54** |
-| **Running** | | **16 to 19 per month** | **21 to 26 per month** |
+| **Running** | | **12 to 15 per month** | **16 to 20 per month** |
 
 Still under the CA$40 per month the project file estimated, with less room than before:
 the fourth audience added on 2026-09-13 costs about a third more to run. The difference is
-Haiku for
+a small model for
 re-ranking and the pre-filter that keeps the model away from the full pool. Outside the
 plan's budget, as an alongside project; actuals still go in the plan repository's STATUS.
 

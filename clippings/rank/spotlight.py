@@ -31,7 +31,8 @@ MIN_LIKES = 10
 CANDIDATES = 8
 MIN_SCORE = 2
 QUOTE_WORDS = 25
-MAX_TOKENS = 400
+# Eight short lines, plus Haiku 5.5's thinking, which counts against the limit.
+MAX_TOKENS = 4000
 
 SYSTEM = """You judge public social media posts for one audience's morning digest.
 

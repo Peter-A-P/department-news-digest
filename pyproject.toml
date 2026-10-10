@@ -9,10 +9,10 @@ dependencies = [
   # Every model call goes through the portfolio gateway (PLAN.md section 2.3); cost per digest
   # comes from its ledger. From 0.35 for three things this project uses: `data_class` on every
   # call (0.4, so each row says `public`), the per-day cap (0.30, which bounds a scheduler
-  # retry loop), and the packaged 2026-10-01 price list (`prices: builtin`), which carries
-  # Sonnet 5.5. Below 1 because the gateway's interface is additive within 0.x and Part B is
-  # the major bump.
-  "boundary>=0.35,<1",
+  # retry loop), and the packaged 2026-10-01 price list (`prices: builtin`). 1.2 for the
+  # 2026-10-08 price list, which prices Claude Haiku 5.5, the re-ranker since 2026-10-10.
+  # Below 2 because the gateway removes or renames nothing within a major version.
+  "boundary>=1.2,<2",
   # The pipeline graph (PLAN.md section 4): fetch to publish as nodes, with the verify and
   # repair loop as an edge rather than a while loop. The 0.x line project 13 uses; a major
   # bump changes the StateGraph API the graph is written against.
@@ -65,14 +65,14 @@ dev = [
 [tool.uv.sources]
 # Pinned to the tag, not a branch, so the lockfile resolves to one commit and the price list
 # a digest was costed at is the one this checkout names.
-boundary = { git = "https://github.com/Peter-A-P/compliant-ai-gateway", tag = "v0.35.2" }
+boundary = { git = "https://github.com/Peter-A-P/compliant-ai-gateway", tag = "v1.2.0" }
 drift = { git = "https://github.com/Peter-A-P/ai-release-gate", tag = "v0.1.0" }
 
 [tool.uv]
-# 03 v0.1.0 declares boundary below 0.3, the line it was built on; this project runs 0.35. The
+# 03 v0.1.0 declares boundary below 0.3, the line it was built on; this project runs 1.2. The
 # only 03 module imported here is drift.analysis.stats, which is plain Python and never touches
 # boundary, so the gateway this project actually calls is the one that governs.
-override-dependencies = ["boundary>=0.35,<1"]
+override-dependencies = ["boundary>=1.2,<2"]
 
 [project.scripts]
 clippings = "clippings.cli:app"
