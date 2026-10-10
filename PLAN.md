@@ -282,7 +282,7 @@ assumed here, so its line is an upper bound. Re-ranking moved to Haiku 5.5 on 20
 (US$0.10 in and US$0.50 out in the gateway's 2026-10-08 price list) after it was measured
 against Haiku 4.5 on every labelled day and found no different within the intervals, at about
 a sixth of the cost per call; at low effort it agreed less with the labels and was rejected
-([docs/rerank-model.md](docs/rerank-model.md)).
+([docs/models.md](docs/models.md)).
 
 | Item | Basis | US$ | CA$ |
 |---|---|---:|---:|

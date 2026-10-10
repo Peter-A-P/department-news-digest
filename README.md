@@ -66,7 +66,12 @@ All four digests together cost CA$0.296 (CA$0.274 to CA$0.317) a day in model ca
 replaced Haiku 4.5 at about a sixth of the cost per call, with no difference measurable on the
 labelled days. At low effort it scored relevant stories lower, and its agreement with the
 labels fell by kappa 0.102 (95% interval 0.041 to 0.159), so it was not used:
-[docs/rerank-model.md](docs/rerank-model.md).
+[docs/models.md](docs/models.md).
+
+**Haiku 5.5 as the summariser** (2026-10-10). At a thirteenth of Sonnet 5.5's cost per story,
+it left 7.5% of stories with no summary (2.8 to 13.2) because its answers did not keep the
+format, wrote shorter summaries with half the quotes, and added interpretive sentences that
+cite a source the verifier cannot hold them to. The saving was about CA$6 a month. Same file.
 
 ## How it works
 

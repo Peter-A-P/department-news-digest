@@ -51,7 +51,7 @@ SUMMARY_WORDS = 60
 # Enough for one short line per candidate at the largest candidate count an audience file
 # allows (200), with room for a model that writes slightly longer reasons than asked, and for
 # Haiku 5.5's thinking, which counts against the limit: at 60 candidates it wrote up to 4,614
-# output tokens in all on the labelled days (docs/rerank-model.md), about twice Haiku 4.5.
+# output tokens in all on the labelled days (docs/models.md), about twice Haiku 4.5.
 MAX_TOKENS = 16000
 
 SYSTEM = """You rank news items for one audience's morning digest.

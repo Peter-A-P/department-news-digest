@@ -25,14 +25,16 @@ routes:
   # before): on every labelled day it agreed with the labels as well as Haiku 4.5 did, within
   # the intervals, at about a sixth of the cost per call. At its default effort, because at
   # low effort it scored relevant stories lower and agreed measurably less with the labels
-  # (docs/rerank-model.md). Its thinking counts against max_tokens, which the callers size.
+  # (docs/models.md). Its thinking counts against max_tokens, which the callers size.
   clippings-rerank:
     provider: anthropic
     model: claude-haiku-5-5
   # Summaries are where a wrong word costs the most, and the verifier drops what it cannot
   # check, so a stronger writer means fewer dropped sentences. PLAN.md section 6 priced
   # Sonnet 5 at US$2/10; Sonnet 5.5 is the same rate in the gateway's 2026-10-01 price list
-  # and newer, so the plan's cost line holds unchanged.
+  # and newer, so the plan's cost line holds unchanged. Haiku 5.5 was measured for this job on
+  # 2026-10-10 and rejected: failed summaries, shorter ones, and sentences of its own
+  # interpretation that the verifier cannot refuse (docs/models.md).
   clippings-summarise:
     provider: anthropic
     model: claude-sonnet-5-5
