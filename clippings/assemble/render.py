@@ -191,6 +191,9 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
   background: var(--paper-soft); border: 1px solid var(--line);
   border-left: 3px solid var(--violet); border-radius: var(--radius); }
 .spotlight .eyebrow { color: var(--violet); }
+.post-text { white-space: pre-wrap; margin: 0.6rem 0; padding: 0.7rem 0.9rem;
+  border-left: 2px solid var(--violet); color: var(--ink-soft); }
+.full-post { margin: 0 0 0.6rem; }
 .spotlight blockquote { margin: 0.2rem 0 0.6rem; font-family: var(--serif);
   font-size: 1.2rem; line-height: 1.4; color: var(--ink); }
 .footer-band { background: var(--paper-deep); border-top: 1px solid var(--line); }
@@ -215,7 +218,8 @@ FOOTER = (
     "Nothing is sent: this is a page and a draft file. Summary sentences are written by a "
     "model and every one cites its sources; any quote is checked word for word against a "
     "source it cites and is at most twenty-five words. Headlines are the publishers' own. "
-    "Article text is never republished."
+    "Article text is never republished. A Bluesky post may be shown in full, with its author "
+    "and a link, while it exists."
 )
 
 INTRO = (
@@ -381,16 +385,30 @@ def _quoted(text: str) -> str:
 def _spotlight_html(post: Spotlight) -> str:
     """The day's most discussed Bluesky post, as a post: its words, its counts, a link."""
     posted = post.posted_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+    if post.deleted:
+        return (
+            '<section class="spotlight"><p class="eyebrow">Most discussed on Bluesky</p>'
+            '<p class="none">This post was deleted by its author, so it is no longer shown.</p>'
+            "</section>"
+        )
     reason = f'<p class="why">Picked because: {escape(post.reason)}.</p>' if post.reason else ""
+    full = ""
+    if post.full_text and post.full_text.split() != post.quote.split():
+        full = (
+            '<details class="full-post"><summary><span class="more">Show full post</span>'
+            '<span class="less">Hide full post</span></summary>'
+            f'<div class="post-text">{escape(post.full_text)}</div></details>'
+        )
     return (
         '<section class="spotlight">'
         '<p class="eyebrow">Most discussed on Bluesky</p>'
-        f"<blockquote>{escape(_quoted(post.quote))}</blockquote>"
+        f"<blockquote>{escape(_quoted(post.quote))}</blockquote>{full}"
         f'<p class="meta"><span class="tag post">Post</span>'
         f'<a href="{escape(post.url)}">@{escape(post.author)}</a> &middot; {posted} &middot; '
         f"{post.likes} likes, {post.replies} replies</p>{reason}"
-        '<p class="note">A post, not reporting: its own words, shown because people were '
-        "discussing it and it fits this audience. Nothing in it has been checked.</p>"
+        '<p class="note">A post, not reporting: its author\'s own words, shown because people '
+        "were discussing it and it fits this audience. Nothing in it has been checked. Shown "
+        "while it exists: if the author deletes it, it is removed here too.</p>"
         "</section>"
     )
 
@@ -477,12 +495,20 @@ def markdown(digest: Digest) -> str:
         for source in story.sources:
             lines.append(f"- [{source.sid}] {source.domain}: [{source.title}]({source.url})")
         lines.append("")
-    if digest.spotlight is not None:
-        post = digest.spotlight
+    if digest.spotlight is not None and digest.spotlight.deleted:
         lines += [
             "## Most discussed on Bluesky",
             "",
-            f"> {_quoted(post.quote)}",
+            "_This post was deleted by its author, so it is no longer shown._",
+            "",
+        ]
+    elif digest.spotlight is not None:
+        post = digest.spotlight
+        body = post.full_text or post.quote
+        lines += [
+            "## Most discussed on Bluesky",
+            "",
+            *(f"> {line}" if line else ">" for line in _quoted(body).splitlines()),
             "",
             f"[@{post.author}]({post.url}), {post.likes} likes, {post.replies} replies. "
             "A post, not reporting; nothing in it has been checked.",

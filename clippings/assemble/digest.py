@@ -80,6 +80,12 @@ class Spotlight(Frozen):
     posted_at: datetime
     rubric_score: int
     reason: str
+    # The whole post, shown under "Show full post" while it exists and for thirty days, then
+    # cleared (assemble/deletions.py). Bluesky only: a Reddit post is never shown beyond its
+    # quote, as the access request to Reddit promised.
+    full_text: str = ""
+    # Set when a later run found the post deleted: its words are then no longer shown at all.
+    deleted: bool = False
 
 
 class VerificationCounts(Frozen):

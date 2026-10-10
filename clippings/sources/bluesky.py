@@ -32,6 +32,8 @@ HOST = "https://bsky.social"
 SEARCH = f"{HOST}/xrpc/app.bsky.feed.searchPosts"
 CREATE_SESSION = f"{HOST}/xrpc/com.atproto.server.createSession"
 SOURCE_KEY = "bluesky"
+# Bluesky's public read-only AppView: no session, for checking a post still exists.
+PUBLIC = "https://public.api.bsky.app/xrpc"
 
 
 class BlueskyAuthError(RuntimeError):
@@ -197,3 +199,37 @@ class BlueskySource:
             origin=query,
             items=parse_posts(payload, query, since, languages),
         )
+
+
+def post_exists(client: httpx.Client, url: str) -> bool | None:
+    """Whether the post at a bsky.app link still exists: True, False, or None if unknown.
+
+    The digest shows a picked post in full only while it exists (PLAN.md section 2.3), so a
+    run asks. The handle is resolved to the account's DID and the post looked up by its AT
+    URI. An empty answer is a deleted post; a handle that no longer resolves is a deleted or
+    renamed account, and is treated as gone, since the post is no longer where the link
+    said. Anything else (a timeout, a 5xx) is unknown, and changes nothing.
+    """
+    parts = url.rstrip("/").split("/")
+    if len(parts) < 7 or parts[-2] != "post" or parts[-4] != "profile":
+        return None
+    handle, rkey = parts[-3], parts[-1]
+    try:
+        resolved = client.get(
+            f"{PUBLIC}/com.atproto.identity.resolveHandle", params={"handle": handle}
+        )
+        if resolved.status_code == httpx.codes.BAD_REQUEST:
+            return False
+        resolved.raise_for_status()
+        did = resolved.json().get("did")
+        if not did:
+            return None
+        found = client.get(
+            f"{PUBLIC}/app.bsky.feed.getPosts",
+            params={"uris": f"at://{did}/app.bsky.feed.post/{rkey}"},
+        )
+        found.raise_for_status()
+        posts = found.json().get("posts")
+    except (httpx.HTTPError, ValueError):
+        return None
+    return bool(posts) if isinstance(posts, list) else None

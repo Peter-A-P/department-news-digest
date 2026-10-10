@@ -61,6 +61,13 @@ A Reddit post or Bluesky post deleted by its author is honoured by the retention
 nothing here is kept longer than thirty days, and a published digest quotes at most
 twenty-five words of what was public when it was fetched.
 
+The one post a digest may show in full is the day's Bluesky pick, under "Show full post".
+Each run checks the picks of the last thirty days against Bluesky's public API
+(`clippings.assemble.deletions`): a post that no longer exists, or whose author's handle no
+longer resolves, has its words removed from the stored digest and its page, which then
+says it was deleted. After thirty days a pick keeps only its twenty-five-word quote. A
+check that fails for any other reason changes nothing and is tried again the next day.
+
 ## What never leaves this machine
 
 Embeddings and clustering run on CPU inside the job. The only thing sent to a model

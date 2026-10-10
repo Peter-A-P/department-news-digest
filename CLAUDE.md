@@ -31,7 +31,10 @@ is in [PLAN.md](PLAN.md).
   is added. No paywall circumvention, no ignoring robots rules. A source that changes its
   terms is dropped, not bent.
 - **Article text is kept thirty days and never republished.** Digests show summaries,
-  links and quotes of at most twenty-five words.
+  links and quotes of at most twenty-five words. One exception, decided by Peter on
+  2026-10-10: the day's Bluesky pick may be shown in full, with its author and a link,
+  while it exists and for thirty days; each run removes a deleted pick's words. Reddit
+  posts never go beyond the quote, as the access request to Reddit promised.
 - **Every quote is verbatim or it is gone.** The verifier is not optional in production.
 - **The model never sees the whole pool.** Pre-filter first; the re-ranker gets top
   candidates only.

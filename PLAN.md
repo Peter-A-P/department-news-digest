@@ -81,6 +81,7 @@ Protocol API. X only through its official API if a tier fits the budget, which i
 at plan time, so X is out. No scraping around paywalls or robots rules. Article text is
 extracted only from pages that allow it, kept for thirty days for processing, and never
 republished: the digest shows a summary, a link, and quotes of at most twenty-five words.
+The one exception is the day's Bluesky pick (section 2.3), shown in full while it exists.
 Each source's terms are recorded in `docs/sources.md` with the date read, and a source is
 dropped rather than bent.
 
@@ -134,6 +135,12 @@ marked as a post: its own words cut to twenty-five, its counts and a link, and n
 model writes except the reason it was picked. It never takes a story's slot, is not counted
 in precision or recall, and is labelled on its own ("worth showing?"). Replies and accounts
 with no display name are no longer ingested from Bluesky at all.
+
+The pick's whole post is behind "Show full post" (Peter, 2026-10-10; Bluesky caps a post at
+300 characters). A post is its author's to delete, so each run checks the picks of the last
+thirty days against Bluesky's public API and removes the words of any post that no longer
+exists, and after thirty days a pick keeps only its twenty-five-word quote. Reddit posts are
+never shown beyond the quote: the access request to Reddit said so.
 
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 

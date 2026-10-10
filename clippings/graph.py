@@ -259,6 +259,7 @@ def _spotlight(chosen: Pick | None) -> Spotlight | None:
         posted_at=post.published_at,
         rubric_score=chosen.score,
         reason=chosen.reason,
+        full_text=post.summary if post.source_kind == "bluesky" else "",
     )
 
 

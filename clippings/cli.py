@@ -26,6 +26,7 @@ from wsgiref.simple_server import make_server
 import typer
 
 from clippings import graph
+from clippings.assemble.deletions import recheck_picks
 from clippings.assemble.digest import Digest
 from clippings.assemble.publish import GcsSite, LocalSite, Site, publish_digest, publish_indexes
 from clippings.assemble.sources_panel import panel_for
@@ -234,11 +235,18 @@ def run(
             f"older than {RETENTION_DAYS} days"
         )
         everyone = load_audiences(audiences)
+        panels = {one.id: panel_for(one, store) for one in everyone}
+        # A Bluesky pick is shown in full only while it exists and for thirty days.
+        if context.permitted("bluesky"):
+            changed = recheck_picks(store, published, everyone, http, context.now, panels)
+            typer.echo(
+                f"bluesky     {len(changed)} picked posts deleted or aged out, pages updated"
+            )
         publish_indexes(
             published,
             [(one.id, one.name, one.description) for one in everyone],
             {one.id: store.digest_days(one.id) for one in everyone},
-            {one.id: panel_for(one, store) for one in everyone},
+            panels,
         )
 
 
