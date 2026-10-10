@@ -32,6 +32,7 @@ from gate.stats import rate_draw
 
 from clippings.assemble.digest import Digest
 from clippings.config.audience import Audience
+from clippings.constants import CAD_PER_USD, cad
 from clippings.eval.labels import ranked_ids_for_day
 from clippings.eval.sample import stratified_sample
 from clippings.ingest.store import Store
@@ -439,10 +440,11 @@ def num(estimate: Estimate | None, fmt: str = ".2f", unit: str = "") -> str:
     return f"{estimate.point:{fmt}}{unit} ({estimate.lo:{fmt}} to {estimate.hi:{fmt}})"
 
 
-def usd(estimate: Estimate) -> str:
+def cad_money(estimate: Estimate) -> str:
     if math.isnan(estimate.point):
         return NOT_YET
-    return f"US${estimate.point:.3f} (US${estimate.lo:.3f} to US${estimate.hi:.3f})"
+    point, lo, hi = (cad(value) for value in (estimate.point, estimate.lo, estimate.hi))
+    return f"CA${point:.3f} (CA${lo:.3f} to CA${hi:.3f})"
 
 
 def readme_tables(report: Report) -> str:
@@ -471,7 +473,7 @@ def readme_tables(report: Report) -> str:
             f"| {result.name} | {pct(result.precision)}{days} | {pct(result.must_recall)} "
             f"| {num(result.must_per_day, '.1f')} | {pct(result.recall)} "
             f"| {num(result.relevant_per_day, '.1f')} | {num(result.kappa)} | {num(result.stories_per_day, '.1f')} "
-            f"| {usd(result.cost)} |"
+            f"| {cad_money(result.cost)} |"
         )
     pairs = (
         NOT_YET + " (pair labels)"
@@ -497,8 +499,8 @@ def readme_tables(report: Report) -> str:
         + "; ".join(f"{r.name} {pct(r.spotlight)}" for r in report.audiences)
         + ". A separate section below the stories, not counted in precision or recall.",
         "",
-        f"All four digests together cost {usd(report.cost_per_day)} a day in model calls, from "
-        "the gateway's ledger"
+        f"All four digests together cost {cad_money(report.cost_per_day)} a day in model calls, from "
+        f"the gateway's ledger, converted from US dollars at {CAD_PER_USD} CAD per USD"
         + (f" ({report.uncosted_calls} calls uncosted)" if report.uncosted_calls else "")
         + ". Details, per source and per day: [docs/report.md](docs/report.md).",
     ]

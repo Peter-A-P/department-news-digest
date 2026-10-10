@@ -25,6 +25,7 @@ from email.policy import SMTP
 from html import escape
 
 from clippings.assemble.digest import Digest, DigestSentence, DigestStory, Spotlight
+from clippings.constants import CAD_PER_USD, cad
 
 # Sentences shown before "Read more"; the rest of the summary is one click away.
 LEAD_SENTENCES = 2
@@ -270,7 +271,8 @@ def _summary_line(digest: Digest) -> str:
     return (
         f"Chosen from {digest.pool_items} items in {digest.pool_stories} stories; {rerank}. "
         f"{c.sentences_shown} sentences shown, {c.sentences_dropped} refused by the verifier"
-        f"{quotes}. Model cost US${digest.cost_usd:.4f}."
+        f"{quotes}. Model cost CA${cad(digest.cost_usd):.4f} (US${digest.cost_usd:.4f} "
+        f"at {CAD_PER_USD} CAD per USD)."
     )
 
 
@@ -436,7 +438,7 @@ def html_page(digest: Digest, description: str = "", sources: str = "") -> str:
                 "quotes word for word on the first draft",
             )
         )
-    points.append(_point(f"US${digest.cost_usd:.2f}", "model cost for this digest"))
+    points.append(_point(f"CA${cad(digest.cost_usd):.2f}", "model cost for this digest"))
     body = [
         '<header class="hero">',
         f'<p class="crumbs"><a href="../../">All digests</a> &rsaquo; '

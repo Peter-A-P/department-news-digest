@@ -33,7 +33,7 @@ from clippings.assemble.sources_panel import panel_for
 from clippings.cluster.embed import Hashing, default_embedder
 from clippings.config.audience import Audience
 from clippings.config.load import EXAMPLES, AudienceFileError, load_audience, load_audiences
-from clippings.constants import RETENTION_DAYS
+from clippings.constants import RETENTION_DAYS, cad
 from clippings.eval.label_ui import Workspace
 from clippings.eval.label_ui import application as label_application
 from clippings.eval.report import (
@@ -277,7 +277,10 @@ def _print_digest(digest: Digest, published: list[str]) -> None:
     for reason, count in sorted(c.refusals.items(), key=lambda pair: -pair[1]):
         typer.echo(f"                {count:4d}  {reason}")
     uncosted = f", {digest.uncosted_calls} uncosted" if digest.uncosted_calls else ""
-    typer.echo(f"  cost        US${digest.cost_usd:.4f} over {len(digest.calls)} calls{uncosted}")
+    typer.echo(
+        f"  cost        CA${cad(digest.cost_usd):.4f} (US${digest.cost_usd:.4f}) "
+        f"over {len(digest.calls)} calls{uncosted}"
+    )
     typer.echo(f"  digest      {len(digest.stories)} stories")
     for story in digest.stories:
         mark = "" if story.sentences else f"  ({story.status})"

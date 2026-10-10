@@ -17,6 +17,17 @@ QUOTE_MAX_WORDS: Final = 25
 # out of it (PLAN.md section 1).
 GATEWAY_PROJECT: Final = "clippings"
 
+# Costs are shown in Canadian dollars at a fixed rate, the one the portfolio plan budgets at
+# (Peter, 2026-10-10). The gateway's ledger, its prices and its caps stay in US dollars, as
+# the vendors bill; this is only how a cost is printed. Fixed rather than fetched, so a
+# figure in the README is reproducible from the repository alone.
+CAD_PER_USD: Final = 1.35
+
+
+def cad(usd: float) -> float:
+    return usd * CAD_PER_USD
+
+
 # Every model call this project makes is over public sources only.
 GATEWAY_DATA_CLASS: Final = "public"
 
