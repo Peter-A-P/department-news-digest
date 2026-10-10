@@ -101,7 +101,7 @@ main { max-width: var(--wide); margin: 0 auto; padding: 0 1.5rem 4rem; }
 .aud-green { --aud: var(--green); --aud-soft: var(--green-soft); }
 .aud-rose { --aud: var(--rose); --aud-soft: var(--rose-soft); }
 .hero > * { max-width: var(--column); }
-.hero .points { max-width: none; }
+.hero .points, .hero.wide > * { max-width: none; }
 .crumbs { font-size: 0.82rem; color: var(--ink-faint); margin: 0 0 1.4rem; }
 .crumbs a { color: var(--ink-soft); }
 .eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem;
@@ -201,9 +201,7 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 /* The front page's long read below the audiences, in the manner of gate.peterparker.ca. */
 .section { padding: 2.75rem 0; border-bottom: 1px solid var(--line); }
 .section:last-child { border-bottom: 0; }
-.section > * { max-width: var(--column); }
-.section > .table-wrap, .section > .steps, .section > .panels, .section > .split,
-.section > .chips { max-width: none; }
+/* Text runs the full width, the same as the tables, steps and panels beside it. */
 .section h2 { font-size: clamp(1.6rem, 3.2vw, 2.1rem); line-height: 1.18; margin: 0 0 0.8rem; }
 .section .eyebrow { color: var(--accent-ink); }
 #how .eyebrow { color: var(--violet); }
@@ -629,7 +627,7 @@ def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
             f"<p>{escape(description)}</p>{latest_link}</div>"
         )
     body = (
-        '<header class="hero">'
+        '<header class="hero wide">'
         '<p class="eyebrow">Department News Digest</p>'
         '<h1>The day\'s news for one department, <span class="hl">cited and checked.</span></h1>'
         f'<p class="lead">{escape(INTRO)}</p>'
