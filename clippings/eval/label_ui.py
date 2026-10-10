@@ -65,6 +65,9 @@ class Workspace:
             self.labeller,
             labels=self.labels,
             include_done=not remaining_only,
+            # A day judged before "must read" existed is not finished: it reopens with its
+            # answers in place, to star the most important.
+            graded_only=True,
         )
 
     def progress(self, audience_id: str, day: str) -> tuple[int, int]:
@@ -95,10 +98,10 @@ def shuffled(questions: Iterable[Question], audience_id: str, day: str) -> list[
 STYLE = """
 :root { color-scheme: light dark; --bg: #f5f3ee; --card: #fdfcf9; --ink: #16181d;
   --soft: #3c4048; --faint: #6b7079; --line: #e3dfd6; --accent: #0f5c6e;
-  --yes: #1e7a4c; --yes-bg: #e3f2ea; --focus: #6d3f9e; }
+  --yes: #1e7a4c; --yes-bg: #e3f2ea; --must: #b4434f; --must-bg: #f8e6e8; --focus: #6d3f9e; }
 @media (prefers-color-scheme: dark) { :root { --bg: #0e1013; --card: #15181d; --ink: #ece9e2;
   --soft: #c9c6bf; --faint: #969ba5; --line: #262a31; --accent: #7cc7d6; --yes: #58c286;
-  --yes-bg: #13261c; --focus: #b191e0; } }
+  --yes-bg: #13261c; --must: #f08a93; --must-bg: #2c1a1d; --focus: #b191e0; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink);
   font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -121,6 +124,9 @@ details.rubric { font-size: 0.86rem; color: var(--soft); margin: 0.4rem 0; }
   color: var(--yes); }
 .row.yes .mark { border-color: var(--yes); }
 .row.yes .mark::after { content: "\\2713"; }
+.row.must { background: var(--must-bg); border-color: var(--must); }
+.row.must .mark { border-color: var(--must); color: var(--must); }
+.row.must .mark::after { content: "\\2605"; }
 .title { font-weight: 600; color: var(--ink); text-decoration: none; }
 .title:hover { text-decoration: underline; }
 .meta { font-size: 0.78rem; color: var(--faint); }
@@ -147,15 +153,29 @@ function show(n) {
 function count() {
   document.getElementById('count').textContent =
     rows.filter(r => r.classList.contains('yes')).length;
+  document.getElementById('must').textContent =
+    rows.filter(r => r.classList.contains('must')).length;
 }
-function set(n, yes) { rows[n].classList.toggle('yes', yes); count(); }
+// Three states: not relevant, relevant (yes), must read (yes and must).
+function set(n, yes, must) {
+  rows[n].classList.toggle('yes', yes || must);
+  rows[n].classList.toggle('must', must);
+  count();
+}
+function cycle(n) {
+  const r = rows[n];
+  if (r.classList.contains('must')) set(n, false, false);
+  else if (r.classList.contains('yes')) set(n, true, true);
+  else set(n, true, false);
+}
 rows.forEach((r, i) => r.addEventListener('click', e => {
   if (e.target.closest('a')) return;
-  show(i); set(i, !r.classList.contains('yes'));
+  show(i); cycle(i);
 }));
 async function save() {
   const body = {token: TOKEN, audience: AUDIENCE, day: DAY,
     relevant: rows.filter(r => r.classList.contains('yes')).map(r => r.dataset.id),
+    must: rows.filter(r => r.classList.contains('must')).map(r => r.dataset.id),
     shown: rows.map(r => r.dataset.id)};
   const button = document.getElementById('save');
   button.disabled = true; button.textContent = 'Saving...';
@@ -169,9 +189,10 @@ document.addEventListener('keydown', e => {
   const k = e.key;
   if (k === 'j' || k === 'ArrowDown') { show(at + 1); }
   else if (k === 'k' || k === 'ArrowUp') { show(at - 1); }
-  else if (k === 'y') { set(at, true); show(at + 1); }
-  else if (k === 'n') { set(at, false); show(at + 1); }
-  else if (k === ' ' || k === 'x') { set(at, !rows[at].classList.contains('yes')); }
+  else if (k === 'y') { set(at, true, false); show(at + 1); }
+  else if (k === 'm') { set(at, true, true); show(at + 1); }
+  else if (k === 'n') { set(at, false, false); show(at + 1); }
+  else if (k === ' ' || k === 'x') { cycle(at); }
   else if (k === 'o') { window.open(rows[at].querySelector('a').href, '_blank'); }
   else if (k === 'Enter' && e.shiftKey) { save(); }
   else { return; }
@@ -227,7 +248,7 @@ def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
     audience = ws.audiences[audience_id]
     questions = shuffled(ws.queue(audience_id, day).questions, audience_id, day)
     today = {
-        label.item_id: label.relevant
+        label.item_id: (label.relevant, label.must_read)
         for label in ws.labels.labels_for(audience_id, day, ws.labeller)
     }
     earlier = ws.labels.previous_labels(audience_id, ws.labeller)
@@ -237,17 +258,18 @@ def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
         item = question.item
         note = ""
         if item.id in today:
-            yes = today[item.id]
+            yes, must = today[item.id]
             note = '<span class="prev">saved</span>'
         elif item.id in earlier:
-            yes, on = earlier[item.id]
+            yes, must, on = earlier[item.id]
             carried += 1
             note = f'<span class="prev">as on {escape(on)}</span>'
         else:
-            yes = False
+            yes = must = False
+        state = " yes must" if must else " yes" if yes else ""
         published = item.published_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M")
         rows.append(
-            f'<div class="row{" yes" if yes else ""}" data-id="{escape(item.id)}">'
+            f'<div class="row{state}" data-id="{escape(item.id)}">'
             '<div class="mark"></div><div>'
             f'<a class="title" href="{escape(item.url)}" target="_blank" rel="noopener">'
             f"{escape(item.title)}</a>{note}"
@@ -258,11 +280,14 @@ def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
     body = (
         '<div class="bar">'
         f'<a href="/">All days</a><h1>{escape(audience.name)}, {escape(day)}</h1>'
-        f"<div>{total} stories &middot; <b id='count'>0</b> marked relevant"
+        f"<div>{total} stories &middot; <b id='count'>0</b> relevant, of them "
+        "<b id='must'>0</b> must read"
         f"{f' &middot; {carried} start from an earlier day' if carried else ''}"
         f"{' &middot; saved before, reopened' if done == total and total else ''}</div>"
-        '<div class="keys">Mark what this audience should read today. Unmarked means not '
-        "relevant. <kbd>y</kbd> relevant <kbd>n</kbd> not <kbd>space</kbd> toggle "
+        '<div class="keys">Mark every story this audience should know about as relevant, '
+        "however many. Then star as must read the ones you would put in a ten-story digest "
+        "first. Unmarked means not relevant. <kbd>y</kbd> relevant <kbd>m</kbd> must read "
+        "<kbd>n</kbd> not <kbd>space</kbd> cycle "
         "<kbd>j</kbd>/<kbd>k</kbd> move <kbd>o</kbd> open article "
         "<kbd>shift</kbd>+<kbd>enter</kbd> save day. Or click a story.</div>"
         f'<details class="rubric"><summary>The audience and its rubric</summary>'
@@ -289,6 +314,7 @@ def save_day(ws: Workspace, payload: dict[str, Any]) -> str:
     by_id = {question.unit.item_id: question for question in queue.questions}
     shown = [str(item_id) for item_id in payload.get("shown", [])]
     relevant = {str(item_id) for item_id in payload.get("relevant", [])}
+    must = {str(item_id) for item_id in payload.get("must", [])}
     if set(shown) != set(by_id):
         raise ValueError("the page did not show this day's whole sample; reload it")
     real = LabellingQueue(
@@ -299,7 +325,14 @@ def save_day(ws: Workspace, payload: dict[str, Any]) -> str:
         questions=queue.questions,
     )
     for item_id in shown:
-        record(ws.labels, real, by_id[item_id], relevant=item_id in relevant)
+        record(
+            ws.labels,
+            real,
+            by_id[item_id],
+            relevant=item_id in relevant or item_id in must,
+            must_read=item_id in must,
+            graded=True,
+        )
     ws.push()
     following = ws.next_open_day()
     if following is None:

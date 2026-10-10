@@ -23,7 +23,7 @@ from clippings.models import Cluster, Item, ItemText, Label
 if TYPE_CHECKING:
     from clippings.assemble.digest import Digest
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -177,6 +177,14 @@ class Store:
         # Warsaw wall-clock time labelled UTC (found 2026-10-02) is the bug this prevents.
         self._connection.execute("SET TimeZone = 'UTC'")
         self._connection.execute(SCHEMA)
+        # Version 4: must-read labels. Added in place, so label files from before keep
+        # every label they hold, with must_read false and graded false.
+        self._connection.execute(
+            "ALTER TABLE labels ADD COLUMN IF NOT EXISTS must_read BOOLEAN DEFAULT FALSE"
+        )
+        self._connection.execute(
+            "ALTER TABLE labels ADD COLUMN IF NOT EXISTS graded BOOLEAN DEFAULT FALSE"
+        )
         self._connection.execute(
             "INSERT INTO meta (key, value) VALUES ('schema_version', ?) "
             "ON CONFLICT (key) DO UPDATE SET value = excluded.value",
@@ -407,10 +415,11 @@ class Store:
             """
             INSERT INTO labels (
                 audience_id, day, item_id, labeller, relevant, stratum, rank, weight,
-                url, title, labelled_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                url, title, labelled_at, must_read, graded
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (audience_id, day, item_id, labeller) DO UPDATE SET
-                relevant = excluded.relevant, labelled_at = excluded.labelled_at
+                relevant = excluded.relevant, labelled_at = excluded.labelled_at,
+                must_read = excluded.must_read, graded = excluded.graded
             """,
             [
                 label.audience_id,
@@ -424,6 +433,8 @@ class Store:
                 label.url,
                 label.title,
                 label.labelled_at,
+                label.must_read,
+                label.graded,
             ],
         )
 
@@ -432,7 +443,7 @@ class Store:
     ) -> list[Label]:
         query = (
             "SELECT audience_id, day, item_id, labeller, relevant, stratum, rank, weight, "
-            "url, title, labelled_at FROM labels WHERE audience_id = ?"
+            "url, title, labelled_at, must_read, graded FROM labels WHERE audience_id = ?"
         )
         params: list[object] = [audience_id]
         if day is not None:
@@ -456,6 +467,8 @@ class Store:
                 url=row[8],
                 title=row[9],
                 labelled_at=row[10],
+                must_read=bool(row[11]),
+                graded=bool(row[12]),
             )
             for row in rows
         ]
@@ -465,27 +478,30 @@ class Store:
         audiences = self._connection.execute("SELECT DISTINCT audience_id FROM labels").fetchall()
         return [label for (audience_id,) in audiences for label in self.labels_for(audience_id)]
 
-    def labelled_ids(self, audience_id: str, day: str, labeller: str) -> set[str]:
-        """Which items this labeller has already done, so the CLI can resume."""
-        rows = self._connection.execute(
-            "SELECT item_id FROM labels WHERE audience_id = ? AND day = ? AND labeller = ?",
-            [audience_id, day, labeller],
-        ).fetchall()
+    def labelled_ids(
+        self, audience_id: str, day: str, labeller: str, *, graded_only: bool = False
+    ) -> set[str]:
+        """Which items this labeller has already done, so the CLI can resume. With
+        `graded_only`, only those judged on a page that offered "must read"."""
+        query = "SELECT item_id FROM labels WHERE audience_id = ? AND day = ? AND labeller = ?"
+        if graded_only:
+            query += " AND graded"
+        rows = self._connection.execute(query, [audience_id, day, labeller]).fetchall()
         return {str(row[0]) for row in rows}
 
-    def previous_labels(self, audience_id: str, labeller: str) -> dict[str, tuple[bool, str]]:
-        """This labeller's latest judgement of each item, with the day it was given on.
+    def previous_labels(self, audience_id: str, labeller: str) -> dict[str, tuple[bool, bool, str]]:
+        """This labeller's latest judgement of each item: relevant, must read, and the day.
 
         A story stays in the pool for two days, so most of a day's sample was judged the day
         before. The labelling page shows that judgement as the starting answer; it is still
         the labeller who confirms it for the new day.
         """
         rows = self._connection.execute(
-            "SELECT item_id, relevant, day FROM labels WHERE audience_id = ? AND labeller = ? "
-            "ORDER BY labelled_at",
+            "SELECT item_id, relevant, must_read, day FROM labels "
+            "WHERE audience_id = ? AND labeller = ? ORDER BY labelled_at",
             [audience_id, labeller],
         ).fetchall()
-        return {str(row[0]): (bool(row[1]), str(row[2])) for row in rows}
+        return {str(row[0]): (bool(row[1]), bool(row[2]), str(row[3])) for row in rows}
 
     def add_pair_label(
         self,

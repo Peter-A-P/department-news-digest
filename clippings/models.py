@@ -131,3 +131,10 @@ class Label(BaseModel):
     url: str
     title: str
     labelled_at: datetime
+    # The stories the labeller would put in the digest first: relevant, and among the most
+    # important of the day. A digest has room for ten, so "did it pick the most important
+    # ten" is the recall that matters, not "did it show every relevant story" (Peter,
+    # 2026-10-10). `graded` says the page offered the choice; labels from before it did not,
+    # and their must_read is unknown rather than false.
+    must_read: bool = False
+    graded: bool = False

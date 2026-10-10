@@ -163,6 +163,11 @@ class AudienceResult:
     # weighted. Beside the digest's length it says how much recall a digest of that length
     # could reach at best.
     relevant_per_day: Estimate | None = None
+    # The same two over must-read stories, on the days labelled with that choice: whether the
+    # digest picked the most important stories, which is its job when it has ten slots.
+    must_recall: Estimate | None = None
+    must_per_day: Estimate | None = None
+    graded_days: int = 0
     kappa: Estimate | None = None
     kappa_with: str = ""
 
@@ -258,6 +263,7 @@ def build_report(
         if complete:
             shown_flags: list[bool] = []
             days: list[DayLabels] = []
+            must_days: list[DayLabels] = []
             for day, day_labels in sorted(complete.items()):
                 by_item = {label.item_id: label for label in day_labels}
                 digest = next((d for d in mine if d.day == day), None)
@@ -265,6 +271,20 @@ def build_report(
                 flags = [by_item[item_id].relevant for item_id in shown if item_id in by_item]
                 shown_flags += flags
                 random_labels = [label for label in day_labels if label.stratum == "random"]
+                if all(label.graded for label in day_labels):
+                    must_days.append(
+                        DayLabels(
+                            day=day,
+                            shown_relevant=sum(
+                                by_item[item_id].must_read
+                                for item_id in shown
+                                if item_id in by_item
+                            ),
+                            top=tuple(one.must_read for one in day_labels if one.stratum == "top"),
+                            random=tuple(label.must_read for label in random_labels),
+                            weight=random_labels[0].weight if random_labels else 0.0,
+                        )
+                    )
                 days.append(
                     DayLabels(
                         day=day,
@@ -279,6 +299,12 @@ def build_report(
             result.relevant_per_day = bootstrap_mean(
                 [sum(day.top) + day.weight * sum(day.random) for day in days]
             )
+            if must_days:
+                result.graded_days = len(must_days)
+                result.must_recall = recall(must_days)
+                result.must_per_day = bootstrap_mean(
+                    [sum(day.top) + day.weight * sum(day.random) for day in must_days]
+                )
         others = {
             label.labeller
             for label in labels
@@ -417,9 +443,11 @@ def readme_tables(report: Report) -> str:
         "",
         "**Relevance, per audience, against a hand-labelled week**",
         "",
-        "| Audience | Precision at K (95% CI) | Recall, importance-weighted (95% CI) "
-        "| Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |",
-        "|---|---|---|---|---|---|---|",
+        "| Audience | Precision at K (95% CI) | Recall of must-read stories, "
+        "importance-weighted (95% CI) | Must-read stories per day "
+        "| Recall of all relevant stories | Relevant stories per day | Labeller kappa "
+        "| Stories per day | Cost per digest |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for result in report.audiences:
         days = (
@@ -428,7 +456,8 @@ def readme_tables(report: Report) -> str:
             else ""
         )
         lines.append(
-            f"| {result.name} | {pct(result.precision)}{days} | {pct(result.recall)} "
+            f"| {result.name} | {pct(result.precision)}{days} | {pct(result.must_recall)} "
+            f"| {num(result.must_per_day, '.1f')} | {pct(result.recall)} "
             f"| {num(result.relevant_per_day, '.1f')} | {num(result.kappa)} | {num(result.stories_per_day, '.1f')} "
             f"| {usd(result.cost)} |"
         )

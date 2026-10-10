@@ -6,12 +6,12 @@ Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on
 
 **Relevance, per audience, against a hand-labelled week**
 
-| Audience | Precision at K (95% CI) | Recall, importance-weighted (95% CI) | Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |
-|---|---|---|---|---|---|---|
-| Artificial intelligence | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 8.7 (6.0 to 10.0) | US$0.047 (US$0.038 to US$0.055) |
-| Municipal affairs, Toronto | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 10.0 on all 4 | US$0.074 (US$0.070 to US$0.078) |
-| Regional affairs, Newfoundland and Labrador | 82% (70% to 92%), 4 days | 42% (39% to 44%) | 19.8 (14.8 to 24.6) | _not yet_ | 10.0 on all 4 | US$0.060 (US$0.058 to US$0.063) |
-| Public health in Canada | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 7.8 (5.8 to 9.5) | US$0.057 (US$0.046 to US$0.068) |
+| Audience | Precision at K (95% CI) | Recall of must-read stories, importance-weighted (95% CI) | Must-read stories per day | Recall of all relevant stories | Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |
+|---|---|---|---|---|---|---|---|---|
+| Artificial intelligence | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 8.7 (6.0 to 10.0) | US$0.047 (US$0.038 to US$0.055) |
+| Municipal affairs, Toronto | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 10.0 on all 4 | US$0.074 (US$0.070 to US$0.078) |
+| Regional affairs, Newfoundland and Labrador | 82% (70% to 92%), 4 days | _not yet_ | _not yet_ | 42% (39% to 44%) | 19.8 (14.8 to 24.6) | _not yet_ | 10.0 on all 4 | US$0.060 (US$0.058 to US$0.063) |
+| Public health in Canada | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 7.8 (5.8 to 9.5) | US$0.057 (US$0.046 to US$0.068) |
 
 **Pipeline properties**
 

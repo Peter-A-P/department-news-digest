@@ -168,6 +168,13 @@ from an earlier day, and saving the day records an answer for every story shown.
 a file per labeller in the bucket, which the daily job never writes. Measured on the first
 four days: 676 story judgements across the four audiences, about 400 of them new.
 
+A digest has ten slots, so the recall that matters is whether it picked the most important
+stories, not whether it showed every relevant one (Peter, 2026-10-10, after his first labelled
+days found 12 to 22 relevant stories a day). The labeller marks every relevant story and
+stars as "must read" the ones they would put in a ten-story digest first; the headline recall
+is over must-read stories, with the same importance weights, and recall over all relevant
+stories is reported beside it with the relevant stories per day that bound it.
+
 ### 2.7 Out of scope, on purpose
 
 - A reader app: bookmarks, accounts, notifications, mobile layout. The product is the

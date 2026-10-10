@@ -141,3 +141,35 @@ def test_an_earlier_judgement_is_the_starting_answer(workspace: Workspace) -> No
     call(workspace, "POST", "/save", payload)
     _, again = call(workspace, "GET", f"/day?audience={audience_id}&day={DAY}")
     assert again.decode().count('class="row yes"') == 1
+
+
+def test_a_must_read_star_is_saved_as_relevant_and_must_read(workspace: Workspace) -> None:
+    audience_id = next(iter(workspace.audiences))
+    _, page = call(workspace, "GET", f"/day?audience={audience_id}&day={DAY}")
+    shown = ids_on(page)
+    payload = {
+        "token": workspace.token,
+        "audience": audience_id,
+        "day": DAY,
+        "relevant": [shown[1]],
+        "must": [shown[0]],
+        "shown": shown,
+    }
+    assert call(workspace, "POST", "/save", payload)[0].startswith("200")
+    labels = {label.item_id: label for label in workspace.labels.labels_for(audience_id, DAY)}
+    assert labels[shown[0]].relevant and labels[shown[0]].must_read
+    assert labels[shown[1]].relevant and not labels[shown[1]].must_read
+    assert all(label.graded for label in labels.values())
+
+
+def test_a_day_labelled_before_must_read_existed_reopens(workspace: Workspace) -> None:
+    from clippings.eval.labels import record
+
+    audience_id = next(iter(workspace.audiences))
+    queue = workspace.queue(audience_id, DAY)
+    for question in queue.questions:
+        record(workspace.labels, queue, question, relevant=True)  # graded=False: the old page
+    assert workspace.queue(audience_id, DAY, remaining_only=True).questions
+    _, page = call(workspace, "GET", f"/day?audience={audience_id}&day={DAY}")
+    # Its answers are kept as the starting point.
+    assert page.decode().count('class="row yes"') == 3

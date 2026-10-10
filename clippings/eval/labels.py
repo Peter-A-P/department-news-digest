@@ -113,6 +113,7 @@ def build_queue(
     seed: int | None = None,
     labels: Store | None = None,
     include_done: bool = False,
+    graded_only: bool = False,
 ) -> LabellingQueue:
     """The items this labeller still has to judge for this day, in order.
 
@@ -125,7 +126,11 @@ def build_queue(
         store, audience_id, day, audience=audience, embedder=embedder, now=now
     )
     sample = stratified_sample(ranked, audience_id, day, top_k=top_k, random_n=random_n, seed=seed)
-    done = set() if include_done else (labels or store).labelled_ids(audience_id, day, labeller)
+    done = (
+        set()
+        if include_done
+        else (labels or store).labelled_ids(audience_id, day, labeller, graded_only=graded_only)
+    )
     by_id = {item.id: item for item in store.items_for(audience_id)}
     questions = tuple(
         Question(unit=unit, item=by_id[unit.item_id])
@@ -143,6 +148,8 @@ def record(
     question: Question,
     relevant: bool,
     *,
+    must_read: bool = False,
+    graded: bool = False,
     labeller: str | None = None,
 ) -> Label:
     """Write one label, copying the item's URL and title so it outlives retention."""
@@ -159,6 +166,8 @@ def record(
         url=question.item.url,
         title=question.item.title,
         labelled_at=datetime.now(UTC),
+        must_read=relevant and must_read,
+        graded=graded,
     )
     store.add_label(label)
     return label
