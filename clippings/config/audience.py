@@ -128,6 +128,34 @@ class BlueskySource(Strict):
         return value
 
 
+class XSource(Strict):
+    """One X search a day, for the day's single most discussed post (rank/x_pick.py).
+
+    X is read for the pick and nothing else: its posts never join a story, because X's
+    display rules allow a post to be shown only whole, never as a quote. Each candidate read
+    is billed, so `candidates` is the cost: 10, X's minimum, is about US$0.06 an audience-day
+    with the one author lookup. An empty `query` leaves X off for this audience, which is
+    the default.
+
+    X's Developer Agreement (section XIV.C) requires an Enterprise plan before X content is
+    shown to anyone who is, or acts for, a government body. An audience file for a
+    government team leaves `query` empty unless that plan is in place.
+    """
+
+    # X's own search syntax. Retweets and replies are excluded, and the audience's language
+    # added, by the adapter.
+    query: str = ""
+    candidates: int = Field(default=10, ge=10, le=100)
+
+    @field_validator("query")
+    @classmethod
+    def _fits(cls, value: str) -> str:
+        # X refuses a query over 512 characters; the adapter adds up to about 40.
+        if len(value) > 460:
+            raise ValueError("an X query must be at most 460 characters")
+        return value.strip()
+
+
 class GdeltSource(Strict):
     """GDELT document API queries for global coverage of the audience's entities."""
 
@@ -163,6 +191,7 @@ class Sources(Strict):
     gdelt: GdeltSource = GdeltSource()
     reddit: RedditSource = RedditSource()
     bluesky: BlueskySource = BlueskySource()
+    x: XSource = XSource()
 
 
 class Digest(Strict):
@@ -287,6 +316,8 @@ class Audience(Strict):
             keys.add("reddit")
         if self.sources.bluesky.queries:
             keys.add("bluesky")
+        if self.sources.x.query:
+            keys.add("x")
         return keys
 
     def profile_text(self) -> str:

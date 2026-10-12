@@ -76,6 +76,7 @@ Then `clippings sources check` confirms every source in every audience file has 
 | blog.google | Google blog, AI (RSS) | https://policies.google.com/terms | 2026-10-07 | allowed | Summary prepared 2026-10-07: the same Google terms as deepmind.google; robots allows the feed. Read by Peter 2026-10-07 and allowed |
 | huggingface.co | Hugging Face blog (RSS) | https://huggingface.co/terms-of-service | 2026-10-07 | allowed | Summary prepared 2026-10-07: no clause on RSS, scraping or AI use of site content; robots allows the feed. Read by Peter 2026-10-07 and allowed |
 | anthropic.com | Anthropic news, through its sitemap (no feed is published) | https://www.anthropic.com/legal | 2026-10-08 | allowed | Added 2026-10-08. No RSS or Atom feed exists (every usual path 404); the sitemap lists /news/ pages with dates, and robots.txt allows all. The legal page lists product terms (consumer, commercial, usage policy); no separate website terms were found. Read by Peter 2026-10-08 and allowed |
+| x | X API v2: recent search and user lookup, pay-per-use, for one post a day | https://docs.x.com/developer-terms/agreement | 2026-10-12 | allowed | Summary prepared 2026-10-10 from the Developer Agreement (last updated 2026-04-27), the Developer Policy and the Display Requirements; see "X: what its terms ask" below. Use is allowed on the official API; the conditions shape how the pick is shown and kept, and government users need an Enterprise plan. Read by Peter 2026-10-12 and allowed |
 
 ## Recorded, but not currently in any audience file
 
@@ -145,6 +146,27 @@ these clauses in mind before the measurement month, as step 5 above already asks
 of those terms say "personal and non-commercial", and some publishers have added AI clauses
 since.
 
+## X: what its terms ask
+
+X was out at plan time because no fixed tier fitted the budget. Since February 2026 the API is
+pay-per-use, US$0.005 a post read and US$0.010 a user read, counted once per resource per UTC
+day, so one search of ten posts and one author lookup a day costs about US$0.06 an audience.
+It was added on 2026-10-10 for one post a day, while the Reddit access request is unanswered,
+and is likely to be dropped if Reddit approves it (Peter). Read on 2026-10-10:
+
+| Term | Where | What it means here |
+|---|---|---|
+| Posts shown outside X are shown whole and unaltered, below the author's name and @handle, with the profile picture, a timestamp linking to the post, the X logo and the reply, repost and like actions | Display Requirements | X posts never join a story, where a twenty-five-word quote is the rule. The pick is shown whole, laid out as required, as a second exception to the quote limit (Peter, 2026-10-10). The Markdown and draft file link to it instead |
+| Stored X content is kept current: deleted or changed on X, deleted or changed here, as soon as reasonably possible and within 24 hours of a request | Developer Policy; Developer Agreement IV.B | Checking a post still exists is a paid read. Instead the next daily run removes the pick's words, name and picture from every stored copy and its page, whether or not it still exists, and the candidates the model did not pick are never stored |
+| No use of X content to fine-tune or train a foundation or frontier model | Developer Agreement III.A(k) | Not done. Ten posts a day are scored by a model through the gateway, which is neither |
+| Showing X content to users who are, or act for, a government body requires an Enterprise plan, and naming those users to X; never to bodies whose mission includes surveillance | Developer Agreement XIV.C | X is for the public example audiences only. An audience that serves a government team leaves `sources.x.query` empty unless that team holds an Enterprise plan. This is why X is not part of what is offered to departments |
+| No surveillance, tracking of users, or monitoring of sensitive events such as protests | Developer Agreement XIV.B | A daily pick of one post on public topics, never about a person or an event of that kind; the pick's rules exclude posts about private individuals |
+
+The terms are at https://docs.x.com/developer-terms/agreement,
+https://docs.x.com/developer-terms/policy and
+https://docs.x.com/developer-terms/display-requirements. Read by Peter on 2026-10-12 and
+allowed.
+
 ## The provincial government's own releases
 
 `https://www.gov.nl.ca/releases/feed/` works and would be the highest-value source in the
@@ -163,7 +185,6 @@ test of the ranking.
 
 | Source | Why not |
 |---|---|
-| X (Twitter) | Official API only, and no tier fits the budget at plan time (PLAN.md section 2.2). Scraping it breaks the terms, so it is out rather than bent. The `Source` protocol leaves the door open. |
 | Any paywalled outlet | Extraction would mean circumventing the paywall. Out by rule, not by cost. |
 | Google News and aggregator scrapes | Redistribution of others' content without the publishers' terms being readable per item. |
 | The Register (AI section) | Its robots.txt disallows this project's user agent for the feed path (probed 2026-10-07). Not read further. |

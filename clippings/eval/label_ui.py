@@ -150,8 +150,9 @@ td.done { background: var(--yes-bg); }
 SCRIPT = """
 const rows = [...document.querySelectorAll('.row')];
 const spot = document.getElementById('spot');
-if (spot) spot.addEventListener('click', e => {
-  if (!e.target.closest('a')) spot.classList.toggle('yes');
+const xspot = document.getElementById('xspot');
+for (const s of [spot, xspot]) if (s) s.addEventListener('click', e => {
+  if (!e.target.closest('a')) s.classList.toggle('yes');
 });
 let at = 0;
 function show(n) {
@@ -186,6 +187,7 @@ async function save() {
     relevant: rows.filter(r => r.classList.contains('yes')).map(r => r.dataset.id),
     must: rows.filter(r => r.classList.contains('must')).map(r => r.dataset.id),
     spotlight: spot ? spot.classList.contains('yes') : null,
+    x_pick: xspot ? xspot.classList.contains('yes') : null,
     shown: rows.map(r => r.dataset.id)};
   const button = document.getElementById('save');
   button.disabled = true; button.textContent = 'Saving...';
@@ -204,6 +206,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'n') { set(at, false, false); show(at + 1); }
   else if (k === ' ' || k === 'x') { cycle(at); }
   else if (k === 'b' && spot) { spot.classList.toggle('yes'); }
+  else if (k === 'p' && xspot) { xspot.classList.toggle('yes'); }
   else if (k === 'o') { window.open(rows[at].querySelector('a').href, '_blank'); }
   else if (k === 'Enter' && e.shiftKey) { save(); }
   else { return; }
@@ -302,6 +305,20 @@ def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
             f'<a href="{escape(post.url)}" target="_blank" rel="noopener">@{escape(post.author)}'
             f"</a> &middot; {post.likes} likes</div>"
         )
+    if digest is not None and digest.x_pick is not None:
+        x = digest.x_pick
+        saved = ws.labels.labels_for(audience_id, day, ws.labeller)
+        worth = any(lab.item_id == x_label_id(x.post_id) and lab.relevant for lab in saved)
+        # The words are kept for a day only, so most days the labeller opens the post on X.
+        words = f'<span class="q">"{escape(x.text)}"</span> ' if x.text else ""
+        spot += (
+            f'<div id="xspot" class="spot{" yes" if worth else ""}">'
+            "<b>The digest's X pick.</b> Worth showing this audience? Click or "
+            "<kbd>p</kbd> to mark yes; unmarked means no.<br>"
+            f'{words}<a href="{escape(x.url)}" target="_blank" rel="noopener">'
+            f"@{escape(x.username)}</a> &middot; {x.likes} likes"
+            f"{f' &middot; picked because: {escape(x.reason)}' if x.reason else ''}</div>"
+        )
     body = (
         '<div class="bar">'
         f'<a href="/">All days</a><h1>{escape(audience.name)}, {escape(day)}</h1>'
@@ -327,6 +344,11 @@ def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
         f"DAY = {json.dumps(day)};\n{SCRIPT}"
     )
     return _page(f"{audience.name}, {day}", body, script)
+
+
+def x_label_id(post_id: str) -> str:
+    """An X post is not an item in the store, so its label is keyed by the post's own id."""
+    return f"x:{post_id}"
 
 
 def save_day(ws: Workspace, payload: dict[str, Any]) -> str:
@@ -374,6 +396,24 @@ def save_day(ws: Workspace, payload: dict[str, Any]) -> str:
                 weight=0.0,
                 url=post.url,
                 title=post.quote,
+                labelled_at=datetime.now(UTC),
+                graded=True,
+            )
+        )
+    if digest is not None and digest.x_pick is not None and payload.get("x_pick") is not None:
+        x = digest.x_pick
+        ws.labels.add_label(
+            Label(
+                audience_id=audience_id,
+                day=day,
+                item_id=x_label_id(x.post_id),
+                labeller=ws.labeller,
+                relevant=bool(payload["x_pick"]),
+                stratum="x_pick",
+                rank=0,
+                weight=0.0,
+                url=x.url,
+                title=f"@{x.username}: {x.reason}",
                 labelled_at=datetime.now(UTC),
                 graded=True,
             )

@@ -55,8 +55,44 @@ read -rs KEY && printf %s "$KEY" | gcloud secrets versions add anthropic-api-key
 | `anthropic-api-key` | Re-ranking and summaries, through the gateway | yes |
 | `reddit-client-id`, `reddit-client-secret`, `reddit-username` | The Reddit sources, from a registered application on the free tier; the username goes in the user agent Reddit's rules ask for | no |
 | `bluesky-handle`, `bluesky-app-password` | The Bluesky sources; an app password, revocable on its own | no |
+| `x-bearer-token` | The day's X pick: the app-only bearer token of an X developer account on pay-per-use pricing. Set the account's monthly spend limit in X's developer console first; the code's own cap is US$10 a month | no |
 
 A source whose credential is absent reports itself unavailable and the run carries on.
+
+### The X token
+
+X is pay-per-use, so the spend limit goes on before the token goes in. From X's own
+documentation ([getting access](https://docs.x.com/x-api/getting-started/getting-access),
+[pricing](https://docs.x.com/x-api/getting-started/pricing)):
+
+1. Sign in at https://console.x.com with the X account that will own the app, accept the
+   Developer Agreement and Policy, and describe the use: a daily public news digest that
+   reads one search of ten posts and one user per audience a day, shows at most one post a
+   day in full with its author, and is not used by or for any government body.
+2. Create an app. The console generates its keys and tokens, the app-only Bearer Token among
+   them; that is the only credential this project uses. Copy it when it is shown.
+3. Buy credits in the console and set the spending limit per billing cycle to US$10; when it
+   is reached, X blocks requests until the next cycle. Leave auto-recharge off, so the limit
+   and the balance are both hard stops.
+4. Check the token with one user read (US$0.01), without it touching the shell history:
+
+```
+read -rs X_BEARER_TOKEN && curl -s -H "Authorization: Bearer $X_BEARER_TOKEN" \
+  https://api.x.com/2/users/by/username/XDevelopers
+```
+
+   A JSON `data` object with a `username` is a working token; 401 is a wrong token, 402 is no
+   credits.
+5. Store it and redeploy, so the job maps the new secret:
+
+```
+printf %s "$X_BEARER_TOKEN" | gcloud secrets versions add x-bearer-token --data-file=-
+unset X_BEARER_TOKEN
+PROJECT=clippings-digest BILLING_ACCOUNT=... deploy/deploy.sh
+```
+
+The next morning's run prints an `x pick` line per audience: the post and its cost, or why
+there was none.
 
 ## After the deploy
 

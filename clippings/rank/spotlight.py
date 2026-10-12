@@ -82,11 +82,25 @@ def candidates(clusters: Sequence[Cluster], items: Mapping[str, Item]) -> list[I
     return posts[:CANDIDATES]
 
 
-def build_call(audience: Audience, posts: Sequence[Item]) -> ModelCall:
+@dataclass(frozen=True)
+class PostLine:
+    """What the model is shown of one post, from Bluesky or from X (rank/x_pick.py)."""
+
+    author: str
+    likes: int
+    replies: int
+    text: str
+
+
+def line_for(post: Item) -> PostLine:
+    return PostLine(post.author or "", post.score or 0, post.comments or 0, post.summary)
+
+
+def build_call(audience: Audience, posts: Sequence[PostLine]) -> ModelCall:
     ids = local_ids(len(posts))
     lines = "\n".join(
-        f"{ids[index]} | @{post.author} | {post.score or 0} likes, {post.comments or 0} replies"
-        f" | {' '.join(post.summary.split())[:400]}"
+        f"{ids[index]} | @{post.author} | {post.likes} likes, {post.replies} replies"
+        f" | {' '.join(post.text.split())[:400]}"
         for index, post in enumerate(posts)
     )
     user = (
@@ -104,6 +118,36 @@ def build_call(audience: Audience, posts: Sequence[Item]) -> ModelCall:
     )
 
 
+@dataclass(frozen=True)
+class Scored:
+    """The model's score and reason for each post, in the order given, and the call."""
+
+    scores: tuple[tuple[int, str], ...]
+    reply: ModelReply | None
+    error: str = ""
+
+    def first(self, minimum: int = MIN_SCORE) -> int | None:
+        """The index of the first post scored at least `minimum`: the most engaged, when the
+        posts were given most engaged first."""
+        for index, (score, _) in enumerate(self.scores):
+            if score >= minimum:
+                return index
+        return None
+
+
+def score_posts(
+    audience: Audience, posts: Sequence[PostLine], client: ModelClient, *, run_id: str
+) -> Scored:
+    """One call that scores every post against the rubric. A failed call scores nothing."""
+    ids = local_ids(len(posts))
+    try:
+        reply = client.complete(build_call(audience, posts), run_id=run_id)
+    except ModelCallFailed as exc:
+        return Scored((), None, error=str(exc))
+    scores = parse_scores(reply.text, set(ids))
+    return Scored(tuple(scores.get(local_id, (0, "")) for local_id in ids), reply)
+
+
 def pick(
     audience: Audience,
     clusters: Sequence[Cluster],
@@ -115,18 +159,15 @@ def pick(
     posts = candidates(clusters, items)
     if not posts:
         return Pick(None, None, "", None)
-    ids = local_ids(len(posts))
-    try:
-        reply = client.complete(build_call(audience, posts), run_id=run_id)
-    except ModelCallFailed as exc:
+    scored = score_posts(audience, [line_for(post) for post in posts], client, run_id=run_id)
+    if scored.reply is None:
         # No pick is the safe answer: the section is simply left out.
-        return Pick(None, None, "", None, error=str(exc))
-    scores = parse_scores(reply.text, set(ids))
-    for local_id, post in zip(ids, posts, strict=True):
-        score, reason = scores.get(local_id, (0, ""))
-        if score >= MIN_SCORE:
-            return Pick(post, score, reason, reply)
-    return Pick(None, None, "", reply)
+        return Pick(None, None, "", None, error=scored.error)
+    chosen = scored.first()
+    if chosen is None:
+        return Pick(None, None, "", scored.reply)
+    score, reason = scored.scores[chosen]
+    return Pick(posts[chosen], score, reason, scored.reply)
 
 
 def quote(text: str, words: int = QUOTE_WORDS) -> str:

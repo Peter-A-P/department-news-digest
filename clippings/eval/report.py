@@ -171,6 +171,8 @@ class AudienceResult:
     graded_days: int = 0
     # The Bluesky pick (rank/spotlight.py), judged on its own: was it worth showing.
     spotlight: Estimate | None = None
+    # The X pick (rank/x_pick.py), judged the same way.
+    x_pick: Estimate | None = None
     kappa: Estimate | None = None
     kappa_with: str = ""
 
@@ -318,6 +320,16 @@ def build_report(
         ]
         if picks:
             result.spotlight = share(picks)
+        x_picks = [
+            label.relevant
+            for label in labels
+            if label.audience_id == audience.id
+            and label.labeller == labeller
+            and label.stratum == "x_pick"
+            and label.day >= start
+        ]
+        if x_picks:
+            result.x_pick = share(x_picks)
         others = {
             label.labeller
             for label in labels
@@ -498,6 +510,10 @@ def readme_tables(report: Report) -> str:
         "Most discussed on Bluesky, judged worth showing: "
         + "; ".join(f"{r.name} {pct(r.spotlight)}" for r in report.audiences)
         + ". A separate section below the stories, not counted in precision or recall.",
+        "",
+        "Most discussed on X, judged worth showing: "
+        + "; ".join(f"{r.name} {pct(r.x_pick)}" for r in report.audiences)
+        + ". The same kind of section, from X's paid API, while Reddit access is pending.",
         "",
         f"All four digests together cost {cad_money(report.cost_per_day)} a day in model calls, from "
         f"the gateway's ledger, converted from US dollars at {CAD_PER_USD} CAD per USD"

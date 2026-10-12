@@ -33,8 +33,13 @@ is in [PLAN.md](PLAN.md).
 - **Article text is kept thirty days and never republished.** Digests show summaries,
   links and quotes of at most twenty-five words. One exception, decided by Peter on
   2026-10-10: the day's Bluesky pick may be shown in full, with its author and a link,
-  while it exists and for thirty days; each run removes a deleted pick's words. Reddit
-  posts never go beyond the quote, as the access request to Reddit promised.
+  while it exists and for thirty days; each run removes a deleted pick's words. A second
+  exception, decided by Peter on the same day: the day's X pick is shown whole, as X's
+  display rules require, on the day it is picked only; the next run removes its words and
+  its author's name and picture. X posts never join a story. Reddit posts never go beyond
+  the quote, as the access request to Reddit promised.
+- **X is not for government users** without an Enterprise plan (X Developer Agreement
+  XIV.C). It is on for the public example audiences only.
 - **Every quote is verbatim or it is gone.** The verifier is not optional in production.
 - **The model never sees the whole pool.** Pre-filter first; the re-ranker gets top
   candidates only.

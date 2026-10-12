@@ -86,6 +86,17 @@ def source_lines(audience: Audience) -> list[SourceLine]:
         )
         for query in sources.bluesky.queries
     ]
+    if sources.x.query:
+        lines.append(
+            SourceLine(
+                "X search",
+                sources.x.query,
+                "https://x.com/",
+                "x",
+                ("x", sources.x.query),
+                "one post a day, shown on its day only",
+            )
+        )
     return lines
 
 

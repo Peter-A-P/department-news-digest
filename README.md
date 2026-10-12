@@ -27,7 +27,7 @@ file an owner can send. It has no send path.
 ## Result
 
 <!-- report:start -->
-Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on 2026-10-10. 95% intervals throughout. 4 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
+Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on 2026-10-11. 95% intervals throughout. 4 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
 
 **Relevance, per audience, against a hand-labelled week**
 
@@ -45,6 +45,8 @@ Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on
 | _not yet_ (pair labels) | 1.17 (1.14 to 1.22) items per story | 100% (93% to 100%) / 100% (93% to 100%) | 100% (99% to 100%) | _not yet_ (hand check) | 25 h (20 to 30) / 44 h (43 to 45) | _not yet_ (reader study) | _not yet_ (measurement month) |
 
 Most discussed on Bluesky, judged worth showing: Artificial intelligence _not yet_; Municipal affairs, Toronto _not yet_; Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. A separate section below the stories, not counted in precision or recall.
+
+Most discussed on X, judged worth showing: Artificial intelligence _not yet_; Municipal affairs, Toronto _not yet_; Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API, while Reddit access is pending.
 
 All four digests together cost CA$0.296 (CA$0.274 to CA$0.317) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
 <!-- report:end -->
@@ -77,7 +79,8 @@ cite a source the verifier cannot hold them to. The saving was about CA$6 a mont
 
 See [PLAN.md](PLAN.md). Per audience, a YAML file names topics, entities, geography,
 languages, trusted and blocked sources and length. A daily Cloud Run job fetches RSS and
-Atom feeds, GDELT, the Reddit API and Bluesky, extracts text where permitted, collapses
+Atom feeds, GDELT, the Reddit API and Bluesky (and, for one post a day, X's paid API),
+extracts text where permitted, collapses
 near-duplicates and clusters stories with local embeddings, ranks candidates by audience
 similarity, entities, source trust and recency, and sends only the top candidates to a
 model re-ranker through the portfolio gateway. A summariser writes cited sentences with

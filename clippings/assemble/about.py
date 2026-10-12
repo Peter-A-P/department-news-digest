@@ -83,7 +83,9 @@ what the model calls cost, taken from the spending ledger.</li>
 that the audience's rubric would want, even when no article covers it. A model scores the
 popular candidates against the rubric with rules for posts on top (no jokes, insults or
 posts about private individuals), and the page shows the post's own words, its author and a
-link. Every model call goes through the portfolio's compliant AI gateway, which records it,
+link. Where X is switched on, a second post is chosen the same way from X's ten most relevant
+posts of the day, read through its paid API, and shown whole on that day only, as X's rules
+ask. Every model call goes through the portfolio's compliant AI gateway, which records it,
 prices it and enforces hard daily and monthly spending caps.</p>
 <ul class="chips" aria-label="Built with">
 <li>Python 3.13, typed, mypy and ruff clean</li><li>LangGraph pipeline</li><li>DuckDB</li>
@@ -144,7 +146,8 @@ tried to invent something.</p></div>
 <div class="panel"><h3>Short quotes, short memory</h3><p>Article text is kept {retention} days and
 never republished: a digest shows summaries, links and quotes of at most {quote} words. The
 day's Bluesky pick may be shown in full while it exists; if its author deletes it, the next
-run removes its words.</p></div>
+run removes its words. The day's X pick is shown whole, as X requires, and only until the
+next run.</p></div>
 </div>
 </section>"""
 
@@ -174,6 +177,9 @@ three are measured from 11 October 2026, after their rubrics were tightened for 
 readers.</li>
 <li>Precision and recall per audience published with intervals, and a second labeller's
 agreement on one audience.</li>
+<li>One X post a day, read through X's paid API while the Reddit request is pending, once its
+terms are recorded as read and the account is funded. Shown whole, with its author, on the
+day it is picked only.</li>
 <li>Reddit, once Reddit approves the access request. Its posts will appear only as commentary
 inside news stories and never beyond a {quote}-word quote. If access is refused, it is
 dropped.</li>
@@ -197,9 +203,9 @@ whether the thing works.</p></div>
 <div class="panel"><h3>No sentiment or tone scores</h3><p>They are the standard offering in
 commercial media monitoring, and they cannot be checked against anything true, which makes
 them the opposite of what this project is for.</p></div>
-<div class="panel"><h3>No paywalls, no closed platforms</h3><p>It does not read paywalled
-articles or use a social platform that no longer offers affordable access on official terms.
-Both are out on the terms, not on the budget.</p></div>
+<div class="panel"><h3>No paywalls, no back doors</h3><p>It does not read paywalled articles,
+and it reads social platforms only through their official interfaces, on their terms and at
+their price. Anything else is out on the terms, not on the budget.</p></div>
 <div class="panel"><h3>It never decides to send</h3><p>It writes a draft. A person reads it and
 decides whether it goes anywhere, which is where that decision belongs.</p></div>
 </div>

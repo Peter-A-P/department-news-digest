@@ -125,9 +125,9 @@ class Label(BaseModel):
     relevant: bool
     # Which stratum of the day's sample this came from, and what it stands for. Recall is
     # estimated from these weights, so a label without them cannot be used.
-    # "spotlight" is the day's Bluesky pick (rank/spotlight.py), judged on its own and kept
-    # out of the sample's estimates.
-    stratum: Literal["top", "random", "spotlight"]
+    # "spotlight" is the day's Bluesky pick (rank/spotlight.py) and "x_pick" the day's X pick
+    # (rank/x_pick.py), each judged on its own and kept out of the sample's estimates.
+    stratum: Literal["top", "random", "spotlight", "x_pick"]
     rank: int
     weight: float
     url: str

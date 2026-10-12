@@ -68,12 +68,23 @@ longer resolves, has its words removed from the stored digest and its page, whic
 says it was deleted. After thirty days a pick keeps only its twenty-five-word quote. A
 check that fails for any other reason changes nothing and is tried again the next day.
 
+The day's X pick is shown whole, because X's display rules allow nothing less, and for a
+day only. X's Developer Policy asks that stored posts be kept current with X, and checking a
+post still exists is a paid read, so the next daily run removes the pick's words, its
+author's name and picture from every stored copy of that day's digest and from its page,
+Markdown and draft file (`clippings.assemble.deletions.expire_x_picks`), whether or not the
+post still exists. What is kept is the link, the handle, the counts when it was picked and
+why it was picked. The other candidates the model scored are never stored: they are read,
+shown to the model through the gateway, and dropped with the run. The removal runs whatever
+the terms record says about X, so dropping X later still clears what it left.
+
 ## What never leaves this machine
 
 Embeddings and clustering run on CPU inside the job. The only thing sent to a model
 provider is the re-ranking of the top candidates (headline, outlet and the first sixty
 words of the feed summary) and the summarisation and repair of the chosen stories (up to
-four sources each, at most 450 words of article text per source), through the 04 gateway
+four sources each, at most 450 words of article text per source), and the day's Bluesky
+and X candidate posts for the picks (at most 400 characters each), through the 04 gateway
 with the data class `public`, because every source is public by construction.
 `clippings/gateway.py` is the only module that imports the gateway, and a test asserts it.
 

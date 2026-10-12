@@ -88,6 +88,35 @@ class Spotlight(Frozen):
     deleted: bool = False
 
 
+class XPick(Frozen):
+    """The day's most discussed X post the rubric wanted (rank/x_pick.py).
+
+    Shown whole, with the author's name, handle and picture, a timestamp linking to the post,
+    the X logo and the reply, repost and like links, because X's display rules allow nothing
+    less (Peter, 2026-10-10). Shown on the day it was picked only: the next run removes the
+    words, the name and the picture from every stored copy and its page
+    (assemble/deletions.py), which keeps the store current with X without paying to ask X
+    whether the post still exists.
+    """
+
+    post_id: str
+    url: str
+    username: str
+    name: str
+    image_url: str
+    text: str
+    posted_at: datetime
+    likes: int
+    reposts: int
+    replies: int
+    rubric_score: int
+    reason: str
+    # The run's X reads at list price, in US dollars: the search and the author lookup.
+    reads_usd: float
+    # Set once the words, the name and the picture have been removed.
+    expired: bool = False
+
+
 class VerificationCounts(Frozen):
     """What the verifier saw, summed over the digest's stories.
 
@@ -147,6 +176,8 @@ class Digest(Frozen):
     model_client: str
     # None when no post qualified, the call failed, or the digest predates the section.
     spotlight: Spotlight | None = None
+    # The same for X, also None when X is off for the audience (sources.x.query empty).
+    x_pick: XPick | None = None
 
     @property
     def cost_usd(self) -> float:
@@ -264,6 +295,8 @@ def build_digest(
     model_client: str,
     spotlight: Spotlight | None = None,
     spotlight_reply: ModelReply | None = None,
+    x_pick: XPick | None = None,
+    x_pick_reply: ModelReply | None = None,
 ) -> Digest:
     scores = {score.story_id: score for score in rerank.scores} if rerank else {}
     return Digest(
@@ -277,7 +310,7 @@ def build_digest(
             for position, work in enumerate(works, start=1)
         ),
         counts=counts_for(works),
-        calls=_calls(rerank, works, [spotlight_reply] if spotlight_reply else []),
+        calls=_calls(rerank, works, [r for r in (spotlight_reply, x_pick_reply) if r]),
         pool_items=pool_items,
         pool_stories=pool_stories,
         candidates=len(rerank.scores) if rerank else 0,
@@ -288,4 +321,5 @@ def build_digest(
         embedder=embedder,
         model_client=model_client,
         spotlight=spotlight,
+        x_pick=x_pick,
     )

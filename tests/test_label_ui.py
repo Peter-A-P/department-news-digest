@@ -173,3 +173,29 @@ def test_a_day_labelled_before_must_read_existed_reopens(workspace: Workspace) -
     _, page = call(workspace, "GET", f"/day?audience={audience_id}&day={DAY}")
     # Its answers are kept as the starting point.
     assert page.decode().count('class="row yes"') == 3
+
+
+def test_the_x_pick_is_judged_on_its_own_and_kept_out_of_the_sample(
+    workspace: Workspace,
+) -> None:
+    from tests.test_delivery import digest
+    from tests.test_x import x_pick
+
+    audience_id = next(iter(workspace.audiences))
+    workspace.store.save_digest(digest(day=DAY).model_copy(update={"x_pick": x_pick()}))
+    _, page = call(workspace, "GET", f"/day?audience={audience_id}&day={DAY}")
+    assert "The digest's X pick" in page.decode()
+    shown = ids_on(page)
+    payload = {
+        "token": workspace.token,
+        "audience": audience_id,
+        "day": DAY,
+        "relevant": [],
+        "shown": shown,
+        "x_pick": True,
+    }
+    assert call(workspace, "POST", "/save", payload)[0].startswith("200")
+    labels = workspace.labels.labels_for(audience_id, DAY, "peter")
+    picked = [label for label in labels if label.stratum == "x_pick"]
+    assert len(picked) == 1 and picked[0].relevant and picked[0].item_id == "x:123"
+    assert len(labels) == len(shown) + 1

@@ -26,7 +26,7 @@ from wsgiref.simple_server import make_server
 import typer
 
 from clippings import graph
-from clippings.assemble.deletions import recheck_picks
+from clippings.assemble.deletions import expire_x_picks, recheck_picks
 from clippings.assemble.digest import Digest
 from clippings.assemble.publish import GcsSite, LocalSite, Site, publish_digest, publish_indexes
 from clippings.assemble.sources_panel import panel_for
@@ -94,7 +94,7 @@ def _secrets() -> dict[str, str]:
     return {
         key: value
         for key, value in os.environ.items()
-        if key.startswith(("REDDIT_", "BLUESKY_", "GDELT_"))
+        if key.startswith(("REDDIT_", "BLUESKY_", "GDELT_", "X_"))
     }
 
 
@@ -223,6 +223,9 @@ def run(
                 sync.push()
             if "digest" in state:
                 _print_digest(state["digest"], state.get("published", []))
+                x = state.get("x_pick")
+                if x is not None and x.post is None and one.sources.x.query:
+                    typer.echo(f"  x pick      none: {x.detail}")
                 # A failed call is not a crash, so it would otherwise be invisible here.
                 errors = [error for work in state.get("works", []) for error in work.errors]
                 for error in sorted(set(errors))[:5]:
@@ -242,6 +245,9 @@ def run(
             typer.echo(
                 f"bluesky     {len(changed)} picked posts deleted or aged out, pages updated"
             )
+        # An X pick is shown on its day only, whether or not X is still allowed.
+        expired = expire_x_picks(store, published, everyone, datetime.now(UTC), panels)
+        typer.echo(f"x           {len(expired)} picked posts past their day, words removed")
         publish_indexes(
             published,
             [(one.id, one.name, one.description) for one in everyone],
@@ -286,6 +292,12 @@ def _print_digest(digest: Digest, published: list[str]) -> None:
         mark = "" if story.sentences else f"  ({story.status})"
         score = "-" if story.rerank_score is None else str(story.rerank_score)
         typer.echo(f"     {story.position:2d}. [{score}] {story.headline[:70]}{mark}")
+    if digest.x_pick is not None:
+        x = digest.x_pick
+        typer.echo(
+            f"  x pick      @{x.username}, {x.likes} likes [{x.rubric_score}]; X reads "
+            f"CA${cad(x.reads_usd):.3f} (US${x.reads_usd:.3f}) at list price"
+        )
     if published:
         typer.echo(f"  published   {published[0]} and {len(published) - 1} more")
 

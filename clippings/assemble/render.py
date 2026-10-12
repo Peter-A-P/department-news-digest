@@ -12,7 +12,9 @@ On the page a story shows its headline and the first two sentences of its summar
 of the summary, the sources and the ranking note open under "Read more". That is a
 `<details>` element, because the service's content policy allows no script. For the same
 reason a citation mark links straight to the article it cites rather than to the source list,
-which may be closed. The Markdown and the draft file show everything.
+which may be closed. The Markdown and the draft file show everything, except the day's X
+post, which X allows to be shown only with its author's name, handle and picture and the X
+logo: the Markdown links to it instead.
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ from email.policy import SMTP
 from html import escape
 
 from clippings.assemble.about import about_sections
-from clippings.assemble.digest import Digest, DigestSentence, DigestStory, Spotlight
+from clippings.assemble.digest import Digest, DigestSentence, DigestStory, Spotlight, XPick
 from clippings.constants import CAD_PER_USD, cad
 
 # Sentences shown before "Read more"; the rest of the summary is one click away.
@@ -33,7 +35,8 @@ LEAD_SENTENCES = 2
 
 # The look follows peterparker.ca's project sites (gate.peterparker.ca): the same paper and
 # ink, the teal accent, Newsreader for headlines and Inter for text, both served by this
-# site from /fonts/ because the content policy loads nothing from elsewhere. In the .eml
+# site from /fonts/ because the content policy loads nothing from elsewhere but X's profile
+# pictures. In the .eml
 # draft the fonts do not load and the fallbacks apply.
 STYLE = """
 @font-face { font-family: "Newsreader"; font-style: normal; font-weight: 200 800;
@@ -198,6 +201,22 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 .full-post { margin: 0 0 0.6rem; }
 .spotlight blockquote { margin: 0.2rem 0 0.6rem; font-family: var(--serif);
   font-size: 1.2rem; line-height: 1.4; color: var(--ink); }
+.x-card { margin: 0.4rem 0 0.7rem; padding: 0.9rem 1rem; border: 1px solid var(--line-2);
+  border-radius: var(--radius); background: var(--paper); }
+.x-head { display: flex; align-items: center; gap: 0.6rem; }
+.x-avatar { width: 40px; height: 40px; border-radius: 50%; display: block; }
+.x-who { flex: 1; min-width: 0; line-height: 1.25; }
+.x-who a { display: block; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.x-name { font-weight: 600; }
+.x-who .x-user { color: var(--ink-faint); font-size: 0.86rem; }
+.x-logo { color: var(--ink); align-self: flex-start; }
+.x-card svg { width: 20px; height: 20px; display: block; }
+.x-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.7rem 0 0.5rem;
+  font-size: 1.02rem; line-height: 1.5; color: var(--ink); }
+.x-time { margin: 0; font-size: 0.82rem; }
+.x-time a { color: var(--ink-faint); }
+.x-actions { display: flex; gap: 1.6rem; margin: 0.6rem 0 0; }
+.x-actions a { color: var(--ink-faint); }
 /* The front page's long read below the audiences, in the manner of gate.peterparker.ca. */
 .section { padding: 2.75rem 0; border-bottom: 1px solid var(--line); }
 .section:last-child { border-bottom: 0; }
@@ -283,7 +302,7 @@ FOOTER = (
     "model and every one cites its sources; any quote is checked word for word against a "
     "source it cites and is at most twenty-five words. Headlines are the publishers' own. "
     "Article text is never republished. A Bluesky post may be shown in full, with its author "
-    "and a link, while it exists."
+    "and a link, while it exists, and an X post on the day it was picked."
 )
 
 INTRO = (
@@ -478,6 +497,78 @@ def _spotlight_html(post: Spotlight) -> str:
     )
 
 
+# X's logo and the reply, repost and like marks its display rules ask for beside a post,
+# drawn inline because the page loads nothing from X but the author's picture.
+X_LOGO = (
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308'
+    "l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08"
+    'l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>'
+)
+X_ACTIONS = (
+    (
+        "Reply",
+        "https://x.com/intent/tweet?in_reply_to=",
+        "M3 11a8 8 0 0 1 8-8h2a8 8 0 0 1 0 16h-2l-5 4v-4.6A8 8 0 0 1 3 11z",
+    ),
+    (
+        "Repost",
+        "https://x.com/intent/retweet?tweet_id=",
+        "M4 10V8a3 3 0 0 1 3-3h11m-3-3 3 3-3 3M20 14v2a3 3 0 0 1-3 3H6m3 3-3-3 3-3",
+    ),
+    (
+        "Like",
+        "https://x.com/intent/like?tweet_id=",
+        "M12 20s-7-4.4-8.8-8.6C2 8.3 4 5 7.3 5c2 0 3.6 1.2 4.7 2.9C13.1 6.2 14.7 5 16.7 5 20 5 22 8.3 20.8 11.4 19 15.6 12 20 12 20z",
+    ),
+)
+
+
+def _x_pick_html(pick: XPick) -> str:
+    """The day's X post, whole, the way X's display rules lay it out; after its day, a link."""
+    posted = pick.posted_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+    reason = f'<p class="why">Picked because: {escape(pick.reason)}.</p>' if pick.reason else ""
+    profile = f"https://x.com/{escape(pick.username)}"
+    if pick.expired or not pick.text:
+        return (
+            '<section class="spotlight"><p class="eyebrow">Most discussed on X</p>'
+            f'<p class="meta"><span class="tag post">Post</span><a href="{escape(pick.url)}">'
+            f"A post by @{escape(pick.username)}</a> &middot; {posted} &middot; "
+            f"{pick.likes} likes when picked</p>{reason}"
+            '<p class="note">X posts are shown here only on the day they are picked, so its '
+            "words are no longer on this page. The link opens it on X if it is still there.</p>"
+            "</section>"
+        )
+    avatar = (
+        f'<a href="{profile}"><img class="x-avatar" src="{escape(pick.image_url)}" alt="" '
+        'width="40" height="40"></a>'
+        if pick.image_url
+        else ""
+    )
+    actions = "".join(
+        f'<a href="{base}{escape(pick.post_id)}" aria-label="{label}" title="{label}">'
+        f'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" '
+        f'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="{path}"/></svg></a>'
+        for label, base, path in X_ACTIONS
+    )
+    return (
+        '<section class="spotlight">'
+        '<p class="eyebrow">Most discussed on X</p>'
+        '<div class="x-card"><div class="x-head">'
+        f'{avatar}<div class="x-who"><a class="x-name" href="{profile}">{escape(pick.name)}</a>'
+        f'<a class="x-user" href="{profile}">@{escape(pick.username)}</a></div>'
+        f'<a class="x-logo" href="{escape(pick.url)}" aria-label="View on X">{X_LOGO}</a></div>'
+        f'<div class="x-text">{escape(pick.text)}</div>'
+        f'<p class="x-time"><a href="{escape(pick.url)}">{posted}</a></p>'
+        f'<p class="x-actions">{actions}</p></div>'
+        f'<p class="meta"><span class="tag post">Post</span>{pick.likes} likes, '
+        f"{pick.reposts} reposts, {pick.replies} replies</p>{reason}"
+        '<p class="note">A post, not reporting: its author\'s own words, shown whole as X '
+        "asks, because people were discussing it and it fits this audience. Nothing in it has "
+        "been checked. Shown on the day it was picked only: the next run removes it here.</p>"
+        "</section>"
+    )
+
+
 def html_page(digest: Digest, description: str = "", sources: str = "") -> str:
     """One audience's digest for one day. `description` is the audience's own, if known."""
     c = digest.counts
@@ -532,6 +623,8 @@ def html_page(digest: Digest, description: str = "", sources: str = "") -> str:
     body.extend(_story_html(story) for story in digest.stories)
     if digest.spotlight is not None:
         body.append(_spotlight_html(digest.spotlight))
+    if digest.x_pick is not None:
+        body.append(_x_pick_html(digest.x_pick))
     body.append(f'<p class="note">Run {escape(digest.run_id)}.</p>')
     body.append("</div>")
     return _page(title, "\n".join(body), hue=hue(digest.audience_id))
@@ -577,6 +670,17 @@ def markdown(digest: Digest) -> str:
             "",
             f"[@{post.author}]({post.url}), {post.likes} likes, {post.replies} replies. "
             "A post, not reporting; nothing in it has been checked.",
+            "",
+        ]
+    if digest.x_pick is not None:
+        x = digest.x_pick
+        reason = f" Picked because: {x.reason}." if x.reason else ""
+        lines += [
+            "## Most discussed on X",
+            "",
+            f"[A post by @{x.username}]({x.url}), {x.likes} likes when picked.{reason} "
+            "X allows a post to be shown only whole with its author, so it is linked here and "
+            "shown on the web page on the day it was picked.",
             "",
         ]
     lines += ["---", "", FOOTER, ""]

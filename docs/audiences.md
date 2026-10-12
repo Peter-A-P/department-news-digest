@@ -24,7 +24,7 @@ almost everything is local but little of it matters.
 | `entities` | no | `organisations`, `people`, `places`. Matched in item text; also used to build GDELT queries. |
 | `geography` | no | Places this audience is about, as part of the profile. |
 | `languages` | no | ISO 639-1 codes, default `["en"]`. Restricts GDELT server-side. |
-| `sources` | no | `feeds`, `sitemaps`, `gdelt`, `reddit`, `bluesky`. Any subset. A sitemap takes `url`, `publisher`, `terms`, `include` (the news section's path prefix, such as `/news/`) and `extract`, for a publisher that posts news with no feed; new pages are found by the sitemap's dates and kept only if the page's own publication date is new. Bluesky takes `sort`, `top` by default. A feed takes `url`, `publisher`, `terms`, and `extract` (default true); `extract: false` means the article pages are never requested and the item is summarised from the feed's own title and summary, for a publisher whose terms clear the feed but not the page. |
+| `sources` | no | `feeds`, `sitemaps`, `gdelt`, `reddit`, `bluesky`, `x`. Any subset. `x` takes `query`, in X's own search syntax, and `candidates` (10 to 100, default 10, X's minimum); it is off while `query` is empty, and each candidate is a paid read. A sitemap takes `url`, `publisher`, `terms`, `include` (the news section's path prefix, such as `/news/`) and `extract`, for a publisher that posts news with no feed; new pages are found by the sitemap's dates and kept only if the page's own publication date is new. Bluesky takes `sort`, `top` by default. A feed takes `url`, `publisher`, `terms`, and `extract` (default true); `extract: false` means the article pages are never requested and the item is summarised from the feed's own title and summary, for a publisher whose terms clear the feed but not the page. |
 | `trusted_sources` | no | Bare domains, subdomains included. Ranked up, and preferred when choosing which item represents a story. |
 | `blocked_sources` | no | Bare domains, subdomains included. Never stored, never extracted, never shown. |
 | `digest` | no | `max_stories`, `rerank_candidates`, `max_sentences_per_story`, `min_rubric_score`. `rerank_candidates` is how many stories the model re-ranker is shown, and so the cost of that call; the model never sees more. `min_rubric_score` (default 1) is the lowest rubric score a story may be shown with: 2 leaves out "marginal" stories, so a quiet day is a shorter digest. |
@@ -56,8 +56,8 @@ reads:
 
 Each feed carries a `terms` key. That key must appear in
 [`sources.md`](sources.md) with a date read and the status `allowed`, or the fetcher
-refuses the source and the run records the refusal. `gdelt`, `reddit` and `bluesky` are
-keys in the same record.
+refuses the source and the run records the refusal. `gdelt`, `reddit`, `bluesky` and `x`
+are keys in the same record.
 
     clippings sources check
 
@@ -78,6 +78,18 @@ so that is the way this takes.
 Posts from either platform are discussion, not reports: one reaches a digest only inside a
 story that a feed or GDELT also carries, and a story made only of posts is never shown
 (PLAN.md section 2.3).
+
+X reads `X_BEARER_TOKEN`, the app-only bearer token of a developer account on pay-per-use
+pricing, and is used for one post a day and nothing else (PLAN.md section 2.3): one search of
+`candidates` posts and one author lookup, about US$0.06 an audience-day. Set a monthly spend
+limit in X's developer console before the first request; the code also refuses a search once
+the month's reads in the fetch log reach US$10 (`clippings.sources.x.MONTHLY_CAP_USD`).
+
+**X is not for an audience that serves a government body.** X's Developer Agreement
+(section XIV.C) requires an Enterprise plan before X content is shown to anyone who is, or
+acts for, a government body, and requires those users to be named to X. A department's
+audience file leaves `sources.x.query` empty unless the department holds that plan. The four
+examples here are public pages for anyone, which is why they may have it on.
 
 Without those variables each source reports itself unavailable and the run carries on with
 the rest. That is deliberate: the pipeline runs with any subset of its sources, which is

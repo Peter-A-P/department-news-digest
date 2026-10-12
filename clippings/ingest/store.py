@@ -407,6 +407,19 @@ class Store:
             for row in rows
         }
 
+    def reads_since(self, source_key: str, since: datetime) -> dict[str, int]:
+        """Items fetched from one source since a time, summed by origin, failures included.
+
+        For a source billed per item read (X), this is what the run checks against its cap
+        before asking for more.
+        """
+        rows = self._connection.execute(
+            "SELECT origin, sum(items) FROM fetch_log "
+            "WHERE source_key = ? AND started_at >= ? GROUP BY origin",
+            [source_key, since],
+        ).fetchall()
+        return {str(row[0]): int(row[1] or 0) for row in rows}
+
     # -- labels --------------------------------------------------------------------------
 
     def add_label(self, label: Label) -> None:
@@ -600,6 +613,21 @@ class Store:
             [audience_id, day],
         ).fetchone()
         return Digest.model_validate_json(row[0]) if row else None
+
+    def digest_runs(self, audience_id: str, day: str) -> list[Digest]:
+        """Every digest built for this audience on this day, one per run, latest first.
+
+        `digest_for` gives the one that is shown; this gives all of them, for a change that
+        must reach every stored copy, such as removing an X post's words.
+        """
+        from clippings.assemble.digest import Digest
+
+        rows = self._connection.execute(
+            "SELECT body FROM digests WHERE audience_id = ? AND day = ? "
+            "ORDER BY generated_at DESC, run_id DESC",
+            [audience_id, day],
+        ).fetchall()
+        return [Digest.model_validate_json(row[0]) for row in rows]
 
     def digest_days(self, audience_id: str) -> list[str]:
         rows = self._connection.execute(

@@ -77,11 +77,13 @@ deliberately not one of its sources, for the reason recorded in `docs/sources.md
 
 RSS and Atom feeds and news APIs; GDELT's document API for global coverage; the Reddit
 API through a registered application on its free tier; Bluesky through the public AT
-Protocol API. X only through its official API if a tier fits the budget, which it does not
-at plan time, so X is out. No scraping around paywalls or robots rules. Article text is
+Protocol API. X only through its official API: out at plan time because no tier fitted the
+budget, and in from 2026-10-10 for one post a day on pay-per-use pricing (section 2.3). No
+scraping around paywalls or robots rules. Article text is
 extracted only from pages that allow it, kept for thirty days for processing, and never
 republished: the digest shows a summary, a link, and quotes of at most twenty-five words.
-The one exception is the day's Bluesky pick (section 2.3), shown in full while it exists.
+The exceptions are the day's Bluesky pick (section 2.3), shown in full while it exists, and
+the day's X pick, shown whole on its day only.
 Each source's terms are recorded in `docs/sources.md` with the date read, and a source is
 dropped rather than bent.
 
@@ -141,6 +143,23 @@ The pick's whole post is behind "Show full post" (Peter, 2026-10-10; Bluesky cap
 thirty days against Bluesky's public API and removes the words of any post that no longer
 exists, and after thirty days a pick keeps only its twenty-five-word quote. Reddit posts are
 never shown beyond the quote: the access request to Reddit said so.
+
+One X post a day may appear beside it (Peter, 2026-10-10), while the Reddit access request is
+unanswered; if Reddit approves it, X is likely to be dropped. X's API has been pay-per-use
+since February 2026, US$0.005 a post read and US$0.010 a user read, so X is read for the pick
+and nothing else: one search a day for the audience's query, ten candidates (X's minimum) by
+X's own relevance order from the last day, the same rubric scoring with the rules for posts,
+and one author lookup for the post picked, about US$0.06 an audience-day. A monthly cap in the
+code (US$10) stops the search before a request, behind the spend limit set in X's console.
+X's terms decide the rest ([docs/sources.md](docs/sources.md)). A post shown outside X must be
+whole and unaltered, beside its author's name, handle and picture, a timestamp linking to it,
+the X logo and the reply, repost and like actions, so the pick is shown that way and X posts
+never join a story, where they could only be quoted. Stored posts must be kept current with X,
+and checking each one is a paid read, so the next daily run removes the pick's words, name and
+picture from every stored copy and its page, whether or not the post still exists; the
+candidates not picked are never stored. And X requires an Enterprise plan before its content is
+shown to anyone acting for a government body, so X is on for the public example audiences
+only, and is not part of what is offered to departments.
 
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 
@@ -208,6 +227,7 @@ stories is reported beside it with the relevant stories per day that bound it.
 | GDELT document API | Queried per audience daily | Global coverage of the audience's entities | Free, open; rate limits respected |
 | Reddit API | Selected public subreddits per audience | Public discussion | Registered application, free tier; terms read and recorded; deletions honoured by thirty-day retention |
 | Bluesky public API (AT Protocol) | Search and feeds per audience | Public discussion | Public API; user preferences respected |
+| X API v2, pay-per-use | One search of ten posts and one author lookup per audience per day | The day's X pick only | Official API, terms read and recorded; shown whole on its day only; not for government users without an Enterprise plan |
 | Hand-labelled week | About 420 labels per audience, 60 per day; one audience double-labelled | Precision, recall, kappa | Own |
 | Labelled duplicate pairs | 300 pairs across the week | Deduplication precision and recall | Own |
 
@@ -221,12 +241,13 @@ clippings/
   config/      audience.py (pydantic schema), examples/ (ai.yaml, public-health-canada.yaml,
                municipal-<city>.yaml), load.py
   sources/     base.py (Source protocol: fetch since watermark, record terms), rss.py, gdelt.py,
-               reddit.py, bluesky.py, robots.py
+               reddit.py, bluesky.py, x.py (the X pick's search and author lookup), robots.py
   ingest/      normalise.py (canonical URL, language), extract.py (trafilatura where permitted),
                store.py (DuckDB on Cloud Storage, watermarks, thirty-day retention, run lock)
   cluster/     shingles.py (MinHash near-duplicates), embed.py (bge-small, CPU), cluster.py, metrics.py
   rank/        features.py (audience similarity, entities, trust, recency), score.py,
-               rerank.py (top candidates to the gateway with the audience rubric), select.py (K with diversity)
+               rerank.py (top candidates to the gateway with the audience rubric), select.py (K with diversity),
+               spotlight.py and x_pick.py (the day's Bluesky and X posts)
   summarise/   prompt.py (cited sentences, marked quotes), cite.py, verify.py (ids exist, quotes verbatim,
                every sentence cited), repair.py (one rewrite, then drop)
   assemble/    digest.py (sections, length budget), render.py (HTML page, Markdown, .eml draft file),
@@ -289,13 +310,15 @@ a sixth of the cost per call; at low effort it agreed less with the labels and w
 | Re-ranking | 60 candidates per audience per day; Haiku 5.5 since 2026-10-10 (Haiku 4.5, about US$0.013 measured, before) | 0.002 per audience-day | |
 | Summaries | About 10 stories per digest at about 3,000 tokens in and 400 out; Sonnet 5 | 0.10 per audience-day | |
 | Running cost, four audiences | About US$0.10 per audience-day, 30 days | 12 per month | 16 per month |
+| X API, since 2026-10-10 | Ten post reads and one user read per audience per day, four audiences, at list price; capped at US$10 a month in code | 7.20 per month | 9.70 per month |
 | Cloud Run job and service, Scheduler, Storage | Within free tiers at this volume; egress a few GB | 0 to 3 per month | 0 to 4 per month |
 | Build month | Development reruns, the labelled week rerun under five configurations, faithfulness sample | 40 | 54 |
 | **Build** | | **40** | **54** |
-| **Running** | | **12 to 15 per month** | **16 to 20 per month** |
+| **Running** | | **19 to 22 per month** | **26 to 30 per month** |
 
 Still under the CA$40 per month the project file estimated, with less room than before:
-the fourth audience added on 2026-09-13 costs about a third more to run. The difference is
+the fourth audience added on 2026-09-13 costs about a third more to run, and X adds about
+CA$10. The difference is
 a small model for
 re-ranking and the pre-filter that keeps the model away from the full pool. Outside the
 plan's budget, as an alongside project; actuals still go in the plan repository's STATUS.
@@ -356,7 +379,6 @@ Whichever produces the clearest evidence becomes `docs/rejected.md`.
 
 | Deferred | Kept so the door stays open |
 |---|---|
-| X as a source | The Source protocol; an adapter and a paid tier |
 | French-language audiences and bilingual digests | Language is already an audience field; the embeddings are multilingual; the rubric prompt is parameterised |
 | Claim faithfulness with the 03 calibrated judge on every digest | The adapter exists in `eval/faithfulness.py`; enabled when the judge is calibrated and the cost is accepted |
 | Per-reader personalisation | Audiences are the unit; a reader is a smaller audience, one more file |

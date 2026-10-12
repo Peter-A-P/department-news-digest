@@ -13,6 +13,13 @@ RETENTION_DAYS: Final = 30
 # enforces this alongside the verbatim check; no audience can widen it.
 QUOTE_MAX_WORDS: Final = 25
 
+# The day's X pick is shown whole, as X's display rules require, and only until the next
+# daily run: X's Developer Policy asks that stored posts be kept current with X, and removing
+# the words after a day keeps that promise without paying to ask X whether each post still
+# exists (Peter, 2026-10-10). Twenty hours rather than twenty-four, so the next morning's run
+# removes it even if it starts a little earlier than the run that picked it.
+X_POST_SHOWN_HOURS: Final = 20
+
 # The identifier of this project in the gateway's ledger, so cost per digest can be read back
 # out of it (PLAN.md section 1).
 GATEWAY_PROJECT: Final = "clippings"
