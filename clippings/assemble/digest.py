@@ -258,20 +258,23 @@ def _story(position: int, work: StoryWork, score: RerankScore | None) -> DigestS
     )
 
 
+def call_cost(purpose: Purpose, story_id: str, reply: ModelReply) -> CallCost:
+    """One model call as the digest records it, with the gateway's own price."""
+    return CallCost(
+        purpose=purpose.value,
+        story_id=story_id,
+        model=reply.model,
+        call_uid=reply.call_uid,
+        input_tokens=reply.input_tokens,
+        output_tokens=reply.output_tokens,
+        cost_usd=reply.cost_usd,
+    )
+
+
 def _calls(
     rerank: Rerank | None, works: Sequence[StoryWork], extra: Sequence[ModelReply] = ()
 ) -> tuple[CallCost, ...]:
-    def cost(purpose: Purpose, story_id: str, reply: ModelReply) -> CallCost:
-        return CallCost(
-            purpose=purpose.value,
-            story_id=story_id,
-            model=reply.model,
-            call_uid=reply.call_uid,
-            input_tokens=reply.input_tokens,
-            output_tokens=reply.output_tokens,
-            cost_usd=reply.cost_usd,
-        )
-
+    cost = call_cost
     calls = []
     if rerank is not None and rerank.reply is not None:
         calls.append(cost(Purpose.RERANK, "", rerank.reply))

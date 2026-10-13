@@ -30,7 +30,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal, TypedDict
 
-from clippings.assemble.digest import Digest, Spotlight, XPick, build_digest
+from clippings.assemble.digest import Digest, Spotlight, build_digest
 from clippings.assemble.publish import Site, publish_digest
 from clippings.assemble.sources_panel import panel_for
 from clippings.cluster.embed import Embedder
@@ -43,9 +43,8 @@ from clippings.rank.rerank import Rerank, rerank
 from clippings.rank.score import ScoredStory
 from clippings.rank.select import candidates_for_rerank
 from clippings.rank.spotlight import Pick, pick, quote
-from clippings.rank.x_pick import XChoice, pick_x
+from clippings.rank.x_pick import XChoice, pick_x, shown
 from clippings.sources.base import FetchContext, Source
-from clippings.sources.x import post_url
 from clippings.summarise.run import (
     StoryWork,
     any_need_repair,
@@ -253,7 +252,7 @@ def node_assemble(state: State) -> State:
         model_client=p.client.name if p.client is not None else "none",
         spotlight=_spotlight(state.get("spotlight")),
         spotlight_reply=chosen.reply if (chosen := state.get("spotlight")) else None,
-        x_pick=_x_pick(state.get("x_pick")),
+        x_pick=shown(state.get("x_pick")),
         x_pick_reply=x.reply if (x := state.get("x_pick")) else None,
     )
     p.store.save_digest(digest)
@@ -276,27 +275,6 @@ def _spotlight(chosen: Pick | None) -> Spotlight | None:
         rubric_score=chosen.score,
         reason=chosen.reason,
         full_text=post.summary if post.source_kind == "bluesky" else "",
-    )
-
-
-def _x_pick(chosen: XChoice | None) -> XPick | None:
-    if chosen is None or chosen.post is None or chosen.author is None or chosen.score is None:
-        return None
-    post, who = chosen.post, chosen.author
-    return XPick(
-        post_id=post.id,
-        url=post_url(who.username, post.id),
-        username=who.username,
-        name=who.name,
-        image_url=who.image_url,
-        text=post.text,
-        posted_at=post.created_at,
-        likes=post.likes,
-        reposts=post.reposts,
-        replies=post.replies,
-        rubric_score=chosen.score,
-        reason=chosen.reason,
-        reads_usd=chosen.reads_usd,
     )
 
 

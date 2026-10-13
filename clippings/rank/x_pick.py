@@ -15,10 +15,12 @@ and what the "Sources checked" panel shows.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from clippings.assemble.digest import Digest, XPick, call_cost
 from clippings.config.audience import Audience
-from clippings.gateway import ModelClient, ModelReply
+from clippings.constants import X_POST_SHOWN_HOURS
+from clippings.gateway import ModelClient, ModelReply, Purpose
 from clippings.ingest.store import Store
 from clippings.rank.spotlight import MIN_LIKES, PostLine, score_posts
 from clippings.sources.base import FetchContext
@@ -33,6 +35,7 @@ from clippings.sources.x import (
     XUnavailable,
     author,
     headroom,
+    post_url,
     search,
     spent_usd,
 )
@@ -121,3 +124,42 @@ def pick_x(
         return XChoice(reply=scored.reply, reads_usd=cost, detail=str(exc))
     log(AUTHOR_ORIGIN, 1, True)
     return XChoice(chosen, who, score, reason, scored.reply, cost + PRICE_USER_USD)
+
+
+def shown(chosen: XChoice | None) -> XPick | None:
+    """The pick as the digest keeps it, or None when there is no pick."""
+    if chosen is None or chosen.post is None or chosen.author is None or chosen.score is None:
+        return None
+    post, who = chosen.post, chosen.author
+    return XPick(
+        post_id=post.id,
+        url=post_url(who.username, post.id),
+        username=who.username,
+        name=who.name,
+        image_url=who.image_url,
+        text=post.text,
+        posted_at=post.created_at,
+        likes=post.likes,
+        reposts=post.reposts,
+        replies=post.replies,
+        rubric_score=chosen.score,
+        reason=chosen.reason,
+        reads_usd=chosen.reads_usd,
+    )
+
+
+def still_showing(digest: Digest, now: datetime) -> bool:
+    """Whether a digest is young enough that an X pick added now would still be shown."""
+    return now - digest.generated_at < timedelta(hours=X_POST_SHOWN_HOURS)
+
+
+def added_to(digest: Digest, chosen: XChoice) -> Digest:
+    """A published digest with the X pick added after the fact (`clippings x-pick`).
+
+    The model call is added to the digest's costs. `generated_at` is kept, so the words
+    still go with the next daily run, as if the pick had been made with the digest.
+    """
+    calls = digest.calls
+    if chosen.reply is not None:
+        calls = (*calls, call_cost(Purpose.SPOTLIGHT, "", chosen.reply))
+    return digest.model_copy(update={"x_pick": shown(chosen), "calls": calls})

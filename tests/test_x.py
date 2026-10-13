@@ -20,7 +20,7 @@ from clippings.config.audience import Audience, XSource
 from clippings.constants import X_POST_SHOWN_HOURS
 from clippings.gateway import ScriptedClient
 from clippings.ingest.store import Store
-from clippings.rank.x_pick import month_start, pick_x
+from clippings.rank.x_pick import month_start, pick_x, shown
 from clippings.serve.app import SECURITY_HEADERS
 from clippings.sources.base import FetchContext
 from clippings.sources.robots import AllowAll
@@ -295,11 +295,31 @@ def test_every_stored_run_and_the_page_lose_the_words(
 
 
 def test_the_digest_carries_the_pick_with_its_author_and_cost(on: Audience, store: Store) -> None:
-    from clippings.graph import _x_pick
-
     context, _ = context_for(x_api([raw_post("7", 50)]))
     chosen = pick_x(on, context, store, scores((3, "the vote")), run_id="r")
-    shown = _x_pick(chosen)
-    assert shown is not None and shown.url == "https://x.com/handle_u7/status/7"
-    assert shown.name == "Ana Author" and shown.rubric_score == 3 and shown.reads_usd > 0
-    assert _x_pick(None) is None
+    kept = shown(chosen)
+    assert kept is not None and kept.url == "https://x.com/handle_u7/status/7"
+    assert kept.name == "Ana Author" and kept.rubric_score == 3 and kept.reads_usd > 0
+    assert shown(None) is None
+
+
+def test_a_pick_added_later_keeps_the_digest_s_day_and_counts_its_call(
+    on: Audience, store: Store
+) -> None:
+    from clippings.gateway import ModelReply
+    from clippings.rank.x_pick import added_to, still_showing
+
+    context, _ = context_for(x_api([raw_post("7", 50)]))
+    reply = ModelReply(text='{"id": "c01", "score": 2, "reason": "r"}', model="m", cost_usd=0.001)
+    chosen = pick_x(on, context, store, ScriptedClient(lambda call: reply.text), run_id="r")
+    chosen = chosen.__class__(**{**chosen.__dict__, "reply": reply})
+    published = digest().model_copy(update={"generated_at": NOW})
+
+    updated = added_to(published, chosen)
+    assert updated.x_pick is not None and updated.generated_at == NOW
+    assert len(updated.calls) == len(published.calls) + 1
+    assert updated.cost_usd == pytest.approx(published.cost_usd + 0.001)
+    # The words still go with the next morning's run, as if picked with the digest.
+    assert expired_x_pick(updated, NOW + timedelta(hours=X_POST_SHOWN_HOURS)) is not None
+    assert still_showing(published, NOW + timedelta(hours=X_POST_SHOWN_HOURS - 1))
+    assert not still_showing(published, NOW + timedelta(hours=X_POST_SHOWN_HOURS))

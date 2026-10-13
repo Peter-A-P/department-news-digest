@@ -5,6 +5,7 @@
     clippings serve     serve the published pages, read-only
     clippings sources   check the terms record, or probe that the feeds are feeds
     clippings label     label a day's sample for precision and recall
+    clippings x-pick    add the X pick to the latest digests, without rebuilding them
     clippings retention delete items past the thirty-day window
     clippings audiences list the configured audiences
 
@@ -60,6 +61,7 @@ from clippings.ingest.remote import (
     StateSync,
 )
 from clippings.ingest.store import Store
+from clippings.rank.x_pick import added_to, pick_x, still_showing
 from clippings.sources.base import FetchContext, http_client
 from clippings.sources.probe import PROBE_TIMEOUT, probe_audience
 from clippings.sources.robots import RobotsCache
@@ -254,6 +256,87 @@ def run(
             {one.id: store.digest_days(one.id) for one in everyone},
             panels,
         )
+
+
+@app.command("x-pick")
+def x_pick(
+    audience: Annotated[str | None, typer.Argument(help="One audience id, or all of them.")] = None,
+    audiences: AudienceDir = EXAMPLES,
+    db: DbPath = DEFAULT_DB,
+    lock: Annotated[Path, typer.Option(help="Run lock file.")] = DEFAULT_LOCK,
+    site: Annotated[Path, typer.Option(help="Directory the digest pages are written to.")] = (
+        DEFAULT_SITE
+    ),
+    bucket: Annotated[
+        str | None,
+        typer.Option(envvar="CLIPPINGS_BUCKET", help="Cloud Storage bucket. Production only."),
+    ] = None,
+) -> None:
+    """Add the X pick to each audience's latest digest, without rebuilding the digest.
+
+    For a day whose digest was made before X was switched on. One search, one model call and
+    one author lookup per audience, as in a run; an audience whose latest digest already has
+    a pick, or is too old for one to be shown, is left as it is.
+    """
+    selected = [one for one in _pick(audiences, audience) if one.sources.x.query]
+    with ExitStack() as stack:
+        try:
+            if bucket:
+                workdir = Path(stack.enter_context(TemporaryDirectory(prefix="clippings-")))
+                stack.enter_context(GcsRunLock(bucket))
+                sync = StateSync(GcsObjectStore(bucket), workdir)
+                sync.pull()
+                stack.callback(sync.push)
+                db, ledger = sync.db, sync.ledger
+                published: Site = GcsSite(bucket)
+            else:
+                stack.enter_context(LocalRunLock(lock))
+                ledger = db.parent / LEDGER_NAME
+                published = LocalSite(site)
+        except RunLockHeld as exc:
+            typer.echo(f"another run holds the lock: {exc}", err=True)
+            raise typer.Exit(code=3) from exc
+        client = _model_client(ledger)
+        if client is None:
+            raise typer.Exit(code=2)
+        if isinstance(client, GatewayClient):
+            stack.callback(client.close)
+        http = stack.enter_context(http_client())
+        store = stack.enter_context(Store.open(db))
+        context = FetchContext(
+            client=http,
+            gate=TermsGate(),
+            robots=RobotsCache(http),
+            now=datetime.now(UTC),
+            secrets=_secrets(),
+        )
+        run_id = new_run_id(context.now)
+        for one in selected:
+            days = store.digest_days(one.id)
+            digest = store.digest_for(one.id, days[0]) if days else None
+            if digest is None or digest.x_pick is not None:
+                typer.echo(
+                    f"{one.id:24s} skipped: {'no digest' if digest is None else 'has a pick'}"
+                )
+                continue
+            if not still_showing(digest, context.now):
+                typer.echo(f"{one.id:24s} skipped: {digest.day} is past its day")
+                continue
+            chosen = pick_x(one, context, store, client, run_id=run_id)
+            if chosen.post is None:
+                typer.echo(f"{one.id:24s} {digest.day} no pick: {chosen.detail}")
+                continue
+            updated = added_to(digest, chosen)
+            store.save_digest(updated)
+            publish_digest(published, updated, one.description, panel_for(one, store))
+            x = updated.x_pick
+            assert x is not None
+            typer.echo(
+                f"{one.id:24s} {digest.day} @{x.username}, {x.likes} likes [{x.rubric_score}]: "
+                f"{x.reason}; X reads US${x.reads_usd:.3f}"
+            )
+        if bucket:
+            store.checkpoint()
 
 
 def _model_client(ledger: Path) -> ModelClient | None:

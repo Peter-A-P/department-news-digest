@@ -47,7 +47,7 @@ It stops before the job if the `anthropic-api-key` secret has no value. Add it, 
 the optional ones, without the value touching the shell history:
 
 ```
-read -rs KEY && printf %s "$KEY" | gcloud secrets versions add anthropic-api-key --data-file=-
+read -rs "KEY?Paste the Anthropic API key, then Enter: " && echo && printf %s "$KEY" | gcloud secrets versions add anthropic-api-key --data-file=-
 ```
 
 | Secret | Needed for | Required |
@@ -77,22 +77,32 @@ documentation ([getting access](https://docs.x.com/x-api/getting-started/getting
 4. Check the token with one user read (US$0.01), without it touching the shell history:
 
 ```
-read -rs X_BEARER_TOKEN && curl -s -H "Authorization: Bearer $X_BEARER_TOKEN" \
+read -rs "X_BEARER_TOKEN?Paste the X Bearer Token, then Enter: " && echo && curl -s -H "Authorization: Bearer $X_BEARER_TOKEN" \
   https://api.x.com/2/users/by/username/XDevelopers
 ```
 
    A JSON `data` object with a `username` is a working token; 401 is a wrong token, 402 is no
    credits.
-5. Store it and redeploy, so the job maps the new secret:
+5. Store it and redeploy, so the job maps the new secret. The secret is created first if a
+   deploy has not made it yet; the billing account is read from the project rather than
+   typed:
 
 ```
+gcloud secrets describe x-bearer-token >/dev/null 2>&1 || \
+  gcloud secrets create x-bearer-token --replication-policy=automatic
 printf %s "$X_BEARER_TOKEN" | gcloud secrets versions add x-bearer-token --data-file=-
 unset X_BEARER_TOKEN
-PROJECT=clippings-digest BILLING_ACCOUNT=... deploy/deploy.sh
+PROJECT=clippings-digest BILLING_ACCOUNT="$(gcloud billing projects describe clippings-digest \
+  --format='value(billingAccountName)' | cut -d/ -f2)" deploy/deploy.sh
 ```
 
 The next morning's run prints an `x pick` line per audience: the post and its cost, or why
-there was none.
+there was none. To add a pick to the digests already published today instead of waiting,
+run the job once with the `x-pick` command; it leaves the digests otherwise as they are:
+
+```
+gcloud run jobs execute clippings-daily --region=us-east1 --args=x-pick --wait
+```
 
 ## After the deploy
 
