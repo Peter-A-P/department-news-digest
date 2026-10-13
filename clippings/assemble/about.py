@@ -83,8 +83,9 @@ what the model calls cost, taken from the spending ledger.</li>
 that the audience's rubric would want, even when no article covers it. A model scores the
 popular candidates against the rubric with rules for posts on top (no jokes, insults or
 posts about private individuals), and the page shows the post's own words, its author and a
-link. Where X is switched on, a second post is chosen the same way from X's ten most relevant
-posts of the day, read through its paid API, and shown whole on that day only, as X's rules
+link. Where X is switched on, a second post is chosen the same way from the day's posts by a
+short list of people in public roles, read through X's paid API, leaving out any that only
+share an article the digest already has, and shown whole on that day only, as X's rules
 ask. Every model call goes through the portfolio's compliant AI gateway, which records it,
 prices it and enforces hard daily and monthly spending caps.</p>
 <ul class="chips" aria-label="Built with">

@@ -163,12 +163,14 @@ sources:
       - AI model release
       - AI regulation
     limit: 50
-  # One X post a day, the most discussed one the rubric wants, shown whole on its day
-  # only (rank/x_pick.py). Ten candidates, X's minimum, is about US$0.06 a day. Leave
+  # One X post a day, shown whole on its day only (rank/x_pick.py), from named people in
+  # their public roles: lab leaders, researchers and policy people. Not outlets, whose
+  # posts share the reports this digest already has from their feeds. Handles checked
+  # against X on 2026-10-13. Ten candidates, X's minimum, is about US$0.06 a day. Leave
   # the query empty for an audience that serves a government body: X requires an
   # Enterprise plan for that (docs/sources.md).
   x:
-    query: '"artificial intelligence" OR OpenAI OR Anthropic OR "Google DeepMind" OR "AI regulation" OR "AI safety"'
+    query: 'from:sama OR from:gdb OR from:DarioAmodei OR from:jackclarkSF OR from:demishassabis OR from:JeffDean OR from:mustafasuleyman OR from:karpathy OR from:AndrewYNg OR from:ylecun OR from:fchollet OR from:emollick OR from:GaryMarcus OR from:Miles_Brundage OR from:hlntnr'
     candidates: 10
 
 trusted_sources:

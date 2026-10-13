@@ -105,12 +105,12 @@ sources:
       - Newfoundland Labrador
       - NL politics
     limit: 50
-  # One X post a day, the most discussed one the rubric wants, shown whole on its day
-  # only (rank/x_pick.py). Ten candidates, X's minimum, is about US$0.06 a day. Leave
-  # the query empty for an audience that serves a government body: X requires an
-  # Enterprise plan for that (docs/sources.md).
+  # X is off for this audience (2026-10-13). The people a regional newsroom would follow
+  # here are mostly no longer on X: the City of St. John's deactivated its X accounts in
+  # April 2025, and of the reporters and politicians looked up only the Premier, a union
+  # and a few commentators were found. Bluesky carries this audience's discussion.
   x:
-    query: '"Newfoundland and Labrador" OR Newfoundland OR #nlpoli OR "Corner Brook"'
+    query: ''
     candidates: 10
 
 trusted_sources: []

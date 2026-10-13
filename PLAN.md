@@ -161,6 +161,18 @@ candidates not picked are never stored. And X requires an Enterprise plan before
 shown to anyone acting for a government body, so X is on for the public example audiences
 only, and is not part of what is offered to departments.
 
+The first pick, on 2026-10-12, found nothing for any audience, and the reason changed the
+design (2026-10-13). A topic search's ten "most relevant" posts were reposted headlines with
+no likes, and the few popular ones were jokes and political rants the rubric rightly refused.
+Searching the outlets instead would only repeat their own reports, which the digest has from
+their feeds. So an audience's X query names people in their public roles (for AI, lab leaders,
+researchers and policy people; for Toronto, city hall reporters and columnists, and no
+candidates before the 2026-10-26 election), and a post that links to an article already in
+the day's digest is dropped before the model sees it. X is off for Newfoundland and Labrador
+and for public health in Canada: the people those audiences would follow are mostly no longer
+on X (the City of St. John's closed its accounts in April 2025, and much of the health and
+science community moved to Bluesky), and Bluesky carries that discussion.
+
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 
 The summariser writes each digest sentence with the item ids it draws on and marks quotes
@@ -310,15 +322,15 @@ a sixth of the cost per call; at low effort it agreed less with the labels and w
 | Re-ranking | 60 candidates per audience per day; Haiku 5.5 since 2026-10-10 (Haiku 4.5, about US$0.013 measured, before) | 0.002 per audience-day | |
 | Summaries | About 10 stories per digest at about 3,000 tokens in and 400 out; Sonnet 5 | 0.10 per audience-day | |
 | Running cost, four audiences | About US$0.10 per audience-day, 30 days | 12 per month | 16 per month |
-| X API, since 2026-10-10 | Ten post reads and one user read per audience per day, four audiences, at list price; capped at US$10 a month in code | 7.20 per month | 9.70 per month |
+| X API, since 2026-10-12 | Ten post reads and one user read per audience per day, two audiences (AI and Toronto), at list price; capped at US$10 a month in code | 3.60 per month | 4.90 per month |
 | Cloud Run job and service, Scheduler, Storage | Within free tiers at this volume; egress a few GB | 0 to 3 per month | 0 to 4 per month |
 | Build month | Development reruns, the labelled week rerun under five configurations, faithfulness sample | 40 | 54 |
 | **Build** | | **40** | **54** |
-| **Running** | | **19 to 22 per month** | **26 to 30 per month** |
+| **Running** | | **16 to 19 per month** | **21 to 25 per month** |
 
 Still under the CA$40 per month the project file estimated, with less room than before:
 the fourth audience added on 2026-09-13 costs about a third more to run, and X adds about
-CA$10. The difference is
+CA$5. The difference is
 a small model for
 re-ranking and the pre-filter that keeps the model away from the full pool. Outside the
 plan's budget, as an alongside project; actuals still go in the plan repository's STATUS.

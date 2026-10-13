@@ -35,6 +35,7 @@ from clippings.sources.x import (
     XUnavailable,
     author,
     headroom,
+    link_keys,
     post_url,
     search,
     spent_usd,
@@ -66,7 +67,10 @@ def pick_x(
     client: ModelClient,
     *,
     run_id: str,
+    covered: frozenset[str] = frozenset(),
 ) -> XChoice:
+    """`covered` is the day's digest's sources as `link_keys`: a post that links to one of
+    them repeats a story the reader already has, and is not a candidate."""
     config = audience.sources.x
     if not config.query:
         return XChoice(detail="off for this audience")
@@ -100,12 +104,15 @@ def pick_x(
     log(config.query, read, True)
     cost = read * PRICE_POST_USD
 
+    new = [post for post in posts if not link_keys(post.links) & covered]
     eligible = sorted(
-        (post for post in posts if post.likes >= MIN_LIKES),
+        (post for post in new if post.likes >= MIN_LIKES),
         key=lambda post: (-post.engagement, post.id),
     )
     if not eligible:
-        return XChoice(reads_usd=cost, detail=f"no post with {MIN_LIKES} likes")
+        dropped = len(posts) - len(new)
+        repeats = f", {dropped} linked a story in the digest" if dropped else ""
+        return XChoice(reads_usd=cost, detail=f"no new post with {MIN_LIKES} likes{repeats}")
     lines = [
         PostLine(f"user {post.author_id}", post.likes, post.replies, post.text) for post in eligible
     ]

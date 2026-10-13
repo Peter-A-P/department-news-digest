@@ -323,3 +323,38 @@ def test_a_pick_added_later_keeps_the_digest_s_day_and_counts_its_call(
     assert expired_x_pick(updated, NOW + timedelta(hours=X_POST_SHOWN_HOURS)) is not None
     assert still_showing(published, NOW + timedelta(hours=X_POST_SHOWN_HOURS - 1))
     assert not still_showing(published, NOW + timedelta(hours=X_POST_SHOWN_HOURS))
+
+
+def test_a_post_sharing_a_story_already_in_the_digest_is_not_a_candidate(
+    on: Audience, store: Store
+) -> None:
+    from clippings.sources.x import link_keys
+
+    shared = raw_post("shared", 900) | {
+        "entities": {"urls": [{"expanded_url": "https://www.gov.example/a?utm_source=x"}]}
+    }
+    photo = raw_post("photo", 60) | {
+        "entities": {"urls": [{"expanded_url": "https://x.com/a/status/1/photo/1"}]}
+    }
+    assert parse_search({"data": [photo]})[0].links == ()
+    context, _ = context_for(x_api([shared, photo]))
+    client = scores((2, "new"))
+    covered = link_keys(["https://gov.example/a"])
+    chosen = pick_x(on, context, store, client, run_id="r", covered=covered)
+    # The story's own link, however X wrote it, takes the busier post out of the running.
+    assert chosen.post is not None and chosen.post.id == "photo"
+    assert "shared" not in client.calls[0].user and "900 likes" not in client.calls[0].user
+
+
+def test_when_every_busy_post_repeats_the_digest_there_is_no_pick(
+    on: Audience, store: Store
+) -> None:
+    from clippings.sources.x import link_keys
+
+    shared = raw_post("shared", 900) | {
+        "entities": {"urls": [{"unwound_url": "https://gov.example/a"}]}
+    }
+    context, _ = context_for(x_api([shared, raw_post("quiet", 2)]))
+    covered = link_keys(["https://gov.example/a"])
+    chosen = pick_x(on, context, store, scores(), run_id="r", covered=covered)
+    assert chosen.post is None and "1 linked a story in the digest" in chosen.detail

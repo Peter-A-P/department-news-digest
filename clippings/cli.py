@@ -73,6 +73,7 @@ from clippings.sources.terms import (
     load_terms,
     record_reading,
 )
+from clippings.sources.x import link_keys
 
 app = typer.Typer(add_completion=False, help=__doc__)
 sources_app = typer.Typer(help="The terms record and what it permits.")
@@ -322,7 +323,8 @@ def x_pick(
             if not still_showing(digest, context.now):
                 typer.echo(f"{one.id:24s} skipped: {digest.day} is past its day")
                 continue
-            chosen = pick_x(one, context, store, client, run_id=run_id)
+            covered = link_keys(source.url for story in digest.stories for source in story.sources)
+            chosen = pick_x(one, context, store, client, run_id=run_id, covered=covered)
             if chosen.post is None:
                 typer.echo(f"{one.id:24s} {digest.day} no pick: {chosen.detail}")
                 continue

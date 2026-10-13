@@ -45,6 +45,7 @@ from clippings.rank.select import candidates_for_rerank
 from clippings.rank.spotlight import Pick, pick, quote
 from clippings.rank.x_pick import XChoice, pick_x, shown
 from clippings.sources.base import FetchContext, Source
+from clippings.sources.x import link_keys
 from clippings.summarise.run import (
     StoryWork,
     any_need_repair,
@@ -201,7 +202,14 @@ def node_x_pick(state: State) -> State:
     """The day's most discussed X post the rubric wants, if X is on for the audience."""
     p = state["pipeline"]
     assert p.client is not None
-    chosen = pick_x(p.audience, p.context, p.store, p.client, run_id=p.run_id)
+    pool = state["pool"]
+    covered = link_keys(
+        pool[item_id].url
+        for story in state["chosen"]
+        for item_id in story.cluster.item_ids
+        if item_id in pool
+    )
+    chosen = pick_x(p.audience, p.context, p.store, p.client, run_id=p.run_id, covered=covered)
     found = chosen.author.username if chosen.author is not None else chosen.detail
     return {"x_pick": chosen, "trace": _trace(state, f"x_pick:{found}")}
 

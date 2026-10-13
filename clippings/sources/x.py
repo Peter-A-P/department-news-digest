@@ -20,14 +20,17 @@ and the run carries on without the section.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from html import unescape
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
 from clippings.config.audience import Audience
+from clippings.ingest.normalise import NormaliseError, dedup_key
 from clippings.sources.base import FetchContext
 
 SOURCE_KEY = "x"
@@ -43,6 +46,9 @@ PRICE_USER_USD = 0.010
 MONTHLY_CAP_USD = 10.0
 # The fetch log's origin for an author lookup, so its price can be told from a search's.
 AUTHOR_ORIGIN = "author lookup"
+
+# A link to a post, a photo or a video on X is not an article.
+X_HOSTS = frozenset({"x.com", "www.x.com", "twitter.com", "www.twitter.com", "t.co"})
 
 # The pick is the day's: the last twenty-four hours, whatever the watermark of other sources.
 WINDOW = timedelta(hours=24)
@@ -66,6 +72,8 @@ class XPost:
     likes: int
     reposts: int
     replies: int
+    # The articles the post links to, as X expanded them; X's own links are left out.
+    links: tuple[str, ...] = ()
 
     @property
     def engagement(self) -> int:
@@ -114,6 +122,31 @@ def headroom(spent: float, candidates: int) -> bool:
     return spent + candidates * PRICE_POST_USD + PRICE_USER_USD <= MONTHLY_CAP_USD
 
 
+def link_keys(urls: Iterable[str]) -> frozenset[str]:
+    """The links in the form an item's id is made from, so a post's link and a story's
+    source match however each was written. A link that is not http(s) is left out."""
+    keys = set()
+    for url in urls:
+        try:
+            keys.add(dedup_key(url))
+        except NormaliseError:
+            continue
+    return frozenset(keys)
+
+
+def _links(raw: dict[str, Any]) -> tuple[str, ...]:
+    entities = raw.get("entities")
+    found = entities.get("urls") if isinstance(entities, dict) else None
+    links = []
+    for entry in found if isinstance(found, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        url = entry.get("unwound_url") or entry.get("expanded_url")
+        if isinstance(url, str) and urlsplit(url).hostname not in X_HOSTS:
+            links.append(url)
+    return tuple(links)
+
+
 def _int(metrics: dict[str, Any], key: str) -> int:
     value = metrics.get(key)
     return value if isinstance(value, int) else 0
@@ -159,6 +192,7 @@ def parse_search(payload: Any) -> tuple[XPost, ...]:
                 likes=_int(metrics, "like_count"),
                 reposts=_int(metrics, "retweet_count"),
                 replies=_int(metrics, "reply_count"),
+                links=_links(raw),
             )
         )
     return tuple(posts)
@@ -196,7 +230,9 @@ def search(audience: Audience, context: FetchContext) -> tuple[tuple[XPost, ...]
             "max_results": str(audience.sources.x.candidates),
             "sort_order": "relevancy",
             "start_time": (context.now - WINDOW).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "tweet.fields": "created_at,public_metrics,author_id,note_tweet,possibly_sensitive",
+            "tweet.fields": (
+                "created_at,public_metrics,author_id,note_tweet,possibly_sensitive,entities"
+            ),
         },
     )
     return parse_search(payload), billed(payload)
