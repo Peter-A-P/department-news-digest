@@ -150,7 +150,17 @@ The pick's whole post is shown (Peter, 2026-10-10; Bluesky caps a post at 300 ch
 since 2026-10-13 as a post card like the X pick's: the author's picture, display name and
 handle above the text, Bluesky's mark, the time linking to the post and the counts. The
 name and picture come from Bluesky's free public API when the post is picked, are cleared
-with the words, and are filled in for older picks by the daily check below. A post is its author's to delete, so each run checks the picks of the last
+with the words, and are filled in for older picks by the daily check below.
+
+The Bluesky pick also reads named people since 2026-10-13, as the X pick does: each audience
+lists people in public roles (reporters, columnists, researchers, physicians; no politicians
+where only some parties could be listed, and no candidates during an election), and their own
+recent posts are read from Bluesky's free public author feeds. They enter the pool like any
+post: one about a story joins it as commentary, and one that joins no story competes for the
+pick with the search results, most engaged first. The model is now shown the sixteen most
+engaged rather than eight, because a person's most liked post of the day is often off topic.
+For Newfoundland and Labrador and public health, where X is off, this is where the people
+those audiences follow are. A post is its author's to delete, so each run checks the picks of the last
 thirty days against Bluesky's public API and removes the words of any post that no longer
 exists, and after thirty days a pick keeps only its twenty-five-word quote. Reddit posts are
 never shown beyond the quote: the access request to Reddit said so.

@@ -84,6 +84,17 @@ sources:
     queries:
       - Canada public health
       - PHAC outbreak
+    # People whose own posts are candidates for the day's Bluesky post: infectious disease
+    # physicians, epidemiologists and a health columnist.
+    # Handles checked against Bluesky on 2026-10-13. Their posts join a story only
+    # when they are about one, like any other post.
+    people:
+      - isaacbogoch.bsky.social
+      - deonandan.bsky.social
+      - furnesscolin.bsky.social
+      - picardonhealth.bsky.social
+      - moriartylab.bsky.social
+      - kashprime.bsky.social
     limit: 50
   # X is off for this audience (2026-10-13). Much of Canada's health and science community
   # has moved to Bluesky; of the people looked up, only the Chief Public Health Officer,

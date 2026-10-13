@@ -16,6 +16,7 @@ from html import escape
 
 from clippings.config.audience import Audience
 from clippings.ingest.store import FetchRecord, Store
+from clippings.sources.bluesky import person_origin
 from clippings.sources.terms import TermsRecordError, TermsRow, load_terms
 
 
@@ -85,6 +86,17 @@ def source_lines(audience: Audience) -> list[SourceLine]:
             "posts appear only inside news stories",
         )
         for query in sources.bluesky.queries
+    ]
+    lines += [
+        SourceLine(
+            "Bluesky account",
+            f"@{handle}",
+            f"https://bsky.app/profile/{handle}",
+            "bluesky",
+            ("bluesky", person_origin(handle)),
+            "candidate for the day's post; otherwise only inside news stories",
+        )
+        for handle in sources.bluesky.people
     ]
     if sources.x.query:
         lines.append(

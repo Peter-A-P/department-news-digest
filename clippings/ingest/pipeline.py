@@ -23,7 +23,7 @@ from clippings.rank.features import embed_stories
 from clippings.rank.score import ScoredStory, score_stories
 from clippings.rank.select import Selection, candidates_for_rerank, select
 from clippings.sources.base import FetchContext, FetchResult, Source
-from clippings.sources.bluesky import BlueskySource
+from clippings.sources.bluesky import BlueskySource, person_origin
 from clippings.sources.gdelt import GdeltSource
 from clippings.sources.reddit import RedditSource
 from clippings.sources.rss import RssSource
@@ -131,6 +131,7 @@ def _watermarks(store: Store, audience: Audience) -> dict[tuple[str, str], datet
         ("gdelt", audience.sources.gdelt.queries),
         ("reddit", audience.sources.reddit.subreddits),
         ("bluesky", audience.sources.bluesky.queries),
+        ("bluesky", tuple(map(person_origin, audience.sources.bluesky.people))),
     ):
         for origin in origins:
             mark = store.watermark(audience.id, key, origin)

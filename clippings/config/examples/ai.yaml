@@ -162,6 +162,23 @@ sources:
     queries:
       - AI model release
       - AI regulation
+    # People whose own posts are candidates for the day's Bluesky post: lab-adjacent
+    # researchers, critics and AI reporters.
+    # Handles checked against Bluesky on 2026-10-13. Their posts join a story only
+    # when they are about one, like any other post.
+    people:
+      - garymarcus.bsky.social
+      - emollick.bsky.social
+      - melaniemitchell.bsky.social
+      - mmitchell.bsky.social
+      - emilymbender.bsky.social
+      - timnitgebru.blacksky.app
+      - randomwalker.bsky.social
+      - simonwillison.net
+      - karenhao.bsky.social
+      - caseynewton.bsky.social
+      - hlntnr.bsky.social
+      - katecrawford.bsky.social
     limit: 50
   # One X post a day, shown whole on its day only (rank/x_pick.py), from named people in
   # their public roles: lab leaders, researchers and policy people. Not outlets, whose

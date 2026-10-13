@@ -94,6 +94,16 @@ sources:
     queries:
       - Toronto council
       - TTC
+    # People whose own posts are candidates for the day's Bluesky post: the Toronto Star's
+    # city hall reporters and city columnists; no candidates before the 2026-10-26 election.
+    # Handles checked against Bluesky on 2026-10-13. Their posts join a story only
+    # when they are about one, like any other post.
+    people:
+      - benspurr.bsky.social
+      - alyshah.bsky.social
+      - dmrider.bsky.social
+      - graphicmatt.com
+      - shawnmicallef.bsky.social
     limit: 50
   # One X post a day, shown whole on its day only (rank/x_pick.py), from the Toronto Star's
   # city hall reporters and city columnists. Not outlets, whose posts share the reports this

@@ -62,6 +62,19 @@ def access_token(context: FetchContext) -> str:
     return str(token)
 
 
+def own_posts(payload: Any) -> dict[str, list[Any]]:
+    """An author feed as a search response, without the posts the author only reposted."""
+    feed = payload.get("feed") if isinstance(payload, dict) else None
+    entries = feed if isinstance(feed, list) else []
+    return {
+        "posts": [
+            entry["post"]
+            for entry in entries
+            if isinstance(entry, dict) and not entry.get("reason") and "post" in entry
+        ]
+    }
+
+
 def post_url(uri: str, handle: str) -> str:
     """A web link for an `at://did/app.bsky.feed.post/rkey` URI."""
     rkey = uri.rsplit("/", 1)[-1]
@@ -145,18 +158,28 @@ def parse_posts(
     return tuple(items)
 
 
+def person_origin(handle: str) -> str:
+    """The origin a person's posts are logged and watermarked under."""
+    return f"from:{handle}"
+
+
 class BlueskySource:
-    """One search request per query in the audience file."""
+    """One search request per query in the audience file, and one author feed per person."""
 
     kind: SourceKind = "bluesky"
 
     def fetch(self, audience: Audience, context: FetchContext) -> Iterator[FetchResult]:
         config = audience.sources.bluesky
-        if not config.queries:
+        if not config.queries and not config.people:
             return
         if not context.permitted(SOURCE_KEY):
-            for query in config.queries:
-                yield context.refusal(SOURCE_KEY, query)
+            for origin in (*config.queries, *map(person_origin, config.people)):
+                yield context.refusal(SOURCE_KEY, origin)
+            return
+        # A person's own posts come from the public AppView, which needs no session.
+        for handle in config.people:
+            yield self._fetch_person(handle, context, audience.languages)
+        if not config.queries:
             return
         try:
             token = access_token(context)
@@ -168,6 +191,28 @@ class BlueskySource:
             yield self._fetch_one(
                 query, config.limit, token, context, audience.languages, config.sort
             )
+
+    def _fetch_person(
+        self, handle: str, context: FetchContext, languages: tuple[str, ...]
+    ) -> FetchResult:
+        origin = person_origin(handle)
+        since = context.since(SOURCE_KEY, origin)
+        try:
+            response = context.client.get(
+                f"{PUBLIC}/app.bsky.feed.getAuthorFeed",
+                params={"actor": handle, "limit": "30", "filter": "posts_no_replies"},
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except httpx.HTTPError as exc:
+            return FetchResult.failure(SOURCE_KEY, origin, f"{type(exc).__name__}: {exc}")
+        except ValueError as exc:
+            return FetchResult.failure(SOURCE_KEY, origin, f"not JSON: {exc}")
+        return FetchResult(
+            source_key=SOURCE_KEY,
+            origin=origin,
+            items=parse_posts(own_posts(payload), origin, since, languages),
+        )
 
     def _fetch_one(
         self,

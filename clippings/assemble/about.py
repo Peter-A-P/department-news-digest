@@ -80,7 +80,8 @@ owner may send. Each page shows why every story was chosen, what the verifier re
 what the model calls cost, taken from the spending ledger.</li>
 </ol>
 <p>Beside the stories, each digest may show one Bluesky post: the day's most discussed post
-that the audience's rubric would want, even when no article covers it. A model scores the
+that the audience's rubric would want, even when no article covers it, from a search and from
+a short list of people in public roles the audience would follow. A model scores the
 popular candidates against the rubric with rules for posts on top (no jokes, insults or
 posts about private individuals), and the page shows the post's own words, its author and a
 link. Where X is switched on, a second post is chosen the same way from the day's posts by a

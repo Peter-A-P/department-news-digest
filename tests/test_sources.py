@@ -508,3 +508,56 @@ def test_bluesky_replies_and_accounts_without_a_name_are_skipped() -> None:
     }
     items = parse_posts(payload, "q", since=NOW - timedelta(days=1))
     assert [item.url.rsplit("/", 1)[-1] for item in items] == ["1"]
+
+
+def feed_post(rkey: str, likes: int, text: str = "A post about the transit plan") -> dict:  # type: ignore[type-arg]
+    return {
+        "uri": f"at://did:plc:x/app.bsky.feed.post/{rkey}",
+        "author": {"handle": "reporter.bsky.social", "displayName": "A Reporter"},
+        "record": {"text": text, "createdAt": "2026-09-12T10:00:00Z"},
+        "likeCount": likes,
+        "replyCount": 0,
+    }
+
+
+def test_a_person_s_own_posts_are_read_without_a_session_and_reposts_are_left_out() -> None:
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        assert "Authorization" not in request.headers
+        assert request.url.path == "/xrpc/app.bsky.feed.getAuthorFeed"
+        return httpx.Response(
+            200,
+            json={
+                "feed": [
+                    {"post": feed_post("own", 40)},
+                    {"post": feed_post("shared", 900), "reason": {"$type": "repost"}},
+                ]
+            },
+        )
+
+    audience = audience_with({"bluesky": {"people": ["reporter.bsky.social"]}})
+    (result,) = BlueskySource().fetch(audience, context_with(handler, bluesky="allowed"))
+    assert result.ok and result.origin == "from:reporter.bsky.social"
+    assert [item.url.rsplit("/", 1)[-1] for item in result.items] == ["own"]
+    assert result.items[0].score == 40 and len(seen) == 1
+
+
+def test_people_are_refused_with_the_rest_when_bluesky_is_not_allowed() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("no request should be sent")
+
+    audience = audience_with({"bluesky": {"people": ["reporter.bsky.social"]}})
+    (result,) = BlueskySource().fetch(audience, context_with(handler, bluesky="pending"))
+    assert not result.ok and result.detail.startswith("refused")
+
+
+def test_a_handle_is_given_without_the_at_sign() -> None:
+    from pydantic import ValidationError
+
+    from clippings.config.audience import BlueskySource as BlueskyConfig
+
+    with pytest.raises(ValidationError):
+        BlueskyConfig(people=("@reporter.bsky.social",))
+    assert "bluesky" in audience_with({"bluesky": {"people": ["a.bsky.social"]}}).terms_keys()

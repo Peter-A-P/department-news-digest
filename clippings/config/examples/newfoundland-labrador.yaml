@@ -104,6 +104,18 @@ sources:
     queries:
       - Newfoundland Labrador
       - NL politics
+    # People whose own posts are candidates for the day's Bluesky post: reporters and
+    # commentators; no politicians, because the Premier is not on Bluesky and a list with
+    # only some party leaders would favour them.
+    # Handles checked against Bluesky on 2026-10-13. Their posts join a story only
+    # when they are about one, like any other post.
+    people:
+      - zachgoudie.bsky.social
+      - maddie-ryan.bsky.social
+      - ashleyfitznl.bsky.social
+      - justinbrake.bsky.social
+      - jamespmcleod.ca
+      - drewfoundland.bsky.social
     limit: 50
   # X is off for this audience (2026-10-13). The people a regional newsroom would follow
   # here are mostly no longer on X: the City of St. John's deactivated its X accounts in

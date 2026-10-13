@@ -112,9 +112,13 @@ class RedditSource(Strict):
 
 
 class BlueskySource(Strict):
-    """Public AT Protocol search terms."""
+    """Public AT Protocol search terms, and people whose posts are read directly."""
 
     queries: tuple[str, ...] = ()
+    # Handles of people in public roles (reporters, officials, researchers) whose own recent
+    # posts are read from their public author feed, as candidates for the day's pick beside
+    # the search results (2026-10-13). Replies and reposts are left out.
+    people: tuple[str, ...] = ()
     limit: int = Field(default=50, ge=1, le=100)
     # "top" since 2026-10-08. Posts now count only as corroboration of a news story, and the
     # top posts are the substantial ones; "latest" returned the first minutes of replies.
@@ -125,6 +129,16 @@ class BlueskySource(Strict):
     def _known_sort(cls, value: str) -> str:
         if value not in {"top", "latest"}:
             raise ValueError("sort must be one of: top, latest")
+        return value
+
+    @field_validator("people")
+    @classmethod
+    def _handles(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        for handle in value:
+            if handle.startswith("@") or not DOMAIN.fullmatch(handle):
+                raise ValueError(
+                    f"give a Bluesky handle without the @, such as 'name.bsky.social': {handle!r}"
+                )
         return value
 
 
@@ -314,7 +328,7 @@ class Audience(Strict):
             keys.add("gdelt")
         if self.sources.reddit.subreddits:
             keys.add("reddit")
-        if self.sources.bluesky.queries:
+        if self.sources.bluesky.queries or self.sources.bluesky.people:
             keys.add("bluesky")
         if self.sources.x.query:
             keys.add("x")

@@ -27,8 +27,10 @@ from clippings.rank.rerank import local_ids, parse_scores
 # post-only stories that day ran from 0 to 171 likes, and the ones a reader would call a
 # conversation started in the tens.
 MIN_LIKES = 10
-# How many posts the model is shown: the most engaged, so the call stays a few hundred tokens.
-CANDIDATES = 8
+# How many posts the model is shown: the most engaged, so the call stays a few hundred
+# tokens. Sixteen since the people lists (2026-10-13): a reporter's or researcher's most
+# liked post of the day is often off the audience's topic, and eight could all be that.
+CANDIDATES = 16
 MIN_SCORE = 2
 QUOTE_WORDS = 25
 # Eight short lines, plus Haiku 5.5's thinking, which counts against the limit.
