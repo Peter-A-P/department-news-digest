@@ -27,28 +27,28 @@ file an owner can send. It has no send path.
 ## Result
 
 <!-- report:start -->
-Measured over 15 digests from 2026-10-07 to 2026-10-10, by `clippings report` on 2026-10-11. 95% intervals throughout. 4 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
+Measured over 23 digests from 2026-10-07 to 2026-10-12, by `clippings report` on 2026-10-13. 95% intervals throughout. 12 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
 
 **Relevance, per audience, against a hand-labelled week**
 
 | Audience | Precision at K (95% CI) | Recall of must-read stories, importance-weighted (95% CI) | Must-read stories per day | Recall of all relevant stories | Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |
 |---|---|---|---|---|---|---|---|---|
-| Artificial intelligence | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 8.7 (6.0 to 10.0) | CA$0.064 (CA$0.051 to CA$0.075) |
-| Municipal affairs, Toronto | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 8.5 (5.5 to 10.0) | CA$0.090 (CA$0.063 to CA$0.105) |
-| Regional affairs, Newfoundland and Labrador | 82% (70% to 92%), 4 days | 58% (50% to 61%) | 9.7 (9.0 to 10.2) | 42% (39% to 44%) | 19.8 (14.8 to 24.6) | _not yet_ | 10.0 on all 4 | CA$0.081 (CA$0.078 to CA$0.085) |
-| Public health in Canada | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | _not yet_ | 7.8 (5.8 to 9.5) | CA$0.077 (CA$0.063 to CA$0.092) |
+| Artificial intelligence | 79% (57% to 100%), 2 days | 100% (70% to 100%) | 3.5 (2.0 to 5.0) | 79% (65% to 79%) | 7.0 (4.0 to 10.0) | _not yet_ | 8.0 (5.6 to 10.0) | CA$0.055 (CA$0.038 to CA$0.069) |
+| Municipal affairs, Toronto | 33% (0% to 100%), 2 days | 25% (12% to 25%) | 2.0 on all 2 | 8% (6% to 8%) | 6.5 (4.0 to 9.0) | _not yet_ | 6.2 (3.2 to 9.0) | CA$0.064 (CA$0.033 to CA$0.095) |
+| Regional affairs, Newfoundland and Labrador | 85% (75% to 93%), 6 days | 66% (56% to 67%) | 8.8 (7.8 to 9.9) | 45% (42% to 47%) | 18.9 (15.4 to 22.5) | _not yet_ | 10.0 on all 6 | CA$0.077 (CA$0.069 to CA$0.083) |
+| Public health in Canada | 100% (33% to 100%), 2 days | 100% (100% to 100%) | 0.5 (0.0 to 1.0) | 67% (67% to 67%) | 1.5 (0.0 to 3.0) | _not yet_ | 5.5 (2.7 to 8.2) | CA$0.054 (CA$0.026 to CA$0.080) |
 
 **Pipeline properties**
 
 | Deduplication precision / recall (pairs) | Collapse rate | Quotes verbatim, before / after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime, measurement month |
 |---|---|---|---|---|---|---|---|
-| _not yet_ (pair labels) | 1.17 (1.14 to 1.22) items per story | 100% (93% to 100%) / 100% (93% to 100%) | 100% (99% to 100%) | _not yet_ (hand check) | 25 h (20 to 30) / 44 h (43 to 45) | _not yet_ (reader study) | _not yet_ (measurement month) |
+| _not yet_ (pair labels) | 1.15 (1.12 to 1.19) items per story | 100% (95% to 100%) / 100% (95% to 100%) | 100% (99% to 100%) | _not yet_ (hand check) | 26 h (22 to 33) / 43 h (43 to 44) | _not yet_ (reader study) | _not yet_ (measurement month) |
 
-Most discussed on Bluesky, judged worth showing: Artificial intelligence _not yet_; Municipal affairs, Toronto _not yet_; Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. A separate section below the stories, not counted in precision or recall.
+Most discussed on Bluesky, judged worth showing: Artificial intelligence _not yet_; Municipal affairs, Toronto 0% (0% to 86%); Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. A separate section below the stories, not counted in precision or recall.
 
-Most discussed on X, judged worth showing: Artificial intelligence _not yet_; Municipal affairs, Toronto _not yet_; Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API, while Reddit access is pending.
+Most discussed on X, judged worth showing: Artificial intelligence 100% (14% to 100%); Municipal affairs, Toronto _not yet_; Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API, while Reddit access is pending.
 
-All four digests together cost CA$0.296 (CA$0.274 to CA$0.317) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
+All four digests together cost CA$0.241 (CA$0.173 to CA$0.299) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
 <!-- report:end -->
 
 ## What this does not do
