@@ -247,7 +247,8 @@ def run(
         if context.permitted("bluesky"):
             changed = recheck_picks(store, published, everyone, http, context.now, panels)
             typer.echo(
-                f"bluesky     {len(changed)} picked posts deleted or aged out, pages updated"
+                f"bluesky     {len(changed)} picked posts deleted, aged out or given their "
+                "author, pages updated"
             )
         # An X pick is shown on its day only, whether or not X is still allowed.
         expired = expire_x_picks(store, published, everyone, datetime.now(UTC), panels)

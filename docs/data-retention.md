@@ -61,7 +61,9 @@ A Reddit post or Bluesky post deleted by its author is honoured by the retention
 nothing here is kept longer than thirty days, and a published digest quotes at most
 twenty-five words of what was public when it was fetched.
 
-The one post a digest may show in full is the day's Bluesky pick, under "Show full post".
+One post a digest may show in full is the day's Bluesky pick, as a post card with its
+author's display name and picture, which come from Bluesky's public API and are removed
+with the words.
 Each run checks the picks of the last thirty days against Bluesky's public API
 (`clippings.assemble.deletions`): a post that no longer exists, or whose author's handle no
 longer resolves, has its words removed from the stored digest and its page, which then

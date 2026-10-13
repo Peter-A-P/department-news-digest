@@ -196,27 +196,22 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
   background: var(--paper-soft); border: 1px solid var(--line);
   border-left: 3px solid var(--violet); border-radius: var(--radius); }
 .spotlight .eyebrow { color: var(--violet); }
-.post-text { white-space: pre-wrap; margin: 0.6rem 0; padding: 0.7rem 0.9rem;
-  border-left: 2px solid var(--violet); color: var(--ink-soft); }
-.full-post { margin: 0 0 0.6rem; }
-.spotlight blockquote { margin: 0.2rem 0 0.6rem; font-family: var(--serif);
-  font-size: 1.2rem; line-height: 1.4; color: var(--ink); }
-.x-card { margin: 0.4rem 0 0.7rem; padding: 0.9rem 1rem; border: 1px solid var(--line-2);
+.post-card { margin: 0.4rem 0 0.7rem; padding: 0.9rem 1rem; border: 1px solid var(--line-2);
   border-radius: var(--radius); background: var(--paper); }
-.x-head { display: flex; align-items: center; gap: 0.6rem; }
-.x-avatar { width: 40px; height: 40px; border-radius: 50%; display: block; }
-.x-who { flex: 1; min-width: 0; line-height: 1.25; }
-.x-who a { display: block; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
-.x-name { font-weight: 600; }
-.x-who .x-user { color: var(--ink-faint); font-size: 0.86rem; }
-.x-logo { color: var(--ink); align-self: flex-start; }
-.x-card svg { width: 20px; height: 20px; display: block; }
-.x-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.7rem 0 0.5rem;
+.pc-head { display: flex; align-items: center; gap: 0.6rem; }
+.pc-avatar { width: 40px; height: 40px; border-radius: 50%; display: block; }
+.pc-who { flex: 1; min-width: 0; line-height: 1.25; }
+.pc-who a { display: block; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.pc-name { font-weight: 600; }
+.pc-who .pc-user { color: var(--ink-faint); font-size: 0.86rem; }
+.pc-logo { color: var(--ink); align-self: flex-start; }
+.post-card svg { width: 20px; height: 20px; display: block; }
+.pc-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.7rem 0 0.5rem;
   font-size: 1.02rem; line-height: 1.5; color: var(--ink); }
-.x-time { margin: 0; font-size: 0.82rem; }
-.x-time a { color: var(--ink-faint); }
-.x-actions { display: flex; gap: 1.6rem; margin: 0.6rem 0 0; }
-.x-actions a { color: var(--ink-faint); }
+.pc-time { margin: 0; font-size: 0.82rem; }
+.pc-time a { color: var(--ink-faint); }
+.pc-actions { display: flex; gap: 1.6rem; margin: 0.6rem 0 0; }
+.pc-actions a { color: var(--ink-faint); }
 /* The front page's long read below the audiences, in the manner of gate.peterparker.ca. */
 .section { padding: 2.75rem 0; border-bottom: 1px solid var(--line); }
 .section:last-child { border-bottom: 0; }
@@ -466,39 +461,9 @@ def _quoted(text: str) -> str:
     return text if text[:1] in {'"', "\u201c"} else f'"{text}"'
 
 
-def _spotlight_html(post: Spotlight) -> str:
-    """The day's most discussed Bluesky post, as a post: its words, its counts, a link."""
-    posted = post.posted_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
-    if post.deleted:
-        return (
-            '<section class="spotlight"><p class="eyebrow">Most discussed on Bluesky</p>'
-            '<p class="none">This post was deleted by its author, so it is no longer shown.</p>'
-            "</section>"
-        )
-    reason = f'<p class="why">Picked because: {escape(post.reason)}.</p>' if post.reason else ""
-    full = ""
-    if post.full_text and post.full_text.split() != post.quote.split():
-        full = (
-            '<details class="full-post"><summary><span class="more">Show full post</span>'
-            '<span class="less">Hide full post</span></summary>'
-            f'<div class="post-text">{escape(post.full_text)}</div></details>'
-        )
-    return (
-        '<section class="spotlight">'
-        '<p class="eyebrow">Most discussed on Bluesky</p>'
-        f"<blockquote>{escape(_quoted(post.quote))}</blockquote>{full}"
-        f'<p class="meta"><span class="tag post">Post</span>'
-        f'<a href="{escape(post.url)}">@{escape(post.author)}</a> &middot; {posted} &middot; '
-        f"{post.likes} likes, {post.replies} replies</p>{reason}"
-        '<p class="note">A post, not reporting: its author\'s own words, shown because people '
-        "were discussing it and it fits this audience. Nothing in it has been checked. Shown "
-        "while it exists: if the author deletes it, it is removed here too.</p>"
-        "</section>"
-    )
-
-
 # X's logo and the reply, repost and like marks its display rules ask for beside a post,
-# drawn inline because the page loads nothing from X but the author's picture.
+# drawn inline because the page loads nothing from X but the author's picture. The Bluesky
+# card uses the same marks.
 X_LOGO = (
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308'
     "l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08"
@@ -523,11 +488,105 @@ X_ACTIONS = (
 )
 
 
+# Bluesky's butterfly, from its published brand mark, drawn inline for the same reason.
+BLUESKY_LOGO = (
+    '<svg viewBox="0 0 600 530" aria-hidden="true"><path fill="currentColor" d="m135.72 44.03'
+    "c66.496 49.921 138.02 151.14 164.28 205.46 26.262-54.316 97.782-155.54 164.28-205.46"
+    " 47.98-36.021 125.72-63.892 125.72 24.795 0 17.712-10.155 148.79-16.111 170.07"
+    "-20.703 73.984-96.144 92.854-163.25 81.433 117.3 19.964 147.14 86.092 82.697 152.22"
+    "-122.39 125.59-175.91-31.511-189.63-71.766-2.514-7.3797-3.6904-10.832-3.7077-7.8964"
+    "-0.0174-2.9357-1.1937 0.51669-3.7077 7.8964-13.714 40.255-67.233 197.36-189.63 71.766"
+    "-64.444-66.128-34.605-132.26 82.697-152.22-67.108 11.421-142.55-7.4491-163.25-81.433"
+    "-5.9562-21.282-16.111-152.36-16.111-170.07 0-88.687 77.742-60.816 125.72-24.795z"
+    '"/></svg>'
+)
+
+
+def _post_card(
+    *,
+    platform: str,
+    logo: str,
+    profile: str,
+    name: str,
+    handle: str,
+    image_url: str,
+    text: str,
+    url: str,
+    posted: str,
+    actions: str,
+) -> str:
+    """A post laid out the way the platforms show one: picture, name and handle above the
+    text, the platform's mark at the top right, the time linking to the post, then the
+    actions. X's display rules require this layout; Bluesky's pick uses the same one."""
+    avatar = (
+        f'<a href="{escape(profile)}"><img class="pc-avatar" src="{escape(image_url)}" alt="" '
+        'width="40" height="40"></a>'
+        if image_url
+        else ""
+    )
+    shown_name = f'<a class="pc-name" href="{escape(profile)}">{escape(name)}</a>' if name else ""
+    return (
+        '<div class="post-card"><div class="pc-head">'
+        f'{avatar}<div class="pc-who">{shown_name}'
+        f'<a class="pc-user" href="{escape(profile)}">@{escape(handle)}</a></div>'
+        f'<a class="pc-logo" href="{escape(url)}" aria-label="View on {platform}">{logo}</a></div>'
+        f'<div class="pc-text">{escape(text)}</div>'
+        f'<p class="pc-time"><a href="{escape(url)}">{posted}</a></p>'
+        f'<p class="pc-actions">{actions}</p></div>'
+    )
+
+
+def _action_icons(links: Sequence[tuple[str, str, str]]) -> str:
+    return "".join(
+        f'<a href="{escape(href)}" aria-label="{label}" title="{label}">'
+        f'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" '
+        f'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="{path}"/></svg></a>'
+        for label, href, path in links
+    )
+
+
+def _spotlight_html(post: Spotlight) -> str:
+    """The day's most discussed Bluesky post, as a post card: whole while it exists and for
+    thirty days, then its twenty-five-word quote; nothing once its author deletes it."""
+    posted = post.posted_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+    if post.deleted:
+        return (
+            '<section class="spotlight"><p class="eyebrow">Most discussed on Bluesky</p>'
+            '<p class="none">This post was deleted by its author, so it is no longer shown.</p>'
+            "</section>"
+        )
+    reason = f'<p class="why">Picked because: {escape(post.reason)}.</p>' if post.reason else ""
+    # Bluesky has no links that reply, repost or like from outside its app, so each mark
+    # opens the post there.
+    actions = _action_icons([(label, post.url, path) for label, _, path in X_ACTIONS])
+    card = _post_card(
+        platform="Bluesky",
+        logo=BLUESKY_LOGO,
+        profile=f"https://bsky.app/profile/{post.author}",
+        name=post.name,
+        handle=post.author,
+        image_url=post.image_url,
+        text=post.full_text or post.quote,
+        url=post.url,
+        posted=posted,
+        actions=actions,
+    )
+    return (
+        '<section class="spotlight">'
+        '<p class="eyebrow">Most discussed on Bluesky</p>'
+        f'{card}<p class="meta"><span class="tag post">Post</span>{post.likes} likes, '
+        f"{post.reposts} reposts, {post.replies} replies</p>{reason}"
+        '<p class="note">A post, not reporting: its author\'s own words, shown because people '
+        "were discussing it and it fits this audience. Nothing in it has been checked. Shown "
+        "while it exists: if the author deletes it, it is removed here too.</p>"
+        "</section>"
+    )
+
+
 def _x_pick_html(pick: XPick) -> str:
     """The day's X post, whole, the way X's display rules lay it out; after its day, a link."""
     posted = pick.posted_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
     reason = f'<p class="why">Picked because: {escape(pick.reason)}.</p>' if pick.reason else ""
-    profile = f"https://x.com/{escape(pick.username)}"
     if pick.expired or not pick.text:
         return (
             '<section class="spotlight"><p class="eyebrow">Most discussed on X</p>'
@@ -538,29 +597,24 @@ def _x_pick_html(pick: XPick) -> str:
             "words are no longer on this page. The link opens it on X if it is still there.</p>"
             "</section>"
         )
-    avatar = (
-        f'<a href="{profile}"><img class="x-avatar" src="{escape(pick.image_url)}" alt="" '
-        'width="40" height="40"></a>'
-        if pick.image_url
-        else ""
-    )
-    actions = "".join(
-        f'<a href="{base}{escape(pick.post_id)}" aria-label="{label}" title="{label}">'
-        f'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" '
-        f'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="{path}"/></svg></a>'
-        for label, base, path in X_ACTIONS
+    card = _post_card(
+        platform="X",
+        logo=X_LOGO,
+        profile=f"https://x.com/{pick.username}",
+        name=pick.name,
+        handle=pick.username,
+        image_url=pick.image_url,
+        text=pick.text,
+        url=pick.url,
+        posted=posted,
+        actions=_action_icons(
+            [(label, f"{base}{pick.post_id}", path) for label, base, path in X_ACTIONS]
+        ),
     )
     return (
         '<section class="spotlight">'
         '<p class="eyebrow">Most discussed on X</p>'
-        '<div class="x-card"><div class="x-head">'
-        f'{avatar}<div class="x-who"><a class="x-name" href="{profile}">{escape(pick.name)}</a>'
-        f'<a class="x-user" href="{profile}">@{escape(pick.username)}</a></div>'
-        f'<a class="x-logo" href="{escape(pick.url)}" aria-label="View on X">{X_LOGO}</a></div>'
-        f'<div class="x-text">{escape(pick.text)}</div>'
-        f'<p class="x-time"><a href="{escape(pick.url)}">{posted}</a></p>'
-        f'<p class="x-actions">{actions}</p></div>'
-        f'<p class="meta"><span class="tag post">Post</span>{pick.likes} likes, '
+        f'{card}<p class="meta"><span class="tag post">Post</span>{pick.likes} likes, '
         f"{pick.reposts} reposts, {pick.replies} replies</p>{reason}"
         '<p class="note">A post, not reporting: its author\'s own words, shown whole as X '
         "asks, because people were discussing it and it fits this audience. Nothing in it has "

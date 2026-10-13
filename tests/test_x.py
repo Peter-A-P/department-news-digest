@@ -251,10 +251,10 @@ def test_the_markdown_and_draft_link_to_the_post_rather_than_show_it() -> None:
     assert "Line one" not in text
 
 
-def test_the_only_outside_image_the_policy_allows_is_x_s() -> None:
+def test_the_only_outside_images_the_policy_allows_are_the_platforms_own() -> None:
     policy = dict(SECURITY_HEADERS)["Content-Security-Policy"]
-    assert "img-src 'self' https://pbs.twimg.com" in policy
-    assert policy.count("https://") == 1 and "script-src" not in policy
+    assert "img-src 'self' https://pbs.twimg.com https://cdn.bsky.app" in policy
+    assert policy.count("https://") == 2 and "script-src" not in policy
 
 
 # -- after its day ----------------------------------------------------------------------------

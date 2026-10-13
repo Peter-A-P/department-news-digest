@@ -146,8 +146,11 @@ model writes except the reason it was picked. It never takes a story's slot, is 
 in precision or recall, and is labelled on its own ("worth showing?"). Replies and accounts
 with no display name are no longer ingested from Bluesky at all.
 
-The pick's whole post is behind "Show full post" (Peter, 2026-10-10; Bluesky caps a post at
-300 characters). A post is its author's to delete, so each run checks the picks of the last
+The pick's whole post is shown (Peter, 2026-10-10; Bluesky caps a post at 300 characters),
+since 2026-10-13 as a post card like the X pick's: the author's picture, display name and
+handle above the text, Bluesky's mark, the time linking to the post and the counts. The
+name and picture come from Bluesky's free public API when the post is picked, are cleared
+with the words, and are filled in for older picks by the daily check below. A post is its author's to delete, so each run checks the picks of the last
 thirty days against Bluesky's public API and removes the words of any post that no longer
 exists, and after thirty days a pick keeps only its twenty-five-word quote. Reddit posts are
 never shown beyond the quote: the access request to Reddit said so.

@@ -19,6 +19,7 @@ twenty-five words, verified against what was fetched.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -201,29 +202,45 @@ class BlueskySource:
         )
 
 
-def post_exists(client: httpx.Client, url: str) -> bool | None:
-    """Whether the post at a bsky.app link still exists: True, False, or None if unknown.
+# Bluesky serves avatars from this host; the page's content policy allows images from it.
+IMAGE_HOST = "https://cdn.bsky.app/"
 
-    The digest shows a picked post in full only while it exists (PLAN.md section 2.3), so a
-    run asks. The handle is resolved to the account's DID and the post looked up by its AT
-    URI. An empty answer is a deleted post; a handle that no longer resolves is a deleted or
-    renamed account, and is treated as gone, since the post is no longer where the link
-    said. Anything else (a timeout, a 5xx) is unknown, and changes nothing.
+
+@dataclass(frozen=True)
+class PostView:
+    """What Bluesky's public API says about one post: whether it exists, and, if it does,
+    who wrote it and how it was received. `found` is None when the answer is unknown."""
+
+    found: bool | None
+    name: str = ""
+    image_url: str = ""
+    likes: int = 0
+    reposts: int = 0
+    replies: int = 0
+
+
+def post_view(client: httpx.Client, url: str) -> PostView:
+    """Look up the post at a bsky.app link on the public, unauthenticated AppView.
+
+    The handle is resolved to the account's DID and the post looked up by its AT URI. An
+    empty answer is a deleted post; a handle that no longer resolves is a deleted or renamed
+    account, and is treated as gone, since the post is no longer where the link said.
+    Anything else (a timeout, a 5xx) is unknown.
     """
     parts = url.rstrip("/").split("/")
     if len(parts) < 7 or parts[-2] != "post" or parts[-4] != "profile":
-        return None
+        return PostView(None)
     handle, rkey = parts[-3], parts[-1]
     try:
         resolved = client.get(
             f"{PUBLIC}/com.atproto.identity.resolveHandle", params={"handle": handle}
         )
         if resolved.status_code == httpx.codes.BAD_REQUEST:
-            return False
+            return PostView(False)
         resolved.raise_for_status()
         did = resolved.json().get("did")
         if not did:
-            return None
+            return PostView(None)
         found = client.get(
             f"{PUBLIC}/app.bsky.feed.getPosts",
             params={"uris": f"at://{did}/app.bsky.feed.post/{rkey}"},
@@ -231,5 +248,34 @@ def post_exists(client: httpx.Client, url: str) -> bool | None:
         found.raise_for_status()
         posts = found.json().get("posts")
     except (httpx.HTTPError, ValueError):
-        return None
-    return bool(posts) if isinstance(posts, list) else None
+        return PostView(None)
+    if not isinstance(posts, list):
+        return PostView(None)
+    if not posts or not isinstance(posts[0], dict):
+        return PostView(False)
+    post = posts[0]
+    found_author = post.get("author")
+    author: dict[str, Any] = found_author if isinstance(found_author, dict) else {}
+    avatar = str(author.get("avatar") or "")
+
+    def count(key: str) -> int:
+        value = post.get(key)
+        return value if isinstance(value, int) else 0
+
+    return PostView(
+        found=True,
+        name=str(author.get("displayName") or "").strip(),
+        image_url=avatar if avatar.startswith(IMAGE_HOST) else "",
+        likes=count("likeCount"),
+        reposts=count("repostCount"),
+        replies=count("replyCount"),
+    )
+
+
+def post_exists(client: httpx.Client, url: str) -> bool | None:
+    """Whether the post at a bsky.app link still exists: True, False, or None if unknown.
+
+    The digest shows a picked post in full only while it exists (PLAN.md section 2.3), so a
+    run asks.
+    """
+    return post_view(client, url).found

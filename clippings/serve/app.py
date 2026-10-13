@@ -28,16 +28,16 @@ FONTS = {
 StartResponse = Callable[[str, list[tuple[str, str]]], Any]
 Environ = dict[str, Any]
 
-# Nothing on these pages runs script or loads anything from elsewhere, except the profile
-# picture beside the day's X post, which X's display rules require and which comes from X's
-# own image host (sources/x.py); the referrer is not sent with it. Saying so in a header
+# Nothing on these pages runs script or loads anything from elsewhere, except the author's
+# picture beside the day's X and Bluesky posts, from each platform's own image host
+# (sources/x.py, sources/bluesky.py); the referrer is not sent with it. Saying so in a header
 # means a headline that somehow carried markup still could not. The two fonts are this
 # service's own, packaged beside this file (SIL Open Font License, see fonts/LICENSE.txt).
 SECURITY_HEADERS = [
     (
         "Content-Security-Policy",
         "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; "
-        "img-src 'self' https://pbs.twimg.com",
+        "img-src 'self' https://pbs.twimg.com https://cdn.bsky.app",
     ),
     ("X-Content-Type-Options", "nosniff"),
     ("Referrer-Policy", "no-referrer"),

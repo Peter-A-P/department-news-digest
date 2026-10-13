@@ -66,9 +66,9 @@ class DigestStory(Frozen):
 class Spotlight(Frozen):
     """The day's most discussed Bluesky post the rubric wanted (rank/spotlight.py).
 
-    Shown below the stories as a post, not reporting: its own words cut to twenty-five, its
-    counts and a link. Nothing here is model-written except `reason`, shown as the reason it
-    was picked.
+    Shown below the stories as a post card, not reporting: its author, its own words (whole
+    while it exists and for thirty days, then cut to twenty-five), its counts and a link.
+    Nothing here is model-written except `reason`, shown as the reason it was picked.
     """
 
     item_id: str
@@ -80,12 +80,18 @@ class Spotlight(Frozen):
     posted_at: datetime
     rubric_score: int
     reason: str
-    # The whole post, shown under "Show full post" while it exists and for thirty days, then
+    # The whole post, shown in the post card while it exists and for thirty days, then
     # cleared (assemble/deletions.py). Bluesky only: a Reddit post is never shown beyond its
     # quote, as the access request to Reddit promised.
     full_text: str = ""
     # Set when a later run found the post deleted: its words are then no longer shown at all.
     deleted: bool = False
+    # The author's display name and picture and the repost count, from Bluesky's public API
+    # when the post was picked, for the post card. Cleared with the words. Empty on picks
+    # made before the card (2026-10-13), which then show the handle alone.
+    name: str = ""
+    image_url: str = ""
+    reposts: int = 0
 
 
 class XPick(Frozen):

@@ -45,6 +45,7 @@ from clippings.rank.select import candidates_for_rerank
 from clippings.rank.spotlight import Pick, pick, quote
 from clippings.rank.x_pick import XChoice, pick_x, shown
 from clippings.sources.base import FetchContext, Source
+from clippings.sources.bluesky import PostView, post_view
 from clippings.sources.x import link_keys
 from clippings.summarise.run import (
     StoryWork,
@@ -103,6 +104,7 @@ class State(TypedDict, total=False):
     chosen: tuple[ScoredStory, ...]
     works: list[StoryWork]
     spotlight: Pick
+    spotlight_view: PostView | None
     x_pick: XChoice
     digest: Digest
     published: list[str]
@@ -195,7 +197,13 @@ def node_spotlight(state: State) -> State:
     clusters = p.store.clusters_for(p.audience.id, p.day)
     chosen = pick(p.audience, clusters, state["pool"], p.client, run_id=p.run_id)
     found = chosen.item.author if chosen.item is not None else "none"
-    return {"spotlight": chosen, "trace": _trace(state, f"spotlight:{found}")}
+    # The author's name and picture for the post card, from Bluesky's free public API.
+    view = post_view(p.context.client, chosen.item.url) if chosen.item is not None else None
+    return {
+        "spotlight": chosen,
+        "spotlight_view": view,
+        "trace": _trace(state, f"spotlight:{found}"),
+    }
 
 
 def node_x_pick(state: State) -> State:
@@ -258,7 +266,7 @@ def node_assemble(state: State) -> State:
         pool_stories=report.clusters,
         embedder=report.embedder,
         model_client=p.client.name if p.client is not None else "none",
-        spotlight=_spotlight(state.get("spotlight")),
+        spotlight=_spotlight(state.get("spotlight"), state.get("spotlight_view")),
         spotlight_reply=chosen.reply if (chosen := state.get("spotlight")) else None,
         x_pick=shown(state.get("x_pick")),
         x_pick_reply=x.reply if (x := state.get("x_pick")) else None,
@@ -268,10 +276,11 @@ def node_assemble(state: State) -> State:
     return {"digest": digest, "trace": _trace(state, f"assemble:{len(digest.stories)} stories")}
 
 
-def _spotlight(chosen: Pick | None) -> Spotlight | None:
+def _spotlight(chosen: Pick | None, view: PostView | None = None) -> Spotlight | None:
     if chosen is None or chosen.item is None or chosen.score is None:
         return None
     post = chosen.item
+    seen = view if view is not None and view.found else None
     return Spotlight(
         item_id=post.id,
         url=post.url,
@@ -283,6 +292,9 @@ def _spotlight(chosen: Pick | None) -> Spotlight | None:
         rubric_score=chosen.score,
         reason=chosen.reason,
         full_text=post.summary if post.source_kind == "bluesky" else "",
+        name=seen.name if seen else "",
+        image_url=seen.image_url if seen else "",
+        reposts=seen.reposts if seen else 0,
     )
 
 
