@@ -6,6 +6,7 @@
     clippings sources   check the terms record, or probe that the feeds are feeds
     clippings label     label a day's sample for precision and recall
     clippings x-pick    add the X pick to the latest digests, without rebuilding them
+    clippings refresh   re-publish every stored digest with the current page design
     clippings retention delete items past the thirty-day window
     clippings audiences list the configured audiences
 
@@ -172,22 +173,7 @@ def run(
         raise typer.Exit(code=2) from exc
 
     with ExitStack() as stack:
-        try:
-            if bucket:
-                workdir = Path(stack.enter_context(TemporaryDirectory(prefix="clippings-")))
-                stack.enter_context(GcsRunLock(bucket))
-                sync = StateSync(GcsObjectStore(bucket), workdir)
-                sync.pull()
-                stack.callback(sync.push)
-                db, ledger = sync.db, sync.ledger
-                published: Site = GcsSite(bucket)
-            else:
-                stack.enter_context(LocalRunLock(lock))
-                ledger = db.parent / LEDGER_NAME
-                published = LocalSite(site)
-        except RunLockHeld as exc:
-            typer.echo(f"another run holds the lock: {exc}", err=True)
-            raise typer.Exit(code=3) from exc
+        db, ledger, published, sync = _open_state(stack, bucket=bucket, db=db, lock=lock, site=site)
 
         client = _model_client(ledger)
         if isinstance(client, GatewayClient):
@@ -220,7 +206,7 @@ def run(
                 typer.echo("No further model call was made. Raise the cap in a commit.", err=True)
                 raise typer.Exit(code=4) from exc
             _print_report(state["report"])
-            if bucket:
+            if sync is not None:
                 store.checkpoint()
                 # Each audience's work is saved as soon as it is done, so a run killed on the
                 # third audience keeps the first two (2026-10-08 lost one this way).
@@ -261,6 +247,47 @@ def run(
         )
 
 
+@app.command()
+def refresh(
+    audiences: AudienceDir = EXAMPLES,
+    db: DbPath = DEFAULT_DB,
+    lock: Annotated[Path, typer.Option(help="Run lock file.")] = DEFAULT_LOCK,
+    site: Annotated[Path, typer.Option(help="Directory the digest pages are written to.")] = (
+        DEFAULT_SITE
+    ),
+    bucket: Annotated[
+        str | None,
+        typer.Option(envvar="CLIPPINGS_BUCKET", help="Cloud Storage bucket. Production only."),
+    ] = None,
+) -> None:
+    """Re-publish every stored digest with the current page design, after the daily check
+    of its Bluesky pick. No model call; Bluesky's free public API is the only request."""
+    everyone = load_audiences(audiences)
+    with ExitStack() as stack:
+        db, _, published, sync = _open_state(stack, bucket=bucket, db=db, lock=lock, site=site)
+        http = stack.enter_context(http_client())
+        store = stack.enter_context(Store.open(db))
+        panels = {one.id: panel_for(one, store) for one in everyone}
+        changed = recheck_picks(store, published, everyone, http, datetime.now(UTC), panels)
+        typer.echo(f"bluesky     {len(changed)} picks deleted, aged out or given their author")
+        pages = 0
+        for one in everyone:
+            for day in store.digest_days(one.id):
+                digest = store.digest_for(one.id, day)
+                if digest is not None:
+                    publish_digest(published, digest, one.description, panels[one.id])
+                    pages += 1
+        publish_indexes(
+            published,
+            [(one.id, one.name, one.description) for one in everyone],
+            {one.id: store.digest_days(one.id) for one in everyone},
+            panels,
+        )
+        typer.echo(f"published   {pages} digest pages and the indexes")
+        if sync is not None:
+            store.checkpoint()
+
+
 @app.command("x-pick")
 def x_pick(
     audience: Annotated[str | None, typer.Argument(help="One audience id, or all of them.")] = None,
@@ -283,22 +310,7 @@ def x_pick(
     """
     selected = [one for one in _pick(audiences, audience) if one.sources.x.query]
     with ExitStack() as stack:
-        try:
-            if bucket:
-                workdir = Path(stack.enter_context(TemporaryDirectory(prefix="clippings-")))
-                stack.enter_context(GcsRunLock(bucket))
-                sync = StateSync(GcsObjectStore(bucket), workdir)
-                sync.pull()
-                stack.callback(sync.push)
-                db, ledger = sync.db, sync.ledger
-                published: Site = GcsSite(bucket)
-            else:
-                stack.enter_context(LocalRunLock(lock))
-                ledger = db.parent / LEDGER_NAME
-                published = LocalSite(site)
-        except RunLockHeld as exc:
-            typer.echo(f"another run holds the lock: {exc}", err=True)
-            raise typer.Exit(code=3) from exc
+        db, ledger, published, _ = _open_state(stack, bucket=bucket, db=db, lock=lock, site=site)
         client = _model_client(ledger)
         if client is None:
             raise typer.Exit(code=2)
@@ -341,6 +353,26 @@ def x_pick(
             )
         if bucket:
             store.checkpoint()
+
+
+def _open_state(
+    stack: ExitStack, *, bucket: str | None, db: Path, lock: Path, site: Path
+) -> tuple[Path, Path, Site, StateSync | None]:
+    """Take the run lock and return the database, the ledger and the site. With a bucket
+    they are local copies pulled from it, pushed back when the stack closes."""
+    try:
+        if bucket:
+            workdir = Path(stack.enter_context(TemporaryDirectory(prefix="clippings-")))
+            stack.enter_context(GcsRunLock(bucket))
+            sync = StateSync(GcsObjectStore(bucket), workdir)
+            sync.pull()
+            stack.callback(sync.push)
+            return sync.db, sync.ledger, GcsSite(bucket), sync
+        stack.enter_context(LocalRunLock(lock))
+        return db, db.parent / LEDGER_NAME, LocalSite(site), None
+    except RunLockHeld as exc:
+        typer.echo(f"another run holds the lock: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
 
 
 def _model_client(ledger: Path) -> ModelClient | None:

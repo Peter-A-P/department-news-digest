@@ -109,6 +109,7 @@ uv run clippings render                   # re-render stored digests, no fetch, 
 uv run clippings label --labeller you     # labelling page in the browser, one page per day
 uv run clippings report                   # the results tables: README block and docs/report.md
 uv run clippings x-pick                   # add the X pick to the latest digests, not rebuilding them
+uv run clippings refresh                  # re-publish every stored digest with the current design
 uv run clippings retention                # delete items past thirty days (run also does this)
 ```
 
