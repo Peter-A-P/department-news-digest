@@ -153,7 +153,7 @@ pay-per-use, US$0.005 a post read and US$0.010 a user read, counted once per res
 day, so one search of ten posts and one author lookup a day costs about US$0.06 an audience.
 It was added on 2026-10-10 for one post a day, while the Reddit access request is unanswered,
 and is likely to be dropped if Reddit approves it (Peter). Since 2026-10-13 it reads named people in public
-roles, and only for the AI and Toronto audiences (PLAN.md section 2.3). Read on 2026-10-10:
+roles, for the AI, Toronto and Newfoundland and Labrador audiences (PLAN.md section 2.3). Read on 2026-10-10:
 
 | Term | Where | What it means here |
 |---|---|---|

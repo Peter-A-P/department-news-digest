@@ -104,25 +104,35 @@ sources:
     queries:
       - Newfoundland Labrador
       - NL politics
-    # People whose own posts are candidates for the day's Bluesky post: reporters and
-    # commentators; no politicians, because the Premier is not on Bluesky and a list with
-    # only some party leaders would favour them.
-    # Handles checked against Bluesky on 2026-10-13. Their posts join a story only
-    # when they are about one, like any other post.
+    # People whose own posts are candidates for the day's Bluesky post (handles checked
+    # against Bluesky on 2026-10-13): the Liberal and NDP leaders, CBC and independent
+    # reporters and columnists, Memorial University's political scientists, and the Innu
+    # Nation. The PC party and the Premier are not on Bluesky; they are read on X below,
+    # so each party's leader or account is read once across the two. Their posts join a
+    # story only when they are about one, like any other post.
     people:
+      - johnhogannl.bsky.social
+      - jimdinn.bsky.social
       - zachgoudie.bsky.social
       - maddie-ryan.bsky.social
       - ashleyfitznl.bsky.social
+      - pamframpton.bsky.social
       - justinbrake.bsky.social
       - jamespmcleod.ca
       - drewfoundland.bsky.social
+      - kblidook.bsky.social
+      - bittner.bsky.social
+      - innunation.bsky.social
     limit: 50
-  # X is off for this audience (2026-10-13). The people a regional newsroom would follow
-  # here are mostly no longer on X: the City of St. John's deactivated its X accounts in
-  # April 2025, and of the reporters and politicians looked up only the Premier, a union
-  # and a few commentators were found. Bluesky carries this audience's discussion.
+  # One X post a day, shown whole on its day only (rank/x_pick.py), from the Premier and
+  # the three parties' own accounts, checked against X on 2026-10-13. The Liberal and NDP
+  # leaders are not on X and are read on Bluesky above. Few other voices in the province
+  # are still on X; the fish harvesters' union is, and is left out because no business
+  # voice could be found to stand beside it. Ten candidates is about US$0.06 a day. Leave
+  # the query empty for an audience that serves a government body: X requires an
+  # Enterprise plan for that (docs/sources.md).
   x:
-    query: ''
+    query: 'from:TonyWakehamNL OR from:PCPartyNL OR from:nlliberals OR from:NLNDP'
     candidates: 10
 
 trusted_sources: []
