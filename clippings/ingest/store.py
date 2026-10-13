@@ -629,6 +629,14 @@ class Store:
         ).fetchall()
         return [Digest.model_validate_json(row[0]) for row in rows]
 
+    def previous_digest_at(self, audience_id: str, day: str) -> datetime | None:
+        """When the latest digest before `day` was built: what it could show, it has shown."""
+        row = self._connection.execute(
+            "SELECT max(generated_at) FROM digests WHERE audience_id = ? AND day < ?",
+            [audience_id, day],
+        ).fetchone()
+        return row[0] if row and row[0] is not None else None
+
     def digest_days(self, audience_id: str) -> list[str]:
         rows = self._connection.execute(
             "SELECT DISTINCT day FROM digests WHERE audience_id = ? ORDER BY day DESC",

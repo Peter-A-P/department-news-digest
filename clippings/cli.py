@@ -121,7 +121,8 @@ def _print_report(report: RunReport) -> None:
         typer.echo(f"                {count:4d}  {reason}")
     typer.echo(
         f"  clusters    {report.clusters} stories from {report.clustered_items} items "
-        f"(collapse rate {report.collapse_rate:.2f}), embedder {report.embedder}"
+        f"(collapse rate {report.collapse_rate:.2f}), embedder {report.embedder}; "
+        f"{report.stale} already in an earlier digest's pool, left out"
     )
     if report.selected:
         displaced = f", {report.displaced} displaced for diversity" if report.displaced else ""

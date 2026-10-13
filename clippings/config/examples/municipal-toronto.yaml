@@ -10,22 +10,34 @@ id: municipal-toronto
 name: Municipal affairs, Toronto
 description: >-
   City of Toronto council and committee decisions, the municipal budget, transit, housing
-  and development approvals, and the provincial decisions that land on the city.
+  and development approvals, the municipal election, and the provincial decisions and
+  regional economic news that land on the city.
 
-# The first day made under min_rubric_score 2; relevance is measured from here.
-measure_from: "2026-10-11"
+# The first day made under the rubric that counts the election and the regional economy
+# (2026-10-13); relevance is measured from here. On 2026-10-11 and 2026-10-12 the old rubric,
+# written for council decisions only, scored every election story 1 ("no decision") while
+# Peter marked a mayoral poll, candidacy news and the city's Kids Vote campaign must-read:
+# precision 33%, must-read recall 25%.
+measure_from: "2026-10-13"
 
 rubric: >-
-  Relevant means an item a city councillor's assistant would flag before the next council
-  or committee meeting: council and committee decisions and the items coming to them,
-  budget and property tax decisions, transit service and capital projects, housing supply
-  and development approvals, labour negotiations with city unions, service disruptions of
-  city scale, and provincial or federal decisions that change the city's money or powers.
-  It excludes routine crime and collision reports, weather, sport, restaurant and culture
-  listings, and neighbourhood items with no decision attached.
+  Relevant means an item someone following Toronto's city government would want to know
+  this morning: council and committee decisions and the items coming to them, budget and
+  property tax decisions, transit service and capital projects, housing supply and
+  development approvals, labour negotiations with city unions, service disruptions of city
+  scale, and provincial or federal decisions that change the city's money or powers. The
+  municipal election counts in full, with no decision needed: polls, candidates entering,
+  leaving or staying in a race, platforms and debates, and how, when and where residents
+  vote, including the city's own voter and civic-education campaigns. So do regional
+  economic events large enough to touch the city: major layoffs, closures or investments
+  in the Toronto and Hamilton area, and housing market and affordability figures. Trends
+  the city is answerable for, such as road deaths or shelter capacity, count even without a
+  decision. It excludes routine crime and collision reports, weather, sport, restaurant and
+  culture listings, and neighbourhood items with no decision attached.
 
 topics:
   - Toronto city council
+  - Toronto municipal election
   - municipal budget
   - property tax
   - transit service and expansion

@@ -10,6 +10,7 @@ from clippings.cluster.cluster import (
     build_clusters,
     cluster_id,
     collapse_rate,
+    fresh_stories,
     representative,
 )
 from clippings.cluster.embed import Hashing, Vector, cosine
@@ -233,3 +234,36 @@ def test_a_post_close_to_two_stories_joins_one_and_does_not_merge_them(
     clusters = build_clusters(items, audience, embedder, "2026-09-12")
     groups = sorted(sorted(cluster.item_ids) for cluster in clusters)
     assert groups == [["a", "p"], ["b"]]
+
+
+def _story(cluster_id_: str, *members: Item) -> Cluster:
+    return Cluster(
+        id=cluster_id_,
+        audience_id="test",
+        day="2026-10-12",
+        representative_id=members[0].id,
+        item_ids=tuple(member.id for member in members),
+    )
+
+
+def test_a_story_an_earlier_digest_could_show_is_left_out_and_a_new_report_heads_its_story(
+    audience: Audience,
+) -> None:
+    yesterday = NOW - timedelta(hours=30)
+    old = item("old", published_at=yesterday)
+    follow_up = item("new", published_at=NOW)
+    only_old = item("older", published_at=yesterday)
+    post = item("post", published_at=yesterday).model_copy(update={"source_kind": "bluesky"})
+    stories = [_story("continued", old, follow_up), _story("repeat", only_old), _story("p", post)]
+    items = {member.id: member for member in (old, follow_up, only_old, post)}
+
+    kept, stale = fresh_stories(stories, items, audience, since=NOW - timedelta(hours=24))
+
+    assert stale == {"repeat"}
+    by_id = {story.id: story for story in kept}
+    # The story that gained a report is shown under the new report's headline, not yesterday's.
+    assert by_id["continued"].representative_id == "new"
+    # A story of posts alone is never a candidate either way, and the post pick still reads it.
+    assert by_id["p"].representative_id == "post"
+    # With no earlier digest, the first day shows everything.
+    assert fresh_stories(stories, items, audience, since=None)[1] == set()

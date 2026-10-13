@@ -102,6 +102,14 @@ recency. Only the top candidates per day go to a model re-ranker with the audien
 rubric, through the gateway. The model never sees the whole day's pool; that is what
 keeps a digest at cents. The LLM-over-everything alternative is a Rule C candidate.
 
+A day is what is new since the last digest (Peter, 2026-10-12). The pool reaches back
+forty-eight hours so that today's report joins the story it continues, but a story is a
+candidate only if at least one of its news items was first fetched after the previous
+digest was built, and a story that gained a new report is headed by that report. Before
+this, 69 of the 130 stories shown from 2026-10-08 to 2026-10-12 were stories the previous
+day's digest could already have shown. Stories left out this way are not ranked, so they are
+not sampled for labelling either: a story the reader saw yesterday is not today's to miss.
+
 Posts are not stories (decided by Peter, 2026-10-08). A Reddit or Bluesky post reaches a
 digest only inside a story that a feed or GDELT also carries, where it counts towards
 corroboration and can be cited beside the report; a story made only of posts is not a

@@ -77,8 +77,9 @@ def ranked_ids_for_day(
     by_cluster = {cluster.id: cluster for cluster in clusters}
     ordered: list[Cluster]
     if saved and all(cluster_id in by_cluster for cluster_id in saved):
+        # Only what the run ranked: a story left out as already shown on an earlier day
+        # (`cluster.fresh_stories`) was never today's to miss, so it is not sampled.
         ordered = [by_cluster[cluster_id] for cluster_id in saved]
-        ordered += [cluster for cluster in clusters if cluster.id not in set(saved)]
     elif clusters and audience is not None and embedder is not None:
         scored = score_stories(clusters, items, audience, embedder, now or datetime.now(UTC))
         ordered = [story.cluster for story in scored]

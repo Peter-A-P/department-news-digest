@@ -12,7 +12,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from clippings.cluster.cluster import build_clusters, collapse_rate
+from clippings.cluster.cluster import build_clusters, collapse_rate, fresh_stories
 from clippings.cluster.embed import Embedder, backend_name
 from clippings.config.audience import Audience
 from clippings.ingest.extract import extract_one
@@ -62,6 +62,8 @@ class RunReport:
     extraction_skipped: dict[str, int] = field(default_factory=dict)
     clusters: int = 0
     clustered_items: int = 0
+    # Stories with nothing fetched since the previous digest: in the pool, never candidates.
+    stale: int = 0
     embedder: str = ""
     # The ranked stories, best first, and the K chosen for the digest. Week 2 hands the
     # candidates to the gateway re-ranker; nothing here calls a model.
@@ -207,11 +209,17 @@ def cluster_day(
     *,
     items: Sequence[Item],
     day: str,
-) -> list[Cluster]:
-    """Cluster the day's pool for one audience and save the result."""
+) -> tuple[list[Cluster], set[str]]:
+    """Cluster the day's pool for one audience and save the result.
+
+    Returns every story, and the ids of the ones an earlier digest already had the chance to
+    show (`fresh_stories`). Every story is saved, so the collapse rate counts the whole pool.
+    """
     clusters = build_clusters(items, audience, embedder, day)
+    since = store.previous_digest_at(audience.id, day)
+    clusters, stale = fresh_stories(clusters, {item.id: item for item in items}, audience, since)
     store.save_clusters(clusters)
-    return clusters
+    return clusters, stale
 
 
 def run_audience(
@@ -260,13 +268,15 @@ def rank_day(
         extract_texts(pool, audience, store, context, report)
 
     day = context.now.date().isoformat()
-    clusters = cluster_day(audience, store, embedder, items=pool, day=day)
+    clusters, stale = cluster_day(audience, store, embedder, items=pool, day=day)
     report.clusters = len(clusters)
     report.clustered_items = len(pool)
+    report.stale = len(stale)
     report.embedder = backend_name(embedder)
 
     by_id = {item.id: item for item in pool}
-    report.ranked = score_stories(clusters, by_id, audience, embedder, context.now)
+    today = [cluster for cluster in clusters if cluster.id not in stale]
+    report.ranked = score_stories(today, by_id, audience, embedder, context.now)
     return by_id
 
 
