@@ -349,7 +349,7 @@ def test_the_sources_panel_lists_every_source_and_how_its_last_check_went() -> N
         + len(audience.sources.reddit.subreddits)
         + len(audience.sources.bluesky.queries)
         + len(audience.sources.bluesky.people)
-        + (1 if audience.sources.x.query else 0)
+        + len(audience.sources.x.searches)
     )
     assert panel.count("<tr><td>") == configured
     assert f"Sources checked ({configured})" in panel

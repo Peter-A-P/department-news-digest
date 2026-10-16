@@ -214,8 +214,12 @@ def run(
             if "digest" in state:
                 _print_digest(state["digest"], state.get("published", []))
                 x = state.get("x_pick")
-                if x is not None and x.post is None and one.sources.x.query:
+                if x is not None and x.post is None and one.sources.x.searches:
                     typer.echo(f"  x pick      none: {x.detail}")
+                bluesky = state.get("spotlight")
+                for name, choice in (("bluesky", bluesky), ("x", x)):
+                    for line in choice.considered if choice is not None else ():
+                        typer.echo(f"    {name} considered  {line[:160]}")
                 # A failed call is not a crash, so it would otherwise be invisible here.
                 errors = [error for work in state.get("works", []) for error in work.errors]
                 for error in sorted(set(errors))[:5]:
@@ -308,7 +312,7 @@ def x_pick(
     one author lookup per audience, as in a run; an audience whose latest digest already has
     a pick, or is too old for one to be shown, is left as it is.
     """
-    selected = [one for one in _pick(audiences, audience) if one.sources.x.query]
+    selected = [one for one in _pick(audiences, audience) if one.sources.x.searches]
     with ExitStack() as stack:
         db, ledger, published, _ = _open_state(stack, bucket=bucket, db=db, lock=lock, site=site)
         client = _model_client(ledger)

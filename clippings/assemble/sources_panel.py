@@ -98,17 +98,17 @@ def source_lines(audience: Audience) -> list[SourceLine]:
         )
         for handle in sources.bluesky.people
     ]
-    if sources.x.query:
-        lines.append(
-            SourceLine(
-                "X search",
-                sources.x.query,
-                "https://x.com/",
-                "x",
-                ("x", sources.x.query),
-                "one post a day, shown on its day only",
-            )
+    lines += [
+        SourceLine(
+            "X search" if query == sources.x.query else "X search by subject",
+            query,
+            "https://x.com/",
+            "x",
+            ("x", query),
+            f"{count} posts read; one post a day, shown on its day only",
         )
+        for query, count in sources.x.searches
+    ]
     return lines
 
 

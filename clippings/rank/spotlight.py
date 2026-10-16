@@ -64,6 +64,8 @@ class Pick:
     reason: str
     reply: ModelReply | None
     error: str = ""
+    # Every post the model scored, for the run log: why a day has no pick is then on record.
+    considered: tuple[str, ...] = ()
 
 
 def engagement(item: Item) -> int:
@@ -137,6 +139,15 @@ class Scored:
         return None
 
 
+def considered(labels: Sequence[str], likes: Sequence[int], scored: Scored) -> tuple[str, ...]:
+    """One run-log line per scored post: where it is, its likes, the model's score and
+    reason. Not the post's text, which the log has no business keeping."""
+    return tuple(
+        f"{label}, {count} likes: {score} {reason}".rstrip()
+        for label, count, (score, reason) in zip(labels, likes, scored.scores, strict=False)
+    )
+
+
 def score_posts(
     audience: Audience, posts: Sequence[PostLine], client: ModelClient, *, run_id: str
 ) -> Scored:
@@ -165,11 +176,12 @@ def pick(
     if scored.reply is None:
         # No pick is the safe answer: the section is simply left out.
         return Pick(None, None, "", None, error=scored.error)
+    seen = considered([post.url for post in posts], [post.score or 0 for post in posts], scored)
     chosen = scored.first()
     if chosen is None:
-        return Pick(None, None, "", scored.reply)
+        return Pick(None, None, "", scored.reply, considered=seen)
     score, reason = scored.scores[chosen]
-    return Pick(posts[chosen], score, reason, scored.reply)
+    return Pick(posts[chosen], score, reason, scored.reply, considered=seen)
 
 
 def quote(text: str, words: int = QUOTE_WORDS) -> str:

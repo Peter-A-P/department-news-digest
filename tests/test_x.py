@@ -115,7 +115,7 @@ def never(request: httpx.Request) -> httpx.Response:
 
 
 def test_the_query_leaves_out_reposts_and_replies_and_keeps_the_language(on: Audience) -> None:
-    assert query_for(on) == f"({QUERY}) -is:retweet -is:reply lang:en"
+    assert query_for(on, QUERY) == f"({QUERY}) -is:retweet -is:reply lang:en"
 
 
 def test_a_long_post_is_read_whole_unescaped_and_a_sensitive_one_is_skipped() -> None:
@@ -185,6 +185,32 @@ def test_the_pick_is_the_most_engaged_post_the_rubric_wants_and_one_author_is_re
     ]
     assert chosen.reads_usd == pytest.approx(4 * PRICE_POST_USD + PRICE_USER_USD)
     assert store.reads_since("x", month_start(NOW)) == {QUERY: 4, AUTHOR_ORIGIN: 1}
+
+
+def test_people_and_subject_are_two_searches_read_once_and_every_scored_post_is_logged(
+    on: Audience, store: Store
+) -> None:
+    both = on.model_copy(
+        update={
+            "sources": on.sources.model_copy(
+                update={"x": XSource(query=QUERY, topics="budget", topic_candidates=20)}
+            )
+        }
+    )
+    # The same busy post comes back from both searches; the model sees it once.
+    context, seen = context_for(x_api([raw_post("busy", 500), raw_post("other", 60)]))
+    client = scores((1, "a quip"), (1, "an aside"))
+    chosen = pick_x(both, context, store, client, run_id="r")
+
+    assert chosen.post is None and "of 2 scored" in chosen.detail
+    assert client.calls[0].user.count(" likes, ") == 2
+    assert [request.url.params["max_results"] for request in seen] == ["10", "20"]
+    assert store.reads_since("x", month_start(NOW)) == {QUERY: 2, "budget": 2}
+    # Why there is no pick is on record: each post's link, likes, score and reason.
+    assert chosen.considered == (
+        "https://x.com/i/status/busy, 500 likes: 1 a quip",
+        "https://x.com/i/status/other, 60 likes: 1 an aside",
+    )
 
 
 def test_a_post_whose_author_cannot_be_read_is_not_shown(on: Audience, store: Store) -> None:

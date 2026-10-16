@@ -81,9 +81,11 @@ story that a feed or GDELT also carries, and a story made only of posts is never
 
 X reads `X_BEARER_TOKEN`, the app-only bearer token of a developer account on pay-per-use
 pricing, and is used for one post a day and nothing else (PLAN.md section 2.3): one search of
-`candidates` posts and one author lookup, about US$0.06 an audience-day. Set a monthly spend
-limit in X's developer console before the first request; the code also refuses a search once
-the month's reads in the fetch log reach US$10 (`clippings.sources.x.MONTHLY_CAP_USD`).
+`candidates` posts from the people named in `query`, a second of `topic_candidates` posts by
+subject when `topics` is set, and one author lookup. Ten posts and the lookup are about
+US$0.06 an audience-day; AI's fifty are about US$0.26. Set a monthly spend limit in X's
+developer console before the first request; the code also refuses a search once the month's
+reads in the fetch log reach US$12 (`clippings.sources.x.MONTHLY_CAP_USD`).
 
 **X is not for an audience that serves a government body.** X's Developer Agreement
 (section XIV.C) requires an Enterprise plan before X content is shown to anyone who is, or

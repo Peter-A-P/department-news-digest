@@ -197,6 +197,15 @@ the Liberal and NDP leaders are on Bluesky and not on X. So the two lists are ba
 together (Peter, 2026-10-13): X reads the Premier and the three parties' accounts, Bluesky the
 Liberal and NDP leaders, and each party is read once.
 
+Fifteen people and ten posts were too narrow for AI: on 2026-10-15 none of the ten was worth
+showing and the section was empty. Peter chose fifty posts a day for AI (2026-10-15): thirty
+from a wider list of people (twenty-five, now with the four largest labs' own accounts and two
+journalists), and twenty from a second search by subject (`topics`), for the day's popular
+posts from people nobody listed. Posts under the likes floor are still never shown to the
+model, which is what keeps the subject search's reposted headlines out. Every post the model
+scores, Bluesky and X, is written to the run log with its link, likes, score and reason, so a
+day with no pick can be checked rather than guessed at.
+
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 
 The summariser writes each digest sentence with the item ids it draws on and marks quotes
@@ -263,7 +272,7 @@ stories is reported beside it with the relevant stories per day that bound it.
 | GDELT document API | Queried per audience daily | Global coverage of the audience's entities | Free, open; rate limits respected |
 | Reddit API | Selected public subreddits per audience | Public discussion | Registered application, free tier; terms read and recorded; deletions honoured by thirty-day retention |
 | Bluesky public API (AT Protocol) | Search and feeds per audience | Public discussion | Public API; user preferences respected |
-| X API v2, pay-per-use | One search of ten posts and one author lookup per audience per day | The day's X pick only | Official API, terms read and recorded; shown whole on its day only; not for government users without an Enterprise plan |
+| X API v2, pay-per-use | One search of ten posts and one author lookup per audience per day; for AI, thirty posts from named people and twenty by subject | The day's X pick only | Official API, terms read and recorded; shown whole on its day only; not for government users without an Enterprise plan |
 | Hand-labelled week | About 420 labels per audience, 60 per day; one audience double-labelled | Precision, recall, kappa | Own |
 | Labelled duplicate pairs | 300 pairs across the week | Deduplication precision and recall | Own |
 
@@ -346,15 +355,15 @@ a sixth of the cost per call; at low effort it agreed less with the labels and w
 | Re-ranking | 60 candidates per audience per day; Haiku 5.5 since 2026-10-10 (Haiku 4.5, about US$0.013 measured, before) | 0.002 per audience-day | |
 | Summaries | About 10 stories per digest at about 3,000 tokens in and 400 out; Sonnet 5 | 0.10 per audience-day | |
 | Running cost, four audiences | About US$0.10 per audience-day, 30 days | 12 per month | 16 per month |
-| X API, since 2026-10-12 | Ten post reads and one user read per audience per day, three audiences (AI, Toronto, Newfoundland and Labrador), at list price; capped at US$10 a month in code | 5.40 per month | 7.30 per month |
+| X API, since 2026-10-12 | Post reads per day: fifty for AI since 2026-10-15, ten each for Toronto and Newfoundland and Labrador; one user read per audience per day; at list price; capped at US$12 a month in code | 11.40 per month | 15.40 per month |
 | Cloud Run job and service, Scheduler, Storage | Within free tiers at this volume; egress a few GB | 0 to 3 per month | 0 to 4 per month |
 | Build month | Development reruns, the labelled week rerun under five configurations, faithfulness sample | 40 | 54 |
 | **Build** | | **40** | **54** |
-| **Running** | | **17 to 20 per month** | **24 to 28 per month** |
+| **Running** | | **23 to 26 per month** | **31 to 35 per month** |
 
 Still under the CA$40 per month the project file estimated, with less room than before:
 the fourth audience added on 2026-09-13 costs about a third more to run, and X adds about
-CA$7. The difference is
+CA$15. The difference is
 a small model for
 re-ranking and the pre-filter that keeps the model away from the full pool. Outside the
 plan's budget, as an alongside project; actuals still go in the plan repository's STATUS.

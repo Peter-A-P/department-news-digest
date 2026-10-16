@@ -157,17 +157,38 @@ class XSource(Strict):
     """
 
     # X's own search syntax. Retweets and replies are excluded, and the audience's language
-    # added, by the adapter.
+    # added, by the adapter. `query` names people; `topics` is a second search by subject,
+    # for the popular posts of the day from people nobody listed (Peter, 2026-10-15). Each
+    # is billed for its own `candidates`.
     query: str = ""
     candidates: int = Field(default=10, ge=10, le=100)
+    topics: str = ""
+    topic_candidates: int = Field(default=10, ge=10, le=100)
 
-    @field_validator("query")
+    @field_validator("query", "topics")
     @classmethod
     def _fits(cls, value: str) -> str:
         # X refuses a query over 512 characters; the adapter adds up to about 40.
         if len(value) > 460:
             raise ValueError("an X query must be at most 460 characters")
         return value.strip()
+
+    @property
+    def searches(self) -> tuple[tuple[str, int], ...]:
+        """Each search a day makes, as (query, posts read). Empty when X is off."""
+        return tuple(
+            (query, count)
+            for query, count in (
+                (self.query, self.candidates),
+                (self.topics, self.topic_candidates),
+            )
+            if query
+        )
+
+    @property
+    def reads(self) -> int:
+        """Posts billed a day: the cost of X for this audience, before the author lookup."""
+        return sum(count for _, count in self.searches)
 
 
 class GdeltSource(Strict):
@@ -330,7 +351,7 @@ class Audience(Strict):
             keys.add("reddit")
         if self.sources.bluesky.queries or self.sources.bluesky.people:
             keys.add("bluesky")
-        if self.sources.x.query:
+        if self.sources.x.searches:
             keys.add("x")
         return keys
 

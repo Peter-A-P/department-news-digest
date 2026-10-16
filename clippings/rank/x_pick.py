@@ -22,7 +22,7 @@ from clippings.config.audience import Audience
 from clippings.constants import X_POST_SHOWN_HOURS
 from clippings.gateway import ModelClient, ModelReply, Purpose
 from clippings.ingest.store import Store
-from clippings.rank.spotlight import MIN_LIKES, PostLine, score_posts
+from clippings.rank.spotlight import MIN_LIKES, PostLine, considered, score_posts
 from clippings.sources.base import FetchContext
 from clippings.sources.x import (
     AUTHOR_ORIGIN,
@@ -54,6 +54,8 @@ class XChoice:
     # This run's reads at X's list price, for the run log and the page.
     reads_usd: float = 0.0
     detail: str = ""
+    # Every post the model scored, for the run log (rank/spotlight.considered).
+    considered: tuple[str, ...] = ()
 
 
 def month_start(now: datetime) -> datetime:
@@ -72,7 +74,7 @@ def pick_x(
     """`covered` is the day's digest's sources as `link_keys`: a post that links to one of
     them repeats a story the reader already has, and is not a candidate."""
     config = audience.sources.x
-    if not config.query:
+    if not config.searches:
         return XChoice(detail="off for this audience")
 
     def log(origin: str, items: int, ok: bool, detail: str = "") -> None:
@@ -88,20 +90,35 @@ def pick_x(
         )
 
     if not context.permitted(SOURCE_KEY):
-        refused = context.refusal(SOURCE_KEY, config.query).detail
-        log(config.query, 0, False, refused)
+        for query, _ in config.searches:
+            refused = context.refusal(SOURCE_KEY, query).detail
+            log(query, 0, False, refused)
         return XChoice(detail=refused)
     spent = spent_usd(store.reads_since(SOURCE_KEY, month_start(context.now)))
-    if not headroom(spent, config.candidates):
+    if not headroom(spent, config.reads):
         detail = f"refused: the monthly cap of US${MONTHLY_CAP_USD:.2f} is reached"
-        log(config.query, 0, False, detail)
+        for query, _ in config.searches:
+            log(query, 0, False, detail)
         return XChoice(detail=detail)
-    try:
-        posts, read = search(audience, context)
-    except XUnavailable as exc:
-        log(config.query, 0, False, str(exc))
-        return XChoice(detail=str(exc))
-    log(config.query, read, True)
+    # People first, then the subject search; a post both find is read once here, though X
+    # bills it in each search that returns it.
+    by_id: dict[str, XPost] = {}
+    read = 0
+    failed = ""
+    for query, count in config.searches:
+        try:
+            found, billed_posts = search(audience, context, query, count)
+        except XUnavailable as exc:
+            log(query, 0, False, str(exc))
+            failed = str(exc)
+            continue
+        log(query, billed_posts, True)
+        read += billed_posts
+        for post in found:
+            by_id.setdefault(post.id, post)
+    if failed and not by_id:
+        return XChoice(detail=failed)
+    posts = list(by_id.values())
     cost = read * PRICE_POST_USD
 
     new = [post for post in posts if not link_keys(post.links) & covered]
@@ -117,10 +134,16 @@ def pick_x(
         PostLine(f"user {post.author_id}", post.likes, post.replies, post.text) for post in eligible
     ]
     scored = score_posts(audience, lines, client, run_id=run_id)
+    # The status link works without the author's handle, which would cost a user read each.
+    seen = considered(
+        [f"https://x.com/i/status/{post.id}" for post in eligible],
+        [post.likes for post in eligible],
+        scored,
+    )
     index = scored.first()
     if index is None:
-        detail = scored.error or "no post the rubric wants"
-        return XChoice(reply=scored.reply, reads_usd=cost, detail=detail)
+        detail = scored.error or f"no post the rubric wants, of {len(eligible)} scored"
+        return XChoice(reply=scored.reply, reads_usd=cost, detail=detail, considered=seen)
     chosen = eligible[index]
     score, reason = scored.scores[index]
     try:
@@ -130,7 +153,7 @@ def pick_x(
         log(AUTHOR_ORIGIN, 0, False, str(exc))
         return XChoice(reply=scored.reply, reads_usd=cost, detail=str(exc))
     log(AUTHOR_ORIGIN, 1, True)
-    return XChoice(chosen, who, score, reason, scored.reply, cost + PRICE_USER_USD)
+    return XChoice(chosen, who, score, reason, scored.reply, cost + PRICE_USER_USD, considered=seen)
 
 
 def shown(chosen: XChoice | None) -> XPick | None:

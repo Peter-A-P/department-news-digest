@@ -180,15 +180,21 @@ sources:
       - hlntnr.bsky.social
       - katecrawford.bsky.social
     limit: 50
-  # One X post a day, shown whole on its day only (rank/x_pick.py), from named people in
-  # their public roles: lab leaders, researchers and policy people. Not outlets, whose
-  # posts share the reports this digest already has from their feeds. Handles checked
-  # against X on 2026-10-13. Ten candidates, X's minimum, is about US$0.06 a day. Leave
-  # the query empty for an audience that serves a government body: X requires an
-  # Enterprise plan for that (docs/sources.md).
+  # One X post a day, shown whole on its day only (rank/x_pick.py). Two searches. The
+  # first names people in their public roles, lab leaders, researchers, policy people and
+  # two journalists, and the four largest labs' own accounts; not outlets, whose posts
+  # share the reports this digest already has from their feeds. The second searches by
+  # subject for the day's popular posts from people nobody listed. Fifteen people and ten
+  # posts left 2026-10-15 with no pick, and Peter chose fifty posts a day: thirty from the
+  # people and twenty by subject, about US$0.25 a day. Handles checked against X's user
+  # lookup on 2026-10-13 and 2026-10-15. Leave both empty for an audience that serves a
+  # government body: X requires an Enterprise plan for that (docs/sources.md).
   x:
-    query: 'from:sama OR from:gdb OR from:DarioAmodei OR from:jackclarkSF OR from:demishassabis OR from:JeffDean OR from:mustafasuleyman OR from:karpathy OR from:AndrewYNg OR from:ylecun OR from:fchollet OR from:emollick OR from:GaryMarcus OR from:Miles_Brundage OR from:hlntnr'
-    candidates: 10
+    query: 'from:sama OR from:gdb OR from:DarioAmodei OR from:jackclarkSF OR from:demishassabis OR from:JeffDean OR from:mustafasuleyman OR from:karpathy OR from:AndrewYNg OR from:ylecun OR from:fchollet OR from:emollick OR from:GaryMarcus OR from:Miles_Brundage OR from:hlntnr OR from:OpenAI OR from:AnthropicAI OR from:GoogleDeepMind OR from:AIatMeta OR from:simonw OR from:natolambert OR from:drfeifei OR from:kevinroose OR from:ClementDelangue OR from:polynoamial'
+    candidates: 30
+    # The day's popular posts by subject, from people nobody listed (Peter, 2026-10-15).
+    topics: '"AI model" OR "AI agents" OR "frontier AI" OR "open weights" OR "AI safety" OR "AI regulation" OR OpenAI OR Anthropic OR DeepMind OR ChatGPT OR Claude OR Gemini OR LLM'
+    topic_candidates: 20
 
 trusted_sources:
   - spectrum.ieee.org

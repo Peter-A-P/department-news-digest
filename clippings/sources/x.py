@@ -8,7 +8,8 @@ use is the day's pick, shown whole on the day it is picked.
 
 Every read is billed (pay-per-use since February 2026): US$0.005 a post and US$0.010 a user,
 counted once per resource per UTC day. A day for one audience is one search of
-`candidates` posts and, for the pick only, one author lookup. The search asks for no user
+`candidates` posts from named people, and a second of `topic_candidates` by subject where
+the audience has `topics`, and, for the pick only, one author lookup. The search asks for no user
 expansion, because that would bill a user per candidate; the one author is fetched after the
 pick. `MONTHLY_CAP_USD` is enforced from the fetch log before any request leaves, as the
 second line of defence behind the spend limit set in X's developer console.
@@ -41,9 +42,11 @@ TOKEN_ENV = "X_BEARER_TOKEN"
 # X's list prices on 2026-10-10 (docs.x.com/x-api/getting-started/pricing), in US dollars.
 PRICE_POST_USD = 0.005
 PRICE_USER_USD = 0.010
-# Four audiences at ten candidates and one author a day is about US$7.20 a month; this
-# leaves room for a rerun or two and stops anything more. Raise it in a commit.
-MONTHLY_CAP_USD = 10.0
+# AI at fifty posts a day (thirty from named people, twenty by subject), Toronto and
+# Newfoundland and Labrador at ten each, and an author a day for each, is about US$11.40 a
+# month (Peter chose fifty on 2026-10-15). Raised from US$10 for that; this leaves room for
+# a rerun and stops anything more. Raise it in a commit.
+MONTHLY_CAP_USD = 12.0
 # The fetch log's origin for an author lookup, so its price can be told from a search's.
 AUTHOR_ORIGIN = "author lookup"
 
@@ -100,9 +103,10 @@ def token(context: FetchContext) -> str:
     return value
 
 
-def query_for(audience: Audience) -> str:
-    """The audience's query, without reposts or replies, in its language if it has one."""
-    query = f"({audience.sources.x.query}) -is:retweet -is:reply"
+def query_for(audience: Audience, terms: str) -> str:
+    """One of the audience's queries, without reposts or replies, in its language if it has
+    one."""
+    query = f"({terms}) -is:retweet -is:reply"
     if len(audience.languages) == 1:
         query += f" lang:{audience.languages[0]}"
     return query
@@ -117,9 +121,9 @@ def spent_usd(reads: dict[str, int]) -> float:
     )
 
 
-def headroom(spent: float, candidates: int) -> bool:
+def headroom(spent: float, reads: int) -> bool:
     """Whether a day's reads for one audience still fit under the monthly cap."""
-    return spent + candidates * PRICE_POST_USD + PRICE_USER_USD <= MONTHLY_CAP_USD
+    return spent + reads * PRICE_POST_USD + PRICE_USER_USD <= MONTHLY_CAP_USD
 
 
 def link_keys(urls: Iterable[str]) -> frozenset[str]:
@@ -220,14 +224,16 @@ def _get(context: FetchContext, url: str, params: dict[str, str]) -> Any:
         raise XUnavailable(f"not JSON: {exc}") from exc
 
 
-def search(audience: Audience, context: FetchContext) -> tuple[tuple[XPost, ...], int]:
-    """The day's candidates by X's relevance order, and how many posts were billed."""
+def search(
+    audience: Audience, context: FetchContext, terms: str, count: int
+) -> tuple[tuple[XPost, ...], int]:
+    """One search's candidates by X's relevance order, and how many posts were billed."""
     payload = _get(
         context,
         SEARCH,
         {
-            "query": query_for(audience),
-            "max_results": str(audience.sources.x.candidates),
+            "query": query_for(audience, terms),
+            "max_results": str(count),
             "sort_order": "relevancy",
             "start_time": (context.now - WINDOW).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "tweet.fields": (

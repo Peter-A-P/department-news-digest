@@ -182,7 +182,7 @@ class Digest(Frozen):
     model_client: str
     # None when no post qualified, the call failed, or the digest predates the section.
     spotlight: Spotlight | None = None
-    # The same for X, also None when X is off for the audience (sources.x.query empty).
+    # The same for X, also None when X is off for the audience (no X search configured).
     x_pick: XPick | None = None
 
     @property
