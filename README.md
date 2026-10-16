@@ -1,8 +1,9 @@
 # Verified Media Briefing
 
-One product, configured per department in a few lines, that reads the day's news, forums
-and social feeds, removes the duplicates, ranks what matters to that audience, and delivers a
-short digest with every claim cited and every quote checked against its source. One system in
+One product, configured per team in a few lines, that reads the day's news and social feeds,
+groups every report of an event into one story by meaning, ranks what matters to that
+audience, and delivers a short briefing with every claim cited and every quote checked against
+its source. One system in
 place of dozens of people doing this by hand, for a few dollars a month each, with measured
 precision and recall.
 
