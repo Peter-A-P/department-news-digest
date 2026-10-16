@@ -210,6 +210,10 @@ digest:
   # 1, not 2 (2026-10-10): on the first labelled day the digest left four slots empty while
   # Peter judged nine left-out stories relevant, all scored "marginal" by the model. The
   # rubric keeps out what he asked to keep out; marginal stories only fill what is left.
+  min_rubric_score: 1
+  # Two Bluesky and two X posts a day (Peter, 2026-10-15): X reads fifty posts for AI, and
+  # one pick from that pool left good posts unshown.
+  post_picks: 2
 
 delivery:
   time_local: "07:00"

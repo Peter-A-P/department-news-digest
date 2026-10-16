@@ -36,7 +36,7 @@ def pick(**changes: object) -> Spotlight:
 
 
 def test_the_whole_post_is_shown_as_a_card_with_its_author() -> None:
-    page = html_page(digest().model_copy(update={"spotlight": pick()}))
+    page = html_page(digest().model_copy(update={"spotlights": (pick(),)}))
     assert "Second line." in page and "Show full post" not in page
     name, text = page.index("Ana Author"), page.index("The first words")
     assert name < text and 'href="https://bsky.app/profile/a.bsky.social"' in page
@@ -46,7 +46,7 @@ def test_the_whole_post_is_shown_as_a_card_with_its_author() -> None:
 
 def test_a_pick_from_before_the_card_shows_its_handle_alone() -> None:
     old = pick(name="", image_url="", reposts=0)
-    page = html_page(digest().model_copy(update={"spotlight": old}))
+    page = html_page(digest().model_copy(update={"spotlights": (old,)}))
     assert (
         "@a.bsky.social" in page
         and 'class="pc-avatar"' not in page
@@ -55,9 +55,9 @@ def test_a_pick_from_before_the_card_shows_its_handle_alone() -> None:
 
 
 def test_a_deleted_post_s_words_are_removed_and_the_page_says_so() -> None:
-    day = digest().model_copy(update={"spotlight": pick(), "generated_at": NOW})
+    day = digest().model_copy(update={"spotlights": (pick(),), "generated_at": NOW})
     gone = updated_pick(day, NOW + timedelta(days=1), lambda url: PostView(False))
-    assert gone is not None and gone.spotlight is not None and gone.spotlight.deleted
+    assert gone is not None and gone.spotlights and gone.spotlights[0].deleted
     page, text = html_page(gone), markdown(gone)
     assert "deleted by its author" in page and "first words" not in page
     assert "Ana Author" not in page and "cdn.bsky.app" not in page
@@ -65,16 +65,16 @@ def test_a_deleted_post_s_words_are_removed_and_the_page_says_so() -> None:
 
 
 def test_an_unknown_answer_changes_nothing() -> None:
-    day = digest().model_copy(update={"spotlight": pick(), "generated_at": NOW})
+    day = digest().model_copy(update={"spotlights": (pick(),), "generated_at": NOW})
     assert updated_pick(day, NOW + timedelta(days=1), lambda url: PostView(None)) is None
     assert updated_pick(day, NOW + timedelta(days=1), lambda url: PostView(True)) is None
 
 
 def test_after_thirty_days_only_the_quote_is_kept() -> None:
-    day = digest().model_copy(update={"spotlight": pick(), "generated_at": NOW})
+    day = digest().model_copy(update={"spotlights": (pick(),), "generated_at": NOW})
     aged = updated_pick(day, NOW + timedelta(days=31), lambda url: PostView(True))
-    assert aged is not None and aged.spotlight is not None
-    assert aged.spotlight.full_text == "" and aged.spotlight.quote
+    assert aged is not None and aged.spotlights
+    assert aged.spotlights[0].full_text == "" and aged.spotlights[0].quote
     page = html_page(aged)
     assert "Second line." not in page and "The first words" in page
     assert "Ana Author" not in page and "cdn.bsky.app" not in page
@@ -116,10 +116,10 @@ def test_the_author_s_name_and_picture_come_from_bluesky_s_public_api() -> None:
 
 def test_a_pick_from_before_the_card_gains_its_author_on_the_next_check() -> None:
     old = pick(name="", image_url="", reposts=0)
-    day = digest().model_copy(update={"spotlight": old, "generated_at": NOW})
+    day = digest().model_copy(update={"spotlights": (old,), "generated_at": NOW})
     seen = PostView(True, name="Ana Author", image_url="https://cdn.bsky.app/a.jpg", reposts=5)
     named = updated_pick(day, NOW + timedelta(days=1), lambda url: seen)
-    assert named is not None and named.spotlight is not None
-    assert named.spotlight.name == "Ana Author" and named.spotlight.reposts == 5
+    assert named is not None and named.spotlights
+    assert named.spotlights[0].name == "Ana Author" and named.spotlights[0].reposts == 5
     # Once it has them, the next check changes nothing.
     assert updated_pick(named, NOW + timedelta(days=2), lambda url: seen) is None

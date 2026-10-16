@@ -206,6 +206,13 @@ model, which is what keeps the subject search's reposted headlines out. Every po
 scores, Bluesky and X, is written to the run log with its link, likes, score and reason, so a
 day with no pick can be checked rather than guessed at.
 
+An audience may show more than one post of each kind (`post_picks`, Peter, 2026-10-15): AI
+shows two from Bluesky and two from X, because fifty X posts a day hold more than one worth
+showing. The picks are the most engaged posts scored at least 2, one per author, and each X
+pick costs its own author lookup. A day with posts opens with two buttons, "News" and
+"Social media posts", each with its count, and the posts sit together under their own
+heading after the stories.
+
 ### 2.4 Every sentence cites, every quote is verbatim, and a verifier enforces it
 
 The summariser writes each digest sentence with the item ids it draws on and marks quotes

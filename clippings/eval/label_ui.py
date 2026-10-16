@@ -149,11 +149,13 @@ td.done { background: var(--yes-bg); }
 
 SCRIPT = """
 const rows = [...document.querySelectorAll('.row')];
-const spot = document.getElementById('spot');
-const xspot = document.getElementById('xspot');
-for (const s of [spot, xspot]) if (s) s.addEventListener('click', e => {
+const spots = [...document.querySelectorAll('.spot')];
+for (const s of spots) s.addEventListener('click', e => {
   if (!e.target.closest('a')) s.classList.toggle('yes');
 });
+// The keys mark the first post of each kind; a second is clicked.
+const spot = spots.find(s => s.dataset.kind === 'spotlight');
+const xspot = spots.find(s => s.dataset.kind === 'x_pick');
 let at = 0;
 function show(n) {
   at = Math.max(0, Math.min(rows.length - 1, n));
@@ -186,8 +188,7 @@ async function save() {
   const body = {token: TOKEN, audience: AUDIENCE, day: DAY,
     relevant: rows.filter(r => r.classList.contains('yes')).map(r => r.dataset.id),
     must: rows.filter(r => r.classList.contains('must')).map(r => r.dataset.id),
-    spotlight: spot ? spot.classList.contains('yes') : null,
-    x_pick: xspot ? xspot.classList.contains('yes') : null,
+    posts: Object.fromEntries(spots.map(s => [s.dataset.post, s.classList.contains('yes')])),
     shown: rows.map(r => r.dataset.id)};
   const button = document.getElementById('save');
   button.disabled = true; button.textContent = 'Saving...';
@@ -293,28 +294,28 @@ def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
     done, total = ws.progress(audience_id, day)
     digest = ws.store.digest_for(audience_id, day)
     spot = ""
-    if digest is not None and digest.spotlight is not None:
-        post = digest.spotlight
-        saved = ws.labels.labels_for(audience_id, day, ws.labeller)
-        worth = any(lab.item_id == post.item_id and lab.relevant for lab in saved)
-        spot = (
-            f'<div id="spot" class="spot{" yes" if worth else ""}">'
-            "<b>The digest's Bluesky pick.</b> Worth showing this audience? Click or "
-            "<kbd>b</kbd> to mark yes; unmarked means no.<br>"
+    saved = ws.labels.labels_for(audience_id, day, ws.labeller)
+    worth = {lab.item_id for lab in saved if lab.relevant}
+    for number, post in enumerate(digest.spotlights if digest is not None else (), start=1):
+        key = " Click or <kbd>b</kbd>" if number == 1 else " Click"
+        spot += (
+            f'<div class="spot{" yes" if post.item_id in worth else ""}" '
+            f'data-kind="spotlight" data-post="{escape(post.item_id)}">'
+            f"<b>The digest's Bluesky pick {number}.</b> Worth showing this audience?{key} "
+            "to mark yes; unmarked means no.<br>"
             f'<span class="q">"{escape(post.quote)}"</span> '
             f'<a href="{escape(post.url)}" target="_blank" rel="noopener">@{escape(post.author)}'
             f"</a> &middot; {post.likes} likes</div>"
         )
-    if digest is not None and digest.x_pick is not None:
-        x = digest.x_pick
-        saved = ws.labels.labels_for(audience_id, day, ws.labeller)
-        worth = any(lab.item_id == x_label_id(x.post_id) and lab.relevant for lab in saved)
+    for number, x in enumerate(digest.x_picks if digest is not None else (), start=1):
+        key = " Click or <kbd>p</kbd>" if number == 1 else " Click"
         # The words are kept for a day only, so most days the labeller opens the post on X.
         words = f'<span class="q">"{escape(x.text)}"</span> ' if x.text else ""
         spot += (
-            f'<div id="xspot" class="spot{" yes" if worth else ""}">'
-            "<b>The digest's X pick.</b> Worth showing this audience? Click or "
-            "<kbd>p</kbd> to mark yes; unmarked means no.<br>"
+            f'<div class="spot{" yes" if x_label_id(x.post_id) in worth else ""}" '
+            f'data-kind="x_pick" data-post="{escape(x_label_id(x.post_id))}">'
+            f"<b>The digest's X pick {number}.</b> Worth showing this audience?{key} "
+            "to mark yes; unmarked means no.<br>"
             f'{words}<a href="{escape(x.url)}" target="_blank" rel="noopener">'
             f"@{escape(x.username)}</a> &middot; {x.likes} likes"
             f"{f' &middot; picked because: {escape(x.reason)}' if x.reason else ''}</div>"
@@ -382,15 +383,17 @@ def save_day(ws: Workspace, payload: dict[str, Any]) -> str:
             graded=True,
         )
     digest = ws.store.digest_for(audience_id, day)
-    if digest is not None and digest.spotlight is not None and payload.get("spotlight") is not None:
-        post = digest.spotlight
+    marked = payload.get("posts") or {}
+    for post in digest.spotlights if digest is not None else ():
+        if post.item_id not in marked:
+            continue
         ws.labels.add_label(
             Label(
                 audience_id=audience_id,
                 day=day,
                 item_id=post.item_id,
                 labeller=ws.labeller,
-                relevant=bool(payload["spotlight"]),
+                relevant=bool(marked[post.item_id]),
                 stratum="spotlight",
                 rank=0,
                 weight=0.0,
@@ -400,15 +403,16 @@ def save_day(ws: Workspace, payload: dict[str, Any]) -> str:
                 graded=True,
             )
         )
-    if digest is not None and digest.x_pick is not None and payload.get("x_pick") is not None:
-        x = digest.x_pick
+    for x in digest.x_picks if digest is not None else ():
+        if x_label_id(x.post_id) not in marked:
+            continue
         ws.labels.add_label(
             Label(
                 audience_id=audience_id,
                 day=day,
                 item_id=x_label_id(x.post_id),
                 labeller=ws.labeller,
-                relevant=bool(payload["x_pick"]),
+                relevant=bool(marked[x_label_id(x.post_id)]),
                 stratum="x_pick",
                 rank=0,
                 weight=0.0,

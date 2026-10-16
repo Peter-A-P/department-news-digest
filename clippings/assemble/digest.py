@@ -16,8 +16,9 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from clippings.config.audience import Audience
 from clippings.gateway import ModelReply, Purpose
@@ -180,10 +181,25 @@ class Digest(Frozen):
     rerank_excluded: int
     embedder: str
     model_client: str
-    # None when no post qualified, the call failed, or the digest predates the section.
-    spotlight: Spotlight | None = None
-    # The same for X, also None when X is off for the audience (no X search configured).
-    x_pick: XPick | None = None
+    # The day's Bluesky posts, most engaged first, up to the audience's `post_picks`. Empty
+    # when no post qualified, the call failed, or the digest predates the section.
+    spotlights: tuple[Spotlight, ...] = ()
+    # The same for X, also empty when X is off for the audience (no X search configured).
+    x_picks: tuple[XPick, ...] = ()
+
+    @model_validator(mode="before")
+    @classmethod
+    def _one_pick_before_several(cls, data: Any) -> Any:
+        """Digests stored before 2026-10-15 hold one pick of each, as `spotlight` and
+        `x_pick`; they load as a list of one."""
+        if isinstance(data, dict):
+            for old, new in (("spotlight", "spotlights"), ("x_pick", "x_picks")):
+                if old in data:
+                    data = dict(data)
+                    one = data.pop(old)
+                    if one is not None and new not in data:
+                        data[new] = (one,)
+        return data
 
     @property
     def cost_usd(self) -> float:
@@ -302,9 +318,9 @@ def build_digest(
     pool_stories: int,
     embedder: str,
     model_client: str,
-    spotlight: Spotlight | None = None,
+    spotlights: Sequence[Spotlight] = (),
     spotlight_reply: ModelReply | None = None,
-    x_pick: XPick | None = None,
+    x_picks: Sequence[XPick] = (),
     x_pick_reply: ModelReply | None = None,
 ) -> Digest:
     scores = {score.story_id: score for score in rerank.scores} if rerank else {}
@@ -329,6 +345,6 @@ def build_digest(
         rerank_excluded=rerank.excluded if rerank else 0,
         embedder=embedder,
         model_client=model_client,
-        spotlight=spotlight,
-        x_pick=x_pick,
+        spotlights=tuple(spotlights),
+        x_picks=tuple(x_picks),
     )

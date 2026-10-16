@@ -1,4 +1,5 @@
-"""The day's most discussed Bluesky post that the audience's rubric would want: one, or none.
+"""The day's most discussed Bluesky posts that the audience's rubric would want: up to the
+audience's `post_picks`, or none.
 
 Posts are not stories (PLAN.md section 2.3): inside a news story a post is commentary, and a
 story of posts alone is never one of the digest's stories. This is the one place a post with
@@ -8,7 +9,7 @@ post and never in a story's slot (Peter, 2026-10-10).
 The candidates are posts that joined no news story, with at least `MIN_LIKES` likes, most
 engaged first. One model call scores them against the rubric, with a rule set for posts on
 top: no jokes, insults, personal attacks, posts about private individuals, or posts that are
-only a link. The pick is the most engaged post the model scored at least 2. Nothing the model
+only a link. The picks are the most engaged posts the model scored at least 2, one per author. Nothing the model
 writes is shown as fact: the page shows the post's own words, cut to twenty-five, its
 counts and a link, and the model's twelve-word reason as the reason it was picked.
 """
@@ -56,12 +57,19 @@ Answer with one JSON object per line and nothing else, for example:
 
 
 @dataclass(frozen=True)
-class Pick:
-    """The post chosen, or None, and what the call cost."""
+class Picked:
+    """One post chosen, with the model's score and reason."""
 
-    item: Item | None
-    score: int | None
+    item: Item
+    score: int
     reason: str
+
+
+@dataclass(frozen=True)
+class Pick:
+    """The posts chosen, most engaged first, possibly none, and what the call cost."""
+
+    picks: tuple[Picked, ...]
     reply: ModelReply | None
     error: str = ""
     # Every post the model scored, for the run log: why a day has no pick is then on record.
@@ -130,13 +138,19 @@ class Scored:
     reply: ModelReply | None
     error: str = ""
 
-    def first(self, minimum: int = MIN_SCORE) -> int | None:
-        """The index of the first post scored at least `minimum`: the most engaged, when the
-        posts were given most engaged first."""
+    def best(self, authors: Sequence[str], count: int = 1, minimum: int = MIN_SCORE) -> list[int]:
+        """The indexes of the first `count` posts scored at least `minimum`, one per author:
+        the most engaged, when the posts were given most engaged first. `authors` is each
+        post's author, in the same order; two posts from one person are one voice."""
+        chosen: list[int] = []
+        taken: set[str] = set()
         for index, (score, _) in enumerate(self.scores):
-            if score >= minimum:
-                return index
-        return None
+            if len(chosen) == count:
+                break
+            if score >= minimum and authors[index] not in taken:
+                chosen.append(index)
+                taken.add(authors[index])
+        return chosen
 
 
 def considered(labels: Sequence[str], likes: Sequence[int], scored: Scored) -> tuple[str, ...]:
@@ -171,17 +185,18 @@ def pick(
 ) -> Pick:
     posts = candidates(clusters, items)
     if not posts:
-        return Pick(None, None, "", None)
+        return Pick((), None)
     scored = score_posts(audience, [line_for(post) for post in posts], client, run_id=run_id)
     if scored.reply is None:
         # No pick is the safe answer: the section is simply left out.
-        return Pick(None, None, "", None, error=scored.error)
+        return Pick((), None, error=scored.error)
     seen = considered([post.url for post in posts], [post.score or 0 for post in posts], scored)
-    chosen = scored.first()
-    if chosen is None:
-        return Pick(None, None, "", scored.reply, considered=seen)
-    score, reason = scored.scores[chosen]
-    return Pick(posts[chosen], score, reason, scored.reply, considered=seen)
+    chosen = scored.best([post.author or "" for post in posts], audience.digest.post_picks)
+    return Pick(
+        tuple(Picked(posts[index], *scored.scores[index]) for index in chosen),
+        scored.reply,
+        considered=seen,
+    )
 
 
 def quote(text: str, words: int = QUOTE_WORDS) -> str:

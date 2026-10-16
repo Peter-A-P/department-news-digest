@@ -243,6 +243,10 @@ class Digest(Strict):
     # read". At 2 a digest shows fewer stories rather than fill its length with marginal ones,
     # which is what an audience of busy readers asked for (the AI audience, 2026-10-10).
     min_rubric_score: int = Field(default=1, ge=1, le=3)
+    # How many Bluesky posts, and separately how many X posts, below the stories: each the
+    # most engaged the rubric scores at least 2, from different authors. One unless the pool
+    # is wide enough to have more worth showing (AI, two since 2026-10-15).
+    post_picks: int = Field(default=1, ge=1, le=3)
 
     @model_validator(mode="after")
     def _candidates_cover_the_digest(self) -> Digest:

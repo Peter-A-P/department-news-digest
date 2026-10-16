@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import os
 import warnings
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal, TypedDict
@@ -104,7 +105,7 @@ class State(TypedDict, total=False):
     chosen: tuple[ScoredStory, ...]
     works: list[StoryWork]
     spotlight: Pick
-    spotlight_view: PostView | None
+    spotlight_views: tuple[PostView, ...]
     x_pick: XChoice
     digest: Digest
     published: list[str]
@@ -191,17 +192,17 @@ def node_select(state: State) -> State:
 
 
 def node_spotlight(state: State) -> State:
-    """The day's most discussed Bluesky post the rubric wants, if any (rank/spotlight.py)."""
+    """The day's most discussed Bluesky posts the rubric wants, if any (rank/spotlight.py)."""
     p = state["pipeline"]
     assert p.client is not None
     clusters = p.store.clusters_for(p.audience.id, p.day)
     chosen = pick(p.audience, clusters, state["pool"], p.client, run_id=p.run_id)
-    found = chosen.item.author if chosen.item is not None else "none"
-    # The author's name and picture for the post card, from Bluesky's free public API.
-    view = post_view(p.context.client, chosen.item.url) if chosen.item is not None else None
+    found = ",".join(one.item.author or "" for one in chosen.picks) or "none"
+    # Each author's name and picture for the post card, from Bluesky's free public API.
+    views = tuple(post_view(p.context.client, one.item.url) for one in chosen.picks)
     return {
         "spotlight": chosen,
-        "spotlight_view": view,
+        "spotlight_views": views,
         "trace": _trace(state, f"spotlight:{found}"),
     }
 
@@ -218,7 +219,7 @@ def node_x_pick(state: State) -> State:
         if item_id in pool
     )
     chosen = pick_x(p.audience, p.context, p.store, p.client, run_id=p.run_id, covered=covered)
-    found = chosen.author.username if chosen.author is not None else chosen.detail
+    found = ",".join(one.author.username for one in chosen.picks) or chosen.detail
     return {"x_pick": chosen, "trace": _trace(state, f"x_pick:{found}")}
 
 
@@ -266,9 +267,9 @@ def node_assemble(state: State) -> State:
         pool_stories=report.clusters,
         embedder=report.embedder,
         model_client=p.client.name if p.client is not None else "none",
-        spotlight=_spotlight(state.get("spotlight"), state.get("spotlight_view")),
+        spotlights=_spotlights(state.get("spotlight"), state.get("spotlight_views", ())),
         spotlight_reply=chosen.reply if (chosen := state.get("spotlight")) else None,
-        x_pick=shown(state.get("x_pick")),
+        x_picks=shown(state.get("x_pick")),
         x_pick_reply=x.reply if (x := state.get("x_pick")) else None,
     )
     p.store.save_digest(digest)
@@ -276,26 +277,32 @@ def node_assemble(state: State) -> State:
     return {"digest": digest, "trace": _trace(state, f"assemble:{len(digest.stories)} stories")}
 
 
-def _spotlight(chosen: Pick | None, view: PostView | None = None) -> Spotlight | None:
-    if chosen is None or chosen.item is None or chosen.score is None:
-        return None
-    post = chosen.item
-    seen = view if view is not None and view.found else None
-    return Spotlight(
-        item_id=post.id,
-        url=post.url,
-        author=post.author or "",
-        quote=quote(post.summary),
-        likes=post.score or 0,
-        replies=post.comments or 0,
-        posted_at=post.published_at,
-        rubric_score=chosen.score,
-        reason=chosen.reason,
-        full_text=post.summary if post.source_kind == "bluesky" else "",
-        name=seen.name if seen else "",
-        image_url=seen.image_url if seen else "",
-        reposts=seen.reposts if seen else 0,
-    )
+def _spotlights(chosen: Pick | None, views: Sequence[PostView] = ()) -> tuple[Spotlight, ...]:
+    if chosen is None:
+        return ()
+    shown_posts = []
+    for index, one in enumerate(chosen.picks):
+        post = one.item
+        view = views[index] if index < len(views) else None
+        seen = view if view is not None and view.found else None
+        shown_posts.append(
+            Spotlight(
+                item_id=post.id,
+                url=post.url,
+                author=post.author or "",
+                quote=quote(post.summary),
+                likes=post.score or 0,
+                replies=post.comments or 0,
+                posted_at=post.published_at,
+                rubric_score=one.score,
+                reason=one.reason,
+                full_text=post.summary if post.source_kind == "bluesky" else "",
+                name=seen.name if seen else "",
+                image_url=seen.image_url if seen else "",
+                reposts=seen.reposts if seen else 0,
+            )
+        )
+    return tuple(shown_posts)
 
 
 def node_publish(state: State) -> State:

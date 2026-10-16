@@ -373,7 +373,7 @@ def test_the_bluesky_pick_is_shown_as_a_post_and_escaped() -> None:
         rubric_score=2,
         reason="Council decision on bike lanes",
     )
-    page = html_page(digest().model_copy(update={"spotlight": pick}))
+    page = html_page(digest().model_copy(update={"spotlights": (pick,)}))
     assert "Most discussed on Bluesky" in page and "not reporting" in page
     assert "<b>bold</b>" not in page and "171 likes" in page
     assert "Most discussed on Bluesky" not in html_page(digest())
@@ -394,3 +394,23 @@ def test_the_front_page_explains_itself_below_the_audiences_and_claims_no_result
     # Plain punctuation, and no measured figure: those live in the README with intervals.
     assert not re.search("[\\u2012-\\u2015\\u2018\\u2019\\u201c\\u201d]", page)
     assert "%" not in about
+
+
+def test_a_day_with_posts_opens_with_a_button_for_news_and_one_for_posts() -> None:
+    from tests.test_deletions import pick as bluesky_pick
+    from tests.test_x import x_pick
+
+    plain = html_page(digest())
+    assert 'class="jump"' not in plain and 'id="news"' in plain
+    both = digest().model_copy(
+        update={
+            "spotlights": (bluesky_pick(), bluesky_pick(item_id="b2")),
+            "x_picks": (x_pick(),),
+        }
+    )
+    page = html_page(both)
+    nav = page.split('<nav class="jump"', 1)[1].split("</nav>", 1)[0]
+    assert 'href="#news"' in nav and 'href="#posts"' in nav
+    assert f"{len(both.stories)} stor" in nav and '<span class="n">3</span>' in nav
+    # The buttons come before the stories, and the posts after them, under their own heading.
+    assert page.index('class="jump"') < page.index('id="news"') < page.index('id="posts"')

@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 
 import httpx
 
-from clippings.assemble.digest import Digest
+from clippings.assemble.digest import Digest, Spotlight
 from clippings.assemble.publish import Site, publish_digest
 from clippings.config.audience import Audience
 from clippings.constants import RETENTION_DAYS, X_POST_SHOWN_HOURS
@@ -31,31 +31,41 @@ from clippings.sources.bluesky import PostView, post_view
 Lookup = Callable[[str], PostView]
 
 
-def updated_pick(digest: Digest, now: datetime, lookup: Lookup) -> Digest | None:
-    """The digest with its pick deleted, trimmed or given its author, or None if nothing
-    changes."""
-    pick = digest.spotlight
-    if pick is None or pick.deleted:
+def _updated_post(
+    pick: Spotlight, digest: Digest, now: datetime, lookup: Lookup
+) -> Spotlight | None:
+    """One pick deleted, trimmed or given its author, or None if it does not change."""
+    if pick.deleted:
         return None
     if now - digest.generated_at > timedelta(days=RETENTION_DAYS):
         if not pick.full_text:
             return None
-        trimmed = pick.model_copy(update={"full_text": "", "name": "", "image_url": ""})
-        return digest.model_copy(update={"spotlight": trimmed})
+        return pick.model_copy(update={"full_text": "", "name": "", "image_url": ""})
     if not pick.full_text:
         return None
     view = lookup(pick.url)
     if view.found and not pick.name and not pick.image_url and (view.name or view.image_url):
-        named = pick.model_copy(
+        return pick.model_copy(
             update={"name": view.name, "image_url": view.image_url, "reposts": view.reposts}
         )
-        return digest.model_copy(update={"spotlight": named})
     if view.found is not False:
         return None
-    gone = pick.model_copy(
+    return pick.model_copy(
         update={"deleted": True, "quote": "", "full_text": "", "name": "", "image_url": ""}
     )
-    return digest.model_copy(update={"spotlight": gone})
+
+
+def updated_pick(digest: Digest, now: datetime, lookup: Lookup) -> Digest | None:
+    """The digest with its picks deleted, trimmed or given their authors, or None if nothing
+    changes."""
+    updates = [_updated_post(pick, digest, now, lookup) for pick in digest.spotlights]
+    if all(update is None for update in updates):
+        return None
+    picks = tuple(
+        update if update is not None else pick
+        for pick, update in zip(digest.spotlights, updates, strict=True)
+    )
+    return digest.model_copy(update={"spotlights": picks})
 
 
 def recheck_picks(
@@ -84,14 +94,16 @@ def recheck_picks(
 
 
 def expired_x_pick(digest: Digest, now: datetime) -> Digest | None:
-    """The digest with its X pick's words removed if it is old enough, or None."""
-    pick = digest.x_pick
-    if pick is None or pick.expired:
+    """The digest with its X picks' words removed if it is old enough, or None."""
+    if all(pick.expired for pick in digest.x_picks):
         return None
     if now - digest.generated_at < timedelta(hours=X_POST_SHOWN_HOURS):
         return None
-    gone = pick.model_copy(update={"expired": True, "text": "", "name": "", "image_url": ""})
-    return digest.model_copy(update={"x_pick": gone})
+    gone = tuple(
+        pick.model_copy(update={"expired": True, "text": "", "name": "", "image_url": ""})
+        for pick in digest.x_picks
+    )
+    return digest.model_copy(update={"x_picks": gone})
 
 
 def expire_x_picks(

@@ -192,6 +192,17 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 .src-table td:nth-child(3) { white-space: nowrap; }
 .src-note { display: block; color: var(--ink-faint); font-size: 0.74rem; }
 .failed { color: var(--amber); font-weight: 600; }
+.jump { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1.5rem 0 0; }
+.jump a { display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.5rem 1.05rem;
+  border-radius: 999px; border: 1px solid var(--line-2); background: var(--paper-soft);
+  color: var(--ink); font-weight: 600; font-size: 0.92rem; }
+.jump a:hover, .jump a:focus-visible { text-decoration: none; border-color: var(--aud);
+  background: var(--aud-soft); }
+.jump .n { font-size: 0.8rem; color: var(--aud); }
+.jump a.to-posts .n { color: var(--violet); }
+#news, #posts { scroll-margin-top: 1rem; }
+.posts { max-width: var(--column); margin-top: 2.4rem; }
+.posts .section-title { margin: 0; }
 .spotlight { max-width: var(--column); margin: 1.6rem 0 0; padding: 1.1rem 1.2rem;
   background: var(--paper-soft); border: 1px solid var(--line);
   border-left: 3px solid var(--violet); border-radius: var(--radius); }
@@ -555,7 +566,11 @@ def _spotlight_html(post: Spotlight) -> str:
             '<p class="none">This post was deleted by its author, so it is no longer shown.</p>'
             "</section>"
         )
-    reason = f'<p class="why">Picked because: {escape(post.reason)}.</p>' if post.reason else ""
+    reason = (
+        f'<p class="why">Picked because: {escape(post.reason.rstrip("."))}.</p>'
+        if post.reason
+        else ""
+    )
     # Bluesky has no links that reply, repost or like from outside its app, so each mark
     # opens the post there.
     actions = _action_icons([(label, post.url, path) for label, _, path in X_ACTIONS])
@@ -586,7 +601,11 @@ def _spotlight_html(post: Spotlight) -> str:
 def _x_pick_html(pick: XPick) -> str:
     """The day's X post, whole, the way X's display rules lay it out; after its day, a link."""
     posted = pick.posted_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
-    reason = f'<p class="why">Picked because: {escape(pick.reason)}.</p>' if pick.reason else ""
+    reason = (
+        f'<p class="why">Picked because: {escape(pick.reason.rstrip("."))}.</p>'
+        if pick.reason
+        else ""
+    )
     if pick.expired or not pick.text:
         return (
             '<section class="spotlight"><p class="eyebrow">Most discussed on X</p>'
@@ -671,16 +690,33 @@ def html_page(digest: Digest, description: str = "", sources: str = "") -> str:
             "exclusions were not applied.</p>"
         )
     body.append("</header>")
-    body.append('<div class="stories">')
+    posts = [
+        *(_spotlight_html(post) for post in digest.spotlights),
+        *(_x_pick_html(pick) for pick in digest.x_picks),
+    ]
+    if posts:
+        # News and posts are different things to read, and a reader usually wants one of
+        # them: a button for each, with how many, before either begins (Peter, 2026-10-15).
+        stories = len(digest.stories)
+        body.append(
+            '<nav class="jump" aria-label="On this page">'
+            f'<a href="#news">News <span class="n">{stories} '
+            f"{'story' if stories == 1 else 'stories'}</span></a>"
+            f'<a class="to-posts" href="#posts">Social media posts '
+            f'<span class="n">{len(posts)}</span></a></nav>'
+        )
+    body.append('<div class="stories" id="news">')
     if not digest.stories:
         body.append('<p class="none">No story was chosen today.</p>')
     body.extend(_story_html(story) for story in digest.stories)
-    if digest.spotlight is not None:
-        body.append(_spotlight_html(digest.spotlight))
-    if digest.x_pick is not None:
-        body.append(_x_pick_html(digest.x_pick))
-    body.append(f'<p class="note">Run {escape(digest.run_id)}.</p>')
     body.append("</div>")
+    if posts:
+        body.append(
+            '<section class="posts" id="posts"><h2 class="section-title">Social media posts</h2>'
+            + "".join(posts)
+            + "</section>"
+        )
+    body.append(f'<p class="note">Run {escape(digest.run_id)}.</p>')
     return _page(title, "\n".join(body), hue=hue(digest.audience_id))
 
 
@@ -707,15 +743,15 @@ def markdown(digest: Digest) -> str:
         for source in story.sources:
             lines.append(f"- [{source.sid}] {source.domain}: [{source.title}]({source.url})")
         lines.append("")
-    if digest.spotlight is not None and digest.spotlight.deleted:
-        lines += [
-            "## Most discussed on Bluesky",
-            "",
-            "_This post was deleted by its author, so it is no longer shown._",
-            "",
-        ]
-    elif digest.spotlight is not None:
-        post = digest.spotlight
+    for post in digest.spotlights:
+        if post.deleted:
+            lines += [
+                "## Most discussed on Bluesky",
+                "",
+                "_This post was deleted by its author, so it is no longer shown._",
+                "",
+            ]
+            continue
         body = post.full_text or post.quote
         lines += [
             "## Most discussed on Bluesky",
@@ -726,9 +762,8 @@ def markdown(digest: Digest) -> str:
             "A post, not reporting; nothing in it has been checked.",
             "",
         ]
-    if digest.x_pick is not None:
-        x = digest.x_pick
-        reason = f" Picked because: {x.reason}." if x.reason else ""
+    for x in digest.x_picks:
+        reason = f" Picked because: {x.reason.rstrip('.')}." if x.reason else ""
         lines += [
             "## Most discussed on X",
             "",

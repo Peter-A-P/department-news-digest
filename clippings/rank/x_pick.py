@@ -1,11 +1,12 @@
-"""The day's most discussed X post that the audience's rubric would want: one, or none.
+"""The day's most discussed X posts that the audience's rubric would want: up to the
+audience's `post_picks`, or none.
 
 The same judgement as the Bluesky pick (rank/spotlight.py), from a different pool: X's ten
 most relevant posts of the last day for the audience's query, read through the paid API
 (sources/x.py). Posts with fewer than `MIN_LIKES` likes are not a conversation and are not
 shown to the model. One model call scores the rest against the rubric with the rules for
-posts; the pick is the most engaged post scored at least 2. Only then is its author looked
-up, the one user read a day, because X's display rules require the author's name, handle
+posts; the picks are the most engaged posts scored at least 2, one per author. Only then is
+each pick's author looked up, one user read per pick, because X's display rules require the author's name, handle
 and picture beside the post.
 
 Every request is logged to the fetch log, which is what the monthly cap is checked against
@@ -43,13 +44,21 @@ from clippings.sources.x import (
 
 
 @dataclass(frozen=True)
-class XChoice:
-    """The post chosen and its author, or why there is none, and what it cost."""
+class XPicked:
+    """One post chosen, its author, and the model's score and reason."""
 
-    post: XPost | None = None
-    author: XAuthor | None = None
-    score: int | None = None
-    reason: str = ""
+    post: XPost
+    author: XAuthor
+    score: int
+    reason: str
+
+
+@dataclass(frozen=True)
+class XChoice:
+    """The posts chosen with their authors, most engaged first, or why there are none, and
+    what it cost."""
+
+    picks: tuple[XPicked, ...] = ()
     reply: ModelReply | None = None
     # This run's reads at X's list price, for the run log and the page.
     reads_usd: float = 0.0
@@ -140,41 +149,48 @@ def pick_x(
         [post.likes for post in eligible],
         scored,
     )
-    index = scored.first()
-    if index is None:
+    indexes = scored.best([post.author_id for post in eligible], audience.digest.post_picks)
+    if not indexes:
         detail = scored.error or f"no post the rubric wants, of {len(eligible)} scored"
         return XChoice(reply=scored.reply, reads_usd=cost, detail=detail, considered=seen)
-    chosen = eligible[index]
-    score, reason = scored.scores[index]
-    try:
-        who = author(context, chosen.author_id)
-    except XUnavailable as exc:
-        # Without its author the post cannot be shown the way X requires, so it is not shown.
-        log(AUTHOR_ORIGIN, 0, False, str(exc))
-        return XChoice(reply=scored.reply, reads_usd=cost, detail=str(exc))
-    log(AUTHOR_ORIGIN, 1, True)
-    return XChoice(chosen, who, score, reason, scored.reply, cost + PRICE_USER_USD, considered=seen)
+    picks: list[XPicked] = []
+    detail = ""
+    for index in indexes:
+        try:
+            who = author(context, eligible[index].author_id)
+        except XUnavailable as exc:
+            # Without its author a post cannot be shown the way X requires, so it is not.
+            log(AUTHOR_ORIGIN, 0, False, str(exc))
+            detail = str(exc)
+            continue
+        log(AUTHOR_ORIGIN, 1, True)
+        cost += PRICE_USER_USD
+        picks.append(XPicked(eligible[index], who, *scored.scores[index]))
+    return XChoice(tuple(picks), scored.reply, cost, detail, considered=seen)
 
 
-def shown(chosen: XChoice | None) -> XPick | None:
-    """The pick as the digest keeps it, or None when there is no pick."""
-    if chosen is None or chosen.post is None or chosen.author is None or chosen.score is None:
-        return None
-    post, who = chosen.post, chosen.author
-    return XPick(
-        post_id=post.id,
-        url=post_url(who.username, post.id),
-        username=who.username,
-        name=who.name,
-        image_url=who.image_url,
-        text=post.text,
-        posted_at=post.created_at,
-        likes=post.likes,
-        reposts=post.reposts,
-        replies=post.replies,
-        rubric_score=chosen.score,
-        reason=chosen.reason,
-        reads_usd=chosen.reads_usd,
+def shown(chosen: XChoice | None) -> tuple[XPick, ...]:
+    """The picks as the digest keeps them; empty when there is none. Each carries the run's
+    whole X reads, which is what the page and the log state once."""
+    if chosen is None:
+        return ()
+    return tuple(
+        XPick(
+            post_id=one.post.id,
+            url=post_url(one.author.username, one.post.id),
+            username=one.author.username,
+            name=one.author.name,
+            image_url=one.author.image_url,
+            text=one.post.text,
+            posted_at=one.post.created_at,
+            likes=one.post.likes,
+            reposts=one.post.reposts,
+            replies=one.post.replies,
+            rubric_score=one.score,
+            reason=one.reason,
+            reads_usd=chosen.reads_usd,
+        )
+        for one in chosen.picks
     )
 
 
@@ -184,7 +200,7 @@ def still_showing(digest: Digest, now: datetime) -> bool:
 
 
 def added_to(digest: Digest, chosen: XChoice) -> Digest:
-    """A published digest with the X pick added after the fact (`clippings x-pick`).
+    """A published digest with the X picks added after the fact (`clippings x-pick`).
 
     The model call is added to the digest's costs. `generated_at` is kept, so the words
     still go with the next daily run, as if the pick had been made with the digest.
@@ -192,4 +208,4 @@ def added_to(digest: Digest, chosen: XChoice) -> Digest:
     calls = digest.calls
     if chosen.reply is not None:
         calls = (*calls, call_cost(Purpose.SPOTLIGHT, "", chosen.reply))
-    return digest.model_copy(update={"x_pick": shown(chosen), "calls": calls})
+    return digest.model_copy(update={"x_picks": shown(chosen), "calls": calls})

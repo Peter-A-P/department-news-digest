@@ -46,7 +46,7 @@ def test_the_pick_is_the_most_engaged_post_the_rubric_wants(audience: Audience) 
         '{"id": "c01", "score": 1, "reason": "a joke"}\n{"id": "c02", "score": 2, "reason": "r"}'
     )
     chosen = pick(audience, clusters, items, ScriptedClient(lambda call: reply), run_id="r")
-    assert chosen.item is not None and chosen.item.id == "p2" and chosen.score == 2
+    assert [(one.item.id, one.score) for one in chosen.picks] == [("p2", 2)]
 
 
 def test_nothing_qualifies_and_nothing_is_shown(audience: Audience) -> None:
@@ -55,7 +55,7 @@ def test_nothing_qualifies_and_nothing_is_shown(audience: Audience) -> None:
     chosen = pick(
         audience, [story("k1", only)], {"p1": only}, ScriptedClient(lambda c: reply), run_id="r"
     )
-    assert chosen.item is None and chosen.reply is not None
+    assert chosen.picks == () and chosen.reply is not None
 
 
 class Failing:
@@ -68,7 +68,7 @@ class Failing:
 def test_a_failed_call_leaves_the_section_out(audience: Audience) -> None:
     only = post("p1", 90)
     chosen = pick(audience, [story("k1", only)], {"p1": only}, Failing(), run_id="r")
-    assert chosen.item is None and "529" in chosen.error
+    assert chosen.picks == () and "529" in chosen.error
 
 
 def test_the_quote_is_the_post_s_own_words_and_at_most_twenty_five() -> None:
@@ -77,3 +77,25 @@ def test_the_quote_is_the_post_s_own_words_and_at_most_twenty_five() -> None:
     assert shown.endswith(" ...")
     words = shown.removesuffix(" ...").split()
     assert len(words) == 25 and " ".join(words) in text
+
+
+def test_several_picks_are_the_most_engaged_wanted_posts_one_per_author() -> None:
+    from clippings.rank.spotlight import Scored
+
+    scored = Scored(((3, "a"), (2, "b"), (1, "c"), (2, "d"), (3, "e")), None)
+    # The second post is by the first post's author, so it is one voice and is passed over.
+    assert scored.best(["ana", "ana", "bo", "cy", "dee"], count=2) == [0, 3]
+    assert scored.best(["ana", "bo", "cy", "dee", "eve"], count=1) == [0]
+
+
+def test_a_digest_stored_with_one_pick_of_each_loads_as_a_list_of_one() -> None:
+    from clippings.assemble.digest import Digest
+    from tests.test_deletions import pick as bluesky_pick
+    from tests.test_delivery import digest
+
+    stored = digest().model_dump(mode="json")
+    del stored["spotlights"], stored["x_picks"]
+    stored["spotlight"] = bluesky_pick().model_dump(mode="json")
+    stored["x_pick"] = None
+    loaded = Digest.model_validate(stored)
+    assert len(loaded.spotlights) == 1 and loaded.x_picks == ()

@@ -214,7 +214,7 @@ def run(
             if "digest" in state:
                 _print_digest(state["digest"], state.get("published", []))
                 x = state.get("x_pick")
-                if x is not None and x.post is None and one.sources.x.searches:
+                if x is not None and not x.picks and one.sources.x.searches:
                     typer.echo(f"  x pick      none: {x.detail}")
                 bluesky = state.get("spotlight")
                 for name, choice in (("bluesky", bluesky), ("x", x)):
@@ -333,9 +333,11 @@ def x_pick(
         for one in selected:
             days = store.digest_days(one.id)
             digest = store.digest_for(one.id, days[0]) if days else None
-            if digest is None or digest.x_pick is not None:
+            # A digest with fewer picks than the audience now asks for is picked again, and
+            # the new picks replace the old.
+            if digest is None or len(digest.x_picks) >= one.digest.post_picks:
                 typer.echo(
-                    f"{one.id:24s} skipped: {'no digest' if digest is None else 'has a pick'}"
+                    f"{one.id:24s} skipped: {'no digest' if digest is None else 'has its picks'}"
                 )
                 continue
             if not still_showing(digest, context.now):
@@ -343,18 +345,18 @@ def x_pick(
                 continue
             covered = link_keys(source.url for story in digest.stories for source in story.sources)
             chosen = pick_x(one, context, store, client, run_id=run_id, covered=covered)
-            if chosen.post is None:
+            if not chosen.picks:
                 typer.echo(f"{one.id:24s} {digest.day} no pick: {chosen.detail}")
                 continue
             updated = added_to(digest, chosen)
             store.save_digest(updated)
             publish_digest(published, updated, one.description, panel_for(one, store))
-            x = updated.x_pick
-            assert x is not None
-            typer.echo(
-                f"{one.id:24s} {digest.day} @{x.username}, {x.likes} likes [{x.rubric_score}]: "
-                f"{x.reason}; X reads US${x.reads_usd:.3f}"
-            )
+            for x in updated.x_picks:
+                typer.echo(
+                    f"{one.id:24s} {digest.day} @{x.username}, {x.likes} likes "
+                    f"[{x.rubric_score}]: {x.reason}"
+                )
+            typer.echo(f"{one.id:24s} X reads US${chosen.reads_usd:.3f}")
         if bucket:
             store.checkpoint()
 
@@ -415,12 +417,11 @@ def _print_digest(digest: Digest, published: list[str]) -> None:
         mark = "" if story.sentences else f"  ({story.status})"
         score = "-" if story.rerank_score is None else str(story.rerank_score)
         typer.echo(f"     {story.position:2d}. [{score}] {story.headline[:70]}{mark}")
-    if digest.x_pick is not None:
-        x = digest.x_pick
-        typer.echo(
-            f"  x pick      @{x.username}, {x.likes} likes [{x.rubric_score}]; X reads "
-            f"CA${cad(x.reads_usd):.3f} (US${x.reads_usd:.3f}) at list price"
-        )
+    for x in digest.x_picks:
+        typer.echo(f"  x pick      @{x.username}, {x.likes} likes [{x.rubric_score}]")
+    if digest.x_picks:
+        reads = digest.x_picks[0].reads_usd
+        typer.echo(f"  x reads     CA${cad(reads):.3f} (US${reads:.3f}) at list price")
     if published:
         typer.echo(f"  published   {published[0]} and {len(published) - 1} more")
 

@@ -182,7 +182,7 @@ def test_the_x_pick_is_judged_on_its_own_and_kept_out_of_the_sample(
     from tests.test_x import x_pick
 
     audience_id = next(iter(workspace.audiences))
-    workspace.store.save_digest(digest(day=DAY).model_copy(update={"x_pick": x_pick()}))
+    workspace.store.save_digest(digest(day=DAY).model_copy(update={"x_picks": (x_pick(),)}))
     _, page = call(workspace, "GET", f"/day?audience={audience_id}&day={DAY}")
     assert "The digest's X pick" in page.decode()
     shown = ids_on(page)
@@ -192,7 +192,7 @@ def test_the_x_pick_is_judged_on_its_own_and_kept_out_of_the_sample(
         "day": DAY,
         "relevant": [],
         "shown": shown,
-        "x_pick": True,
+        "posts": {"x:123": True},
     }
     assert call(workspace, "POST", "/save", payload)[0].startswith("200")
     labels = workspace.labels.labels_for(audience_id, DAY, "peter")
