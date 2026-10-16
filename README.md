@@ -94,6 +94,9 @@ exists, the pipeline step by step, how it is measured, the rules it keeps, what 
 what is to come. It is in `clippings/assemble/about.py`, states no measured result (those
 are here, with their intervals), and changes with this section.
 
+Three architecture diagrams, the system, one morning's run and how the numbers are produced, are in
+[docs/architecture.md](docs/architecture.md).
+
 ## Running it
 
 Python 3.13 and [uv](https://docs.astral.sh/uv/).
