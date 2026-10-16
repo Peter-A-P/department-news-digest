@@ -77,33 +77,33 @@
 <rect x="458.0" y="1186.0" width="5" height="64.0" rx="2" fill="#A64C1C"/>
 <text x="608.0" y="1215.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">digest.peterparker.ca</text>
 <text x="608.0" y="1232.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">clippings.serve</text>
-<rect x="566.7" y="144.0" width="82.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="567.3" y="144.0" width="81.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="156.0" font-size="12" text-anchor="middle" fill="#14201E">each morning</text>
-<rect x="516.7" y="256.0" width="182.5" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="521.3" y="256.0" width="173.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="268.0" font-size="12" text-anchor="middle" fill="#14201E">new items since the watermark</text>
-<rect x="557.9" y="368.0" width="100.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="563.6" y="368.0" width="88.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="380.0" font-size="12" text-anchor="middle" fill="#14201E">the day&#x27;s items</text>
-<rect x="566.7" y="480.0" width="82.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="570.0" y="480.0" width="76.0" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="492.0" font-size="12" text-anchor="middle" fill="#14201E">unique items</text>
-<rect x="581.4" y="592.0" width="53.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="586.3" y="592.0" width="43.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="604.0" font-size="12" text-anchor="middle" fill="#14201E">stories</text>
-<rect x="351.7" y="648.0" width="82.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="354.0" y="648.0" width="78.0" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="393.0" y="660.0" font-size="12" text-anchor="middle" fill="#14201E">per audience</text>
-<rect x="549.1" y="704.0" width="117.8" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="554.6" y="704.0" width="106.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="716.0" font-size="12" text-anchor="middle" fill="#14201E">the top candidates</text>
-<rect x="778.8" y="760.0" width="88.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="785.3" y="760.0" width="75.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="823.0" y="772.0" font-size="12" text-anchor="middle" fill="#14201E">calls, costed</text>
-<rect x="549.1" y="816.0" width="117.8" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="555.0" y="816.0" width="106.1" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="828.0" font-size="12" text-anchor="middle" fill="#14201E">the chosen stories</text>
-<rect x="557.9" y="927.5" width="100.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="562.6" y="927.5" width="90.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="939.5" font-size="12" text-anchor="middle" fill="#14201E">draft sentences</text>
-<rect x="767.0" y="984.0" width="112.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="774.6" y="984.0" width="96.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="823.0" y="996.0" font-size="12" text-anchor="middle" fill="#5C6B67">what failed twice</text>
-<rect x="557.9" y="1040.5" width="100.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="567.0" y="1040.5" width="82.0" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="1052.5" font-size="12" text-anchor="middle" fill="#14201E">verified digest</text>
-<rect x="337.0" y="1096.0" width="112.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="344.0" y="1096.0" width="98.0" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="393.0" y="1108.0" font-size="12" text-anchor="middle" fill="#14201E">below the stories</text>
-<rect x="587.3" y="1152.0" width="41.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="587.7" y="1152.0" width="40.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="608.0" y="1164.0" font-size="12" text-anchor="middle" fill="#14201E">pages</text>
 <rect x="28" y="1272" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
 <text x="62" y="1284" font-size="11" fill="#5C6B67">where the rules bite</text>

@@ -73,31 +73,31 @@
 <text x="1068.0" y="909.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Labelling and the report</text>
 <text x="1068.0" y="925.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">stratified sample, label UI, report</text>
 <text x="1068.0" y="942.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">clippings.eval</text>
-<rect x="111.2" y="166.5" width="129.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="112.3" y="166.5" width="127.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="176.0" y="178.5" font-size="12" text-anchor="middle" fill="#14201E">each source, checked</text>
-<rect x="417.0" y="340.0" width="112.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="425.0" y="340.0" width="96.0" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="473.0" y="352.0" font-size="12" text-anchor="middle" fill="#14201E">runs the pipeline</text>
-<rect x="120.0" y="285.5" width="112.0" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="124.7" y="285.5" width="102.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="176.0" y="297.5" font-size="12" text-anchor="middle" fill="#14201E">allowed rows only</text>
-<rect x="87.7" y="394.5" width="176.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="102.6" y="394.5" width="146.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="176.0" y="406.5" font-size="12" text-anchor="middle" fill="#14201E">items, text kept thirty days</text>
-<rect x="354.8" y="454.0" width="88.4" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="359.7" y="454.0" width="78.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="399.0" y="466.0" font-size="12" text-anchor="middle" fill="#14201E">today&#x27;s items</text>
-<rect x="595.4" y="511.0" width="53.2" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="600.3" y="511.0" width="43.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="622.0" y="523.0" font-size="12" text-anchor="middle" fill="#14201E">stories</text>
-<rect x="334.2" y="568.0" width="129.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="336.3" y="568.0" width="125.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="399.0" y="580.0" font-size="12" text-anchor="middle" fill="#14201E">what matters to whom</text>
-<rect x="783.1" y="568.0" width="123.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="789.0" y="568.0" width="112.1" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="845.0" y="580.0" font-size="12" text-anchor="middle" fill="#14201E">top candidates only</text>
-<rect x="563.1" y="625.0" width="117.8" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="569.0" y="625.0" width="106.1" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="622.0" y="637.0" font-size="12" text-anchor="middle" fill="#14201E">the chosen stories</text>
-<rect x="877.7" y="682.0" width="82.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="885.3" y="682.0" width="67.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="919.0" y="694.0" font-size="12" text-anchor="middle" fill="#14201E">cited drafts</text>
-<rect x="563.1" y="739.0" width="117.8" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="569.3" y="739.0" width="105.4" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="622.0" y="751.0" font-size="12" text-anchor="middle" fill="#14201E">verified sentences</text>
-<rect x="783.1" y="796.0" width="123.7" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="786.0" y="796.0" width="118.1" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="845.0" y="808.0" font-size="12" text-anchor="middle" fill="#14201E">a page per audience</text>
-<rect x="729.7" y="910.0" width="82.6" height="20.0" rx="3" fill="#FFFFFF"/>
+<rect x="734.7" y="910.0" width="72.7" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="771.0" y="922.0" font-size="12" text-anchor="middle" fill="#14201E">every digest</text>
 <rect x="28" y="974" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#0E6E60" stroke-width="1.6"/>
 <text x="62" y="986" font-size="11" fill="#5C6B67">built here</text>
