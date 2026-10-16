@@ -1,4 +1,4 @@
-# Plan: Department News Digest
+# Plan: Verified Media Briefing
 
 **Written:** 2026-09-07. **Status:** building. Week 1 and week 2's code are built and tested; the
 first model-backed digest and the deployment wait on the gateway key, the spend caps and the GCP

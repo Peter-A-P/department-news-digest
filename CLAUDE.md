@@ -1,6 +1,6 @@
 # Working notes for Claude Code
 
-This repository is the Department News Digest, package `clippings`: a configurable,
+This repository is Verified Media Briefing, package `clippings`: a configurable,
 multi-source news digest pipeline on Google Cloud Run with clustering, per-audience
 ranking, cited summaries with verified quotes, and measured precision and recall. The plan
 is in [PLAN.md](PLAN.md).

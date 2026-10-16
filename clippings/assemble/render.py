@@ -341,7 +341,9 @@ def _page(title: str, body: str, *, nav: str = "", hue: str = "teal") -> str:
 
 
 def _project_link() -> str:
-    return f'<p class="top-nav"><a href="{PROJECT_PAGE}">Project 14: Department News Digest</a></p>'
+    return (
+        f'<p class="top-nav"><a href="{PROJECT_PAGE}">Project 14: Verified Media Briefing</a></p>'
+    )
 
 
 def _summary_line(digest: Digest) -> str:
@@ -821,7 +823,7 @@ def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
         )
     body = (
         '<header class="hero wide">'
-        '<p class="eyebrow">Department News Digest</p>'
+        '<p class="eyebrow">Verified Media Briefing</p>'
         '<h1>The day\'s news for one department, <span class="hl">cited and checked.</span></h1>'
         f'<p class="lead">{escape(INTRO)}</p>'
         '<p class="note">Nothing is sent: each digest is a web page and an email draft file '
@@ -835,4 +837,4 @@ def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
         f'<div class="cards">\n{"".join(cards)}\n</div>\n'
         f"{about_sections()}"
     )
-    return _page("Department News Digest", body)
+    return _page("Verified Media Briefing", body)

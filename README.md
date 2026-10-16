@@ -1,4 +1,4 @@
-# Department News Digest
+# Verified Media Briefing
 
 One product, configured per department in a few lines, that reads the day's news, forums
 and social feeds, removes the duplicates, ranks what matters to that audience, and delivers a
