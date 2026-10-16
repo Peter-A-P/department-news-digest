@@ -21,6 +21,9 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --extra embed --extra gcs --no-install-project
 COPY clippings ./clippings
 COPY docs/sources.md ./docs/sources.md
+# The architecture page the service renders at /architecture/, and its diagrams.
+COPY docs/architecture.md ./docs/architecture.md
+COPY docs/architecture ./docs/architecture
 RUN uv sync --frozen --no-dev --extra embed --extra gcs
 
 ENV FASTEMBED_CACHE_PATH=/app/models

@@ -12,6 +12,7 @@ Choosing a framework would add a dependency for routing four kinds of path.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterable
 from pathlib import Path, PurePosixPath
 from socketserver import ThreadingMixIn
@@ -19,11 +20,35 @@ from typing import Any
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
 from clippings.assemble.publish import CONTENT_TYPES, Site, safe_path
+from clippings.assemble.render import architecture_page
 
 FONTS = {
     f"/fonts/{path.name}": path.read_bytes()
     for path in (Path(__file__).parent / "fonts").glob("*.woff2")
 }
+
+# The architecture page and its diagrams, from docs/ as committed (the image copies them in
+# beside the package). Rendered once, at start, from the document itself.
+DOCS = Path(__file__).resolve().parents[2] / "docs"
+
+
+def _architecture() -> dict[str, tuple[bytes, str]]:
+    diagrams = sorted((DOCS / "architecture").glob("*.svg"))
+    if not (DOCS / "architecture.md").exists() or not diagrams:
+        return {}
+    sizes: dict[str, tuple[str, str]] = {}
+    files: dict[str, tuple[bytes, str]] = {}
+    for path in diagrams:
+        data = path.read_bytes()
+        found = re.search(rb'width="(\d+)" height="(\d+)"', data)
+        sizes[path.name] = (found.group(1).decode(), found.group(2).decode()) if found else ("", "")
+        files[f"/architecture/{path.name}"] = (data, "image/svg+xml")
+    page = architecture_page((DOCS / "architecture.md").read_text(encoding="utf-8"), sizes)
+    files["/architecture/"] = (page.encode("utf-8"), "text/html; charset=utf-8")
+    return files
+
+
+ARCHITECTURE = _architecture()
 
 StartResponse = Callable[[str, list[tuple[str, str]]], Any]
 Environ = dict[str, Any]
@@ -63,6 +88,25 @@ def application(site: Site) -> Callable[[Environ, StartResponse], Iterable[bytes
         # request never reaches the container (found on the first deploy, 2026-10-07).
         if path in {"/health", "/healthz"}:
             return _respond(start_response, "200 OK", b"ok\n", "text/plain; charset=utf-8", method)
+        if path == "/architecture" and method in {"GET", "HEAD"}:
+            return _respond(
+                start_response,
+                "301 Moved Permanently",
+                b"",
+                "text/plain",
+                method,
+                extra=[("Location", "/architecture/")],
+            )
+        if path in ARCHITECTURE and method in {"GET", "HEAD"}:
+            body, content_type = ARCHITECTURE[path]
+            return _respond(
+                start_response,
+                "200 OK",
+                body,
+                content_type,
+                method,
+                extra=[("Cache-Control", "public, max-age=3600")],
+            )
         if path in FONTS and method in {"GET", "HEAD"}:
             return _respond(
                 start_response,

@@ -19,8 +19,9 @@ logo: the Markdown links to it instead.
 
 from __future__ import annotations
 
+import re
 import zlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC
 from email.message import EmailMessage
 from email.policy import SMTP
@@ -88,6 +89,20 @@ p { margin: 0 0 0.8rem; }
   color: var(--paper-soft); font-family: var(--serif); font-weight: 500; font-size: 1.15rem;
   display: inline-flex; align-items: center; justify-content: center; }
 .top-nav { font-size: 0.88rem; margin: 0; text-align: right; }
+.tabs { border-bottom: 1px solid var(--line); background: var(--paper-soft); }
+.tabs-inner { max-width: var(--wide); margin: 0 auto; padding: 0.55rem 1.5rem; display: flex;
+  flex-wrap: wrap; gap: 0.2rem; }
+.tabs a { font-size: 0.83rem; padding: 0.2rem 0.55rem; border-radius: 999px;
+  border: 1px solid transparent; color: var(--ink-soft); }
+.tabs a:hover { text-decoration: none; border-color: var(--line-2); color: var(--accent-ink); }
+.tabs a[aria-current] { border-color: var(--accent); background: var(--accent-soft);
+  color: var(--ink); font-weight: 600; }
+.arch-figure { margin: 1.1rem 0 1.4rem; }
+.arch-figure a { display: block; }
+.arch-figure img { display: block; width: 100%; height: auto; background: #ffffff;
+  border: 1px solid var(--line); border-radius: 8px; }
+.prose p { max-width: var(--column); }
+.prose .where { font-size: 0.86rem; color: var(--ink-faint); }
 .top-nav a { color: var(--ink-soft); }
 
 main { max-width: var(--wide); margin: 0 auto; padding: 0 1.5rem 4rem; }
@@ -321,7 +336,26 @@ INTRO = (
 )
 
 
-def _page(title: str, body: str, *, nav: str = "", hue: str = "teal") -> str:
+# The site's menu, on every page. Absolute paths, because pages sit at three depths.
+MENU = (
+    ("/", "All digests"),
+    ("/#why", "Why it exists"),
+    ("/#how", "How it works"),
+    ("/#measure", "How it is measured"),
+    ("/architecture/", "How it's built"),
+)
+
+
+def menu(current: str = "") -> str:
+    """The menu as HTML, with the page the reader is on marked."""
+    links = "".join(
+        f'<a href="{href}"{' aria-current="page"' if href == current else ""}>{escape(label)}</a>'
+        for href, label in MENU
+    )
+    return f'<nav class="tabs" aria-label="This site"><div class="tabs-inner">{links}</div></nav>\n'
+
+
+def _page(title: str, body: str, *, nav: str = "", hue: str = "teal", current: str = "") -> str:
     nav_html = f'<p class="top-nav">{nav}</p>' if nav else ""
     return (
         '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
@@ -332,6 +366,7 @@ def _page(title: str, body: str, *, nav: str = "", hue: str = "teal") -> str:
         '<a class="brand" href="https://peterparker.ca">'
         '<span class="mono-mark" aria-hidden="true">P</span>Peter Parker</a>\n'
         f"{nav_html or _project_link()}\n</div></header>\n"
+        f"{menu(current)}"
         f"<main>\n{body}\n</main>\n"
         f'<div class="footer-band"><footer>\n<p class="footer-lead">{escape(FOOTER)}</p>\n'
         f'<p><a href="/">All digests</a> &middot; <a href="{PROJECT_PAGE}">The project page</a>'
@@ -831,10 +866,55 @@ def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
         "sources whose terms were read and recorded before anything was fetched.</p>"
         '<p class="note">Below the audiences: <a href="#why">why this exists</a>, '
         '<a href="#how">how it works</a>, <a href="#measure">how it is measured</a>, '
-        '<a href="#rules">the rules it keeps</a> and <a href="#status">where it stands</a>.</p>'
+        '<a href="#rules">the rules it keeps</a> and <a href="#status">where it stands</a>. '
+        '<a href="/architecture/">See how it\'s built</a>, in three diagrams.</p>'
         "</header>\n"
         '<h2 class="section-title">Audiences</h2>\n'
         f'<div class="cards">\n{"".join(cards)}\n</div>\n'
         f"{about_sections()}"
     )
-    return _page("Verified Media Briefing", body)
+    return _page("Verified Media Briefing", body, current="/")
+
+
+def _md_inline(text: str) -> str:
+    """`code` and [text](link) as HTML. Links become their words, because the document's
+    links point inside the repository."""
+    text = escape(text, quote=False)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    return re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+
+
+def architecture_page(document: str, sizes: Mapping[str, tuple[str, str]]) -> str:
+    """docs/architecture.md after its introduction, one section per diagram, as a page.
+
+    Rendered from the document itself so the site and the repository cannot tell different
+    stories. `sizes` gives each diagram's width and height, read from the SVG."""
+    parts = [
+        '<header class="hero">'
+        '<p class="eyebrow">Architecture</p><h1>How it\'s built</h1>'
+        '<p class="lead">How the briefing is put together, in three pictures: the whole '
+        "system, one morning's run, and how each published number is produced. Select a "
+        "diagram to open it full size.</p></header>"
+    ]
+    for section in re.split(r"^## ", document, flags=re.M)[1:]:
+        title, _, body = section.partition("\n")
+        blocks = [b.strip() for b in body.strip().split("\n\n") if b.strip()]
+        image = re.fullmatch(r"!\[(.*)\]\(architecture/([^)]+\.svg)\)", blocks[0], re.S)
+        if image is None:
+            raise ValueError(f"docs/architecture.md: {title!r} does not open with a diagram")
+        alt, name = image.groups()
+        width, height = sizes[name]
+        paragraphs = []
+        for block in blocks[1:]:
+            text = " ".join(line.strip() for line in block.splitlines())
+            where = ' class="where"' if text.startswith("Where it lives:") else ""
+            paragraphs.append(f"<p{where}>{_md_inline(text)}</p>")
+        parts.append(
+            f'<section class="section"><h2>{_md_inline(title.strip())}</h2>'
+            f'<figure class="arch-figure"><a href="{name}"><img src="{name}" width="{width}" '
+            f'height="{height}" alt="{escape(alt)}"></a></figure>'
+            f'<div class="prose">{"".join(paragraphs)}</div></section>'
+        )
+    return _page(
+        "How it's built | Verified Media Briefing", "\n".join(parts), current="/architecture/"
+    )
