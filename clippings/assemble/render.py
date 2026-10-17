@@ -103,6 +103,7 @@ p { margin: 0 0 0.8rem; }
   border: 1px solid var(--line); border-radius: 8px; }
 .prose p { max-width: var(--column); }
 .prose .where { font-size: 0.86rem; color: var(--ink-faint); }
+.arch-back { margin: 0; font-size: 0.95rem; }
 .top-nav a { color: var(--ink-soft); }
 
 main { max-width: var(--wide); margin: 0 auto; padding: 0 1.5rem 4rem; }
@@ -915,6 +916,7 @@ def architecture_page(document: str, sizes: Mapping[str, tuple[str, str]]) -> st
             f'height="{height}" alt="{escape(alt)}"></a></figure>'
             f'<div class="prose">{"".join(paragraphs)}</div></section>'
         )
+    parts.append('<p class="arch-back"><a href="/">Back to all digests</a></p>')
     return _page(
         "How it's built | Verified Media Briefing", "\n".join(parts), current="/architecture/"
     )

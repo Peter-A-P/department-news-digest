@@ -37,6 +37,8 @@ def test_the_page_shows_every_diagram_and_each_is_served_as_committed() -> None:
         assert status.startswith("200") and headers["Content-Type"] == "image/svg+xml"
         assert data == (DOCS / "architecture" / name).read_bytes()
     assert 'href="/architecture/" aria-current="page"' in page
+    # A way back at the bottom, for a reader who has scrolled past every diagram.
+    assert page.rindex('<p class="arch-back"><a href="/">') > page.rindex("<img ")
     assert "<script" not in page
 
 
