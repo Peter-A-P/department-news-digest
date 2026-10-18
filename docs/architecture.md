@@ -81,7 +81,9 @@ and per day comes from the gateway's ledger, converted to Canadian dollars.
 
 How well duplicates are detected comes from pairs of articles labelled "same story" or not,
 on a second page of the same tool. Each day it asks about pairs the clustering joined, pairs
-it kept apart that share many words, and a couple of others as a check.
+it kept apart that share many words, and a couple of others as a check. A third page shows
+every story made of several articles and asks which articles do not belong, which gives the
+share of articles that sit in the right story.
 
 Two measures are not done yet: how faithful the summaries are, and how much time a reader
 saves. They wait for a hand check and a reader study, and the README says "not yet" rather

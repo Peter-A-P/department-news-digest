@@ -1,4 +1,5 @@
-"""Deduplication pairs: what is sampled, how the numbers are estimated, and the page that asks."""
+"""Deduplication pairs and cluster purity: what is asked, how the numbers are estimated, and
+the pages that ask."""
 
 from __future__ import annotations
 
@@ -11,10 +12,23 @@ import pytest
 from clippings.cluster.metrics import pairs_within
 from clippings.config.audience import Audience
 from clippings.eval.label_ui import Workspace
-from clippings.eval.pairs import overlap, pair_sample, pair_sample_for_day, words
-from clippings.eval.report import NOT_YET, PairDay, build_report, dedup_scores, readme_tables
+from clippings.eval.pairs import (
+    joined_stories,
+    overlap,
+    pair_sample,
+    pair_sample_for_day,
+    words,
+)
+from clippings.eval.report import (
+    NOT_YET,
+    PairDay,
+    build_report,
+    dedup_scores,
+    purity_scores,
+    readme_tables,
+)
 from clippings.ingest.store import Store
-from clippings.models import Cluster, Item
+from clippings.models import Cluster, Item, PurityLabel
 from tests.conftest import NOW, item
 from tests.test_label_ui import call
 
@@ -220,3 +234,95 @@ def test_a_labels_file_from_before_pair_strata_opens_and_gains_the_columns(tmp_p
         assert store.pair_labels_for() == []
         columns = {row[0] for row in store._connection.execute("DESCRIBE pair_labels").fetchall()}
     assert {"stratum", "weight", "together", "left_title", "right_url"} <= columns
+
+
+# -- cluster purity ------------------------------------------------------------------------
+
+# A story the clustering over-merged: two articles about the budget and one about the hospital.
+MERGED = [
+    _cluster("A", "a1", "a2", "b1"),
+    _cluster("C", "b2"),
+    *(_cluster(f"C{n}", f"c{n}") for n in range(1, 7)),
+]
+
+
+def test_only_stories_of_several_news_items_are_asked_about() -> None:
+    items = _items()
+    post = items["c1"].model_copy(update={"id": "p1", "source_kind": "bluesky"})
+    items["p1"] = post
+    clusters = [*MERGED[:-1], _cluster("C6", "c6", "p1")]
+    stories, pool = joined_stories(clusters, items)
+    assert [story.item_ids for story in stories] == [("a1", "a2", "b1")]
+    assert pool == len(TITLES)
+
+
+def _save_stories(ws: Workspace, audience: Audience, odd: list[str]) -> tuple[str, bytes]:
+    _, page = call(ws, "GET", f"/stories/day?audience={audience.id}&day={DAY}")
+    shown = [part.split('"', 1)[0] for part in page.decode().split('data-id="')[1:]]
+    payload = {"token": ws.token, "audience": audience.id, "day": DAY, "odd": odd, "shown": shown}
+    return call(ws, "POST", "/stories/save", payload)
+
+
+@pytest.fixture
+def merged_ws(store: Store, audience: Audience) -> Workspace:
+    store.add_items(_items().values(), "test-audience")
+    store.save_clusters(MERGED)
+    return Workspace(
+        store=store, labels=Store.memory(), labeller="peter", audiences={audience.id: audience}
+    )
+
+
+def test_saving_story_checks_records_every_article_and_the_report_scores_them(
+    merged_ws: Workspace, audience: Audience
+) -> None:
+    status, reply = _save_stories(merged_ws, audience, ["b1"])
+    assert status.startswith("200"), reply
+    labels = merged_ws.labels.purity_labels_for(audience.id, DAY, "peter")
+    assert {label.item_id: label.belongs for label in labels} == {
+        "a1": True,
+        "a2": True,
+        "b1": False,
+    }
+    assert all(label.pool_items == len(TITLES) and label.title for label in labels)
+    joined, every, days = purity_scores(labels, "peter")
+    # Two of three in the joined story belong; of all ten news items, nine are in the right one.
+    assert joined.point == pytest.approx(2 / 3)
+    assert every.point == pytest.approx(9 / 10)
+    assert days == 1
+    report = build_report(merged_ws.store, [], [audience], "peter", purity_labels=labels)
+    assert "(story checks)" not in readme_tables(report)
+
+
+def test_a_partial_or_tokenless_save_of_story_checks_is_refused(
+    merged_ws: Workspace, audience: Audience
+) -> None:
+    _, page = call(merged_ws, "GET", f"/stories/day?audience={audience.id}&day={DAY}")
+    shown = [part.split('"', 1)[0] for part in page.decode().split('data-id="')[1:]]
+    base = {"audience": audience.id, "day": DAY, "odd": []}
+    assert call(merged_ws, "POST", "/stories/save", {**base, "shown": shown})[0].startswith("403")
+    partial = {**base, "token": merged_ws.token, "shown": shown[1:]}
+    assert call(merged_ws, "POST", "/stories/save", partial)[0].startswith("400")
+    assert merged_ws.labels.purity_labels_for() == []
+
+
+def test_purity_interval_reflects_days_that_went_differently() -> None:
+    def label(day: str, item_id: str, belongs: bool) -> PurityLabel:
+        return PurityLabel(
+            audience_id="a",
+            day=day,
+            cluster_id="c",
+            item_id=item_id,
+            labeller="peter",
+            belongs=belongs,
+            cluster_size=4,
+            pool_items=40,
+            url="https://x.example/",
+            title="t",
+            labelled_at=NOW,
+        )
+
+    labels = [label("d1", f"i{n}", True) for n in range(4)]
+    labels += [label("d2", f"i{n}", n < 1) for n in range(4)]
+    joined, _, _ = purity_scores(labels, "peter")
+    assert joined.point == pytest.approx(5 / 8)
+    assert joined.lo < joined.point < joined.hi and joined.clusters == 2

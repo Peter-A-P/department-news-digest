@@ -21,6 +21,9 @@ audience-days in the store on 2026-10-17, the top three pairs per item by word o
 is what the "near" stratum needs. Word overlap is deliberately not the clustering's own signal, so it can
 find what the embeddings missed.
 
+The same module lists the stories the clustering made of several news items, which is what
+the purity question (is each item in the right story?) is asked of.
+
 Only news items are paired. Posts never head a story (PLAN.md section 2.3) and join one
 only by nearness to a news item; whether a reprint was collapsed is a question about news.
 """
@@ -160,6 +163,39 @@ def pair_sample(
         units=tuple(units),
         population={"together": len(together), "near": len(near), "check": len(rest)},
     )
+
+
+@dataclass(frozen=True)
+class JoinedStory:
+    """A story the clustering made of more than one news item, for the purity question."""
+
+    cluster_id: str
+    item_ids: tuple[str, ...]
+
+
+def joined_stories(
+    clusters: Sequence[Cluster], items: dict[str, Item]
+) -> tuple[list[JoinedStory], int]:
+    """The day's stories of two or more news items, and the day's count of news items.
+
+    Purity (PLAN.md section 1) is asked only of these: an item alone in its story is in the
+    right one by construction. In the week to 2026-10-17 that was 5 to 8 stories and 11 to 21
+    items an audience-day, out of 43 to 76 news items.
+    """
+    ids = set(news_items(clusters, items))
+    stories = []
+    for cluster in clusters:
+        members = tuple(sorted(item_id for item_id in cluster.item_ids if item_id in ids))
+        if len(members) > 1:
+            stories.append(JoinedStory(cluster.id, members))
+    return sorted(stories, key=lambda story: story.cluster_id), len(ids)
+
+
+def joined_stories_for_day(
+    store: Store, audience_id: str, day: str
+) -> tuple[list[JoinedStory], int]:
+    items = {item.id: item for item in store.items_for(audience_id)}
+    return joined_stories(store.clusters_for(audience_id, day), items)
 
 
 def pair_sample_for_day(store: Store, audience_id: str, day: str) -> PairSample:

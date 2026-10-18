@@ -48,7 +48,7 @@ from clippings.constants import CAD_PER_USD, cad
 from clippings.eval.labels import ranked_ids_for_day
 from clippings.eval.sample import stratified_sample
 from clippings.ingest.store import Store
-from clippings.models import Label, PairLabel
+from clippings.models import Label, PairLabel, PurityLabel
 
 RESAMPLES = 2000
 NOT_YET = "_not yet_"
@@ -246,6 +246,30 @@ def pair_days(labels: Iterable[PairLabel], labeller: str) -> list[PairDay]:
     return days
 
 
+def purity_scores(labels: Iterable[PurityLabel], labeller: str) -> tuple[Estimate, Estimate, int]:
+    """Cluster purity from this labeller's judgements: over the items of joined stories, and
+    over every news item (an item alone in its story counts as in the right one). Both resample
+    whole audience-days. Also returns how many audience-days were judged."""
+    joined: list[bool] = []
+    joined_days: list[str] = []
+    every: list[bool] = []
+    every_days: list[str] = []
+    pools: dict[str, int] = {}
+    for label in labels:
+        if label.labeller != labeller:
+            continue
+        key = f"{label.audience_id}|{label.day}"
+        joined.append(label.belongs)
+        joined_days.append(key)
+        pools[key] = label.pool_items
+    every, every_days = list(joined), list(joined_days)
+    for key, pool in pools.items():
+        alone = pool - joined_days.count(key)
+        every += [True] * alone
+        every_days += [key] * alone
+    return share_by_day(joined, joined_days), share_by_day(every, every_days), len(pools)
+
+
 def kappa(
     pairs: Sequence[tuple[bool, bool]], *, resamples: int = RESAMPLES, seed: int = 0
 ) -> Estimate:
@@ -330,6 +354,11 @@ class Report:
     pair_days: int
     check_same: int
     check_n: int
+    # Cluster purity: over the items of stories with several news items, and over every
+    # news item, from the audience-days judged.
+    purity_joined: Estimate | None
+    purity_all: Estimate | None
+    purity_days: int
     sources: list[SourceYield]
 
 
@@ -367,6 +396,7 @@ def build_report(
     labeller: str,
     *,
     pair_labels: Sequence[PairLabel] = (),
+    purity_labels: Sequence[PurityLabel] = (),
     now: datetime | None = None,
 ) -> Report:
     digests = [
@@ -505,6 +535,12 @@ def build_report(
     own_pairs = [pair for pair in pair_labels if pair.audience_id in audience_ids]
     judged = pair_days(own_pairs, labeller)
     dedup_precision, dedup_recall = dedup_scores(judged) if judged else (None, None)
+    own_purity = [label for label in purity_labels if label.audience_id in audience_ids]
+    purity_joined, purity_all, purity_days = (
+        purity_scores(own_purity, labeller)
+        if any(label.labeller == labeller for label in own_purity)
+        else (None, None, 0)
+    )
     checks = [
         pair.same_story
         for pair in own_pairs
@@ -532,6 +568,9 @@ def build_report(
         pair_days=len(judged),
         check_same=sum(checks),
         check_n=len(checks),
+        purity_joined=purity_joined,
+        purity_all=purity_all,
+        purity_days=purity_days,
         sources=source_yield(store, labels, audiences, digests, labeller),
     )
 
@@ -635,22 +674,36 @@ def readme_tables(report: Report) -> str:
         else f"{pct(report.dedup_precision)} / {pct(report.dedup_recall)}, "
         f"{report.pair_days} audience-days"
     )
+    purity = (
+        NOT_YET + " (story checks)"
+        if report.purity_joined is None
+        else f"{pct(report.purity_joined)}, {report.purity_days} audience-days"
+    )
     lines += [
         "",
         "**Pipeline properties**",
         "",
-        "| Deduplication precision / recall (pairs) | Collapse rate | Quotes verbatim, before / "
+        "| Deduplication precision / recall (pairs) | Collapse rate | Cluster purity, "
+        "stories of several articles | Quotes verbatim, before / "
         "after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) "
         "| Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) "
         "| Uptime, measurement month |",
-        "|---|---|---|---|---|---|---|---|",
-        f"| {pairs} | {num(report.collapse)} items per story | {pct(report.quotes_first)} / "
+        "|---|---|---|---|---|---|---|---|---|",
+        f"| {pairs} | {num(report.collapse)} items per story | {purity} "
+        f"| {pct(report.quotes_first)} / "
         f"{pct(report.quotes_after_repair)} | {pct(report.citation_first)} "
         f"| {NOT_YET} (hand check) | {num(report.lag_p50, '.0f', ' h')} / "
         f"{num(report.lag_p90, '.0f', ' h')} | {NOT_YET} (reader study) "
         f"| {NOT_YET} (measurement month) |",
         "",
     ]
+    if report.purity_days:
+        lines += [
+            "Cluster purity is the share of articles in a story of several that a labeller "
+            "judged to belong with the rest; over every news article, stories of one "
+            f"included, it is {pct(report.purity_all)}.",
+            "",
+        ]
     if report.pair_days:
         lines += [
             "Deduplication recall is over the pairs whose words overlap most, where a missed "

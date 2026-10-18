@@ -18,12 +18,12 @@ from typing import TYPE_CHECKING, Self
 import duckdb
 
 from clippings.constants import RETENTION_DAYS
-from clippings.models import Cluster, Item, ItemText, Label, PairLabel
+from clippings.models import Cluster, Item, ItemText, Label, PairLabel, PurityLabel
 
 if TYPE_CHECKING:
     from clippings.assemble.digest import Digest
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 # The pair-label columns added in version 5, created in place on older files.
 PAIR_COLUMNS = (
@@ -112,6 +112,23 @@ CREATE TABLE IF NOT EXISTS labels (
     title       TEXT NOT NULL,
     labelled_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (audience_id, day, item_id, labeller)
+);
+
+-- Cluster purity: per item of a story with several news items, whether it belongs with the
+-- rest. Version 6; a new table, so older files gain it on open.
+CREATE TABLE IF NOT EXISTS purity_labels (
+    audience_id  TEXT NOT NULL,
+    day          TEXT NOT NULL,
+    cluster_id   TEXT NOT NULL,
+    item_id      TEXT NOT NULL,
+    labeller     TEXT NOT NULL,
+    belongs      BOOLEAN NOT NULL,
+    cluster_size INTEGER NOT NULL,
+    pool_items   INTEGER NOT NULL,
+    url          TEXT NOT NULL,
+    title        TEXT NOT NULL,
+    labelled_at  TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (audience_id, day, cluster_id, item_id, labeller)
 );
 
 -- Labelled item pairs for the deduplication numbers.
@@ -596,6 +613,62 @@ class Store:
                 right_url=row[11],
                 right_title=row[12],
                 labelled_at=row[13],
+            )
+            for row in self._connection.execute(query, params).fetchall()
+        ]
+
+    def add_purity_label(self, label: PurityLabel) -> None:
+        """Record one item's judgement. Judging it again replaces it."""
+        self._connection.execute(
+            """
+            INSERT INTO purity_labels (
+                audience_id, day, cluster_id, item_id, labeller, belongs, cluster_size,
+                pool_items, url, title, labelled_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (audience_id, day, cluster_id, item_id, labeller) DO UPDATE SET
+                belongs = excluded.belongs, labelled_at = excluded.labelled_at
+            """,
+            [
+                label.audience_id,
+                label.day,
+                label.cluster_id,
+                label.item_id,
+                label.labeller,
+                label.belongs,
+                label.cluster_size,
+                label.pool_items,
+                label.url,
+                label.title,
+                label.labelled_at,
+            ],
+        )
+
+    def purity_labels_for(
+        self, audience_id: str | None = None, day: str | None = None, labeller: str | None = None
+    ) -> list[PurityLabel]:
+        query = (
+            "SELECT audience_id, day, cluster_id, item_id, labeller, belongs, cluster_size, "
+            "pool_items, url, title, labelled_at FROM purity_labels WHERE TRUE"
+        )
+        params: list[object] = []
+        for column, value in (("audience_id", audience_id), ("day", day), ("labeller", labeller)):
+            if value is not None:
+                query += f" AND {column} = ?"
+                params.append(value)
+        query += " ORDER BY audience_id, day, cluster_id, item_id"
+        return [
+            PurityLabel(
+                audience_id=row[0],
+                day=row[1],
+                cluster_id=row[2],
+                item_id=row[3],
+                labeller=row[4],
+                belongs=bool(row[5]),
+                cluster_size=row[6],
+                pool_items=row[7],
+                url=row[8],
+                title=row[9],
+                labelled_at=row[10],
             )
             for row in self._connection.execute(query, params).fetchall()
         ]

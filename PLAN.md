@@ -274,6 +274,16 @@ two "check" pairs a day are reported on their own as a test of that boundary rat
 weighted in, where one chance match among thousands would decide the number. About 13 pairs
 per audience-day, a few minutes each, and intervals that redraw whole days, as for relevance.
 
+Cluster purity comes from a third page (decided by Peter, 2026-10-17): every story the
+clustering made of several news items, its articles shuffled, and the labeller marks any that
+do not belong with the rest. An article alone in its story is in the right one by
+construction, so only joined stories are asked about: 5 to 8 stories and 11 to 21 articles an
+audience-day in the week to 2026-10-17, about an hour over the labelled week. It is reported
+over the articles of joined stories, where a merge error can be, with the figure over every
+news article beside it. It complements pair precision, which samples five joined pairs a day
+and weights a large story by its pairs: purity checks every article of every joined story, so
+one badly chained story is neither missed nor allowed to swamp the number.
+
 ### 2.7 Out of scope, on purpose
 
 - A reader app: bookmarks, accounts, notifications, mobile layout. The product is the
@@ -294,6 +304,7 @@ per audience-day, a few minutes each, and intervals that redraw whole days, as f
 | X API v2, pay-per-use | One search of ten posts and one author lookup per audience per day; for AI, thirty posts from named people and twenty by subject | The day's X pick only | Official API, terms read and recorded; shown whole on its day only; not for government users without an Enterprise plan |
 | Hand-labelled week | About 420 labels per audience, 60 per day; one audience double-labelled | Precision, recall, kappa | Own |
 | Labelled duplicate pairs | About 13 pairs per audience-day in three strata, about 360 over the labelled week (section 2.6) | Deduplication precision and recall | Own |
+| Story checks | Every article of every story of several news articles, about 15 an audience-day (section 2.6) | Cluster purity | Own |
 
 Nothing raw is committed. The labelled sets are published as item ids, URLs and labels,
 never as article text.

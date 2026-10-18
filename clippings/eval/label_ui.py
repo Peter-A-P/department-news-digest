@@ -14,6 +14,9 @@ and "Save day" records an answer for every story on the page, so an unmarked sto
 The same server asks the deduplication question at /pairs: a day's sampled pairs of news
 items (eval/pairs.py), each to be marked "same story" or left as different, shuffled so the
 clustering's decision is not shown, and saved a whole day at a time for the same reason.
+At /stories it asks the purity question: each story made of several news items, with its
+items in a shuffled order, and the labeller marks any item that does not belong with the
+rest.
 
 It runs on the labeller's own machine, against a copy of the run's store, and writes to a
 labels file of its own (one per labeller). The daily job never touches that file, so a day
@@ -34,9 +37,15 @@ from urllib.parse import parse_qs, urlencode
 
 from clippings.config.audience import Audience
 from clippings.eval.labels import LabellingQueue, Question, build_queue, record
-from clippings.eval.pairs import PairSample, PairUnit, pair_sample_for_day
+from clippings.eval.pairs import (
+    JoinedStory,
+    PairSample,
+    PairUnit,
+    joined_stories_for_day,
+    pair_sample_for_day,
+)
 from clippings.ingest.store import Store
-from clippings.models import Item, Label, PairLabel
+from clippings.models import Item, Label, PairLabel, PurityLabel
 
 StartResponse = Callable[[str, list[tuple[str, str]]], Any]
 
@@ -96,6 +105,22 @@ class Workspace:
             (label.left_id, label.right_id): label.same_story
             for label in self.labels.pair_labels_for(audience_id, day, self.labeller)
         }
+
+    def stories(self, audience_id: str, day: str) -> tuple[list[JoinedStory], int]:
+        return joined_stories_for_day(self.store, audience_id, day)
+
+    def story_answers(self, audience_id: str, day: str) -> dict[str, bool]:
+        return {
+            label.item_id: label.belongs
+            for label in self.labels.purity_labels_for(audience_id, day, self.labeller)
+        }
+
+    def next_open_story_day(self) -> tuple[str, str] | None:
+        for audience_id in self.audiences:
+            for day in self.days(audience_id):
+                if self.stories(audience_id, day)[0] and not self.story_answers(audience_id, day):
+                    return audience_id, day
+        return None
 
     def next_open_pair_day(self) -> tuple[str, str] | None:
         for audience_id in self.audiences:
@@ -162,6 +187,11 @@ details.rubric { font-size: 0.86rem; color: var(--soft); margin: 0.4rem 0; }
 .row.pair { grid-template-columns: 2rem 1fr; }
 .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
 @media (max-width: 40rem) { .sides { grid-template-columns: 1fr; } }
+.story { border: 1px solid var(--line); border-radius: 10px; padding: 0.5rem 0.7rem;
+  margin: 0.9rem 0; }
+.row.member.odd { background: var(--must-bg); border-color: var(--must); }
+.row.member.odd .mark { border-color: var(--must); color: var(--must); }
+.row.member.odd .mark::after { content: "\\2715"; }
 .save { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
   border-top: 1px solid var(--line); padding: 0.7rem 16px; text-align: center; }
 button { font: inherit; font-weight: 600; padding: 0.5rem 1.4rem; border-radius: 999px;
@@ -288,6 +318,49 @@ show(0); count();
 """
 
 
+STORY_SCRIPT = """
+const rows = [...document.querySelectorAll('.row')];
+let at = 0;
+function show(n) {
+  at = Math.max(0, Math.min(rows.length - 1, n));
+  rows.forEach((r, i) => r.classList.toggle('focus', i === at));
+  rows[at] && rows[at].scrollIntoView({block: 'nearest'});
+}
+function count() {
+  document.getElementById('count').textContent =
+    rows.filter(r => r.classList.contains('odd')).length;
+}
+function toggle(n) { rows[n].classList.toggle('odd'); count(); }
+rows.forEach((r, i) => r.addEventListener('click', e => {
+  if (e.target.closest('a')) return;
+  show(i); toggle(i);
+}));
+async function save() {
+  const body = {token: TOKEN, audience: AUDIENCE, day: DAY,
+    odd: rows.filter(r => r.classList.contains('odd')).map(r => r.dataset.id),
+    shown: rows.map(r => r.dataset.id)};
+  const button = document.getElementById('save');
+  button.disabled = true; button.textContent = 'Saving...';
+  const reply = await fetch('/stories/save', {method: 'POST', body: JSON.stringify(body)});
+  if (!reply.ok) { button.textContent = 'Not saved: ' + await reply.text(); return; }
+  location.href = (await reply.json()).next;
+}
+document.getElementById('save').addEventListener('click', save);
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  if (k === 'j' || k === 'ArrowDown') { show(at + 1); }
+  else if (k === 'k' || k === 'ArrowUp') { show(at - 1); }
+  else if (k === ' ' || k === 'x') { toggle(at); }
+  else if (k === 'o') { window.open(rows[at].querySelector('a').href, '_blank'); }
+  else if (k === 'Enter' && e.shiftKey) { save(); }
+  else { return; }
+  e.preventDefault();
+});
+show(0); count();
+"""
+
+
 def _page(title: str, body: str, script: str = "") -> bytes:
     tail = f"<script>{script}</script>" if script else ""
     return (
@@ -337,6 +410,7 @@ def overview(ws: Workspace) -> bytes:
         "<p class='meta'>Each cell is stories judged, of the day's sample. Click one to open "
         "or correct that day.</p>"
         '<p><a href="/pairs">Duplicate pairs</a>: is each pair of articles one story?</p>'
+        '<p><a href="/stories">Story checks</a>: does every article in a story belong there?</p>'
     )
     return _page("Labelling", body)
 
@@ -427,6 +501,138 @@ def pairs_page(ws: Workspace, audience_id: str, day: str) -> bytes:
         f"DAY = {json.dumps(day)};\n{PAIR_SCRIPT}"
     )
     return _page(f"Pairs: {audience.name}, {day}", body, script)
+
+
+STORY_RUBRIC = (
+    "Each box is one story the system made of several articles. Mark any article that is "
+    "not about the same event, announcement, decision or report as the rest; a later update "
+    "or a reaction to that same event belongs. If the articles split into groups, the "
+    "largest group is the story and the others are marked."
+)
+
+
+def stories_overview(ws: Workspace) -> bytes:
+    days = sorted({day for audience_id in ws.audiences for day in ws.days(audience_id)})
+    head = "".join(f"<th>{escape(day)}</th>" for day in days)
+    rows = []
+    left_total = 0
+    for audience_id, audience in ws.audiences.items():
+        cells = []
+        for day in days:
+            if day not in ws.days(audience_id):
+                cells.append("<td></td>")
+                continue
+            total = len(ws.stories(audience_id, day)[0])
+            done = total if ws.story_answers(audience_id, day) else 0
+            left_total += total - done
+            link = "/stories/day?" + urlencode({"audience": audience_id, "day": day})
+            css = ' class="done"' if done == total else ""
+            cells.append(f'<td{css}><a href="{escape(link)}">{done}/{total}</a></td>')
+        rows.append(f"<tr><th>{escape(audience.name)}</th>{''.join(cells)}</tr>")
+    action = (
+        f'<p><a href="/stories/next"><button>Continue with stories</button></a> '
+        f"{left_total} stories left</p>"
+        if ws.next_open_story_day()
+        else "<p>Every day's stories are checked.</p>"
+    )
+    body = (
+        f'<a href="/">Relevance labelling</a><h1>Story checks, as {escape(ws.labeller)}</h1>'
+        f"{action}<p class='meta'>{escape(STORY_RUBRIC)}</p>"
+        f"<table><tr><th></th>{head}</tr>{''.join(rows)}</table>"
+        "<p class='meta'>Each cell is stories checked, of the day's stories of several "
+        "articles.</p>"
+    )
+    return _page("Story checks", body)
+
+
+def stories_page(ws: Workspace, audience_id: str, day: str) -> bytes:
+    audience = ws.audiences[audience_id]
+    stories, _ = ws.stories(audience_id, day)
+    items = {item.id: item for item in ws.store.items_for(audience_id)}
+    answers = ws.story_answers(audience_id, day)
+    rng = random.Random(f"{audience_id}|{day}|stories-order")
+    order = list(stories)
+    rng.shuffle(order)
+    boxes = []
+    for number, story in enumerate(order, start=1):
+        members = list(story.item_ids)
+        rng.shuffle(members)
+        rows = []
+        for item_id in members:
+            item = items[item_id]
+            odd = not answers.get(item_id, True)
+            published = item.published_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M")
+            rows.append(
+                f'<div class="row member{" odd" if odd else ""}" data-id="{escape(item_id)}">'
+                '<div class="mark"></div><div>'
+                f'<a class="title" href="{escape(item.url)}" target="_blank" rel="noopener">'
+                f"{escape(item.title)}</a>"
+                f'<div class="meta">{escape(item.domain)} &middot; {published} UTC</div>'
+                f'<div class="snip">{escape(_snippet(item.summary))}</div></div></div>'
+            )
+        boxes.append(
+            f'<section class="story"><div class="meta">Story {number}, '
+            f"{len(members)} articles</div>{''.join(rows)}</section>"
+        )
+    saved = " &middot; saved before, reopened" if answers else ""
+    body = (
+        '<div class="bar">'
+        f'<a href="/stories">All days</a><h1>Story checks: {escape(audience.name)}, '
+        f"{escape(day)}</h1>"
+        f"<div>{len(order)} stories &middot; <b id='count'>0</b> articles marked as not "
+        f"belonging{saved}</div>"
+        f'<div class="keys">{escape(STORY_RUBRIC)} Unmarked means it belongs. '
+        "<kbd>x</kbd>/<kbd>space</kbd> mark or unmark <kbd>j</kbd>/<kbd>k</kbd> move "
+        "<kbd>o</kbd> open article <kbd>shift</kbd>+<kbd>enter</kbd> save day. Or click "
+        "an article.</div>"
+        "</div>"
+        + "".join(boxes)
+        + '<div class="save"><button id="save">Save day and continue</button></div>'
+    )
+    script = (
+        f"const TOKEN = {json.dumps(ws.token)}, AUDIENCE = {json.dumps(audience_id)}, "
+        f"DAY = {json.dumps(day)};\n{STORY_SCRIPT}"
+    )
+    return _page(f"Stories: {audience.name}, {day}", body, script)
+
+
+def save_stories(ws: Workspace, payload: dict[str, Any]) -> str:
+    """Record a judgement for every article of every story the page showed."""
+    if payload.get("token") != ws.token:
+        raise PermissionError("this page is from an earlier session; reload it")
+    audience_id, day = str(payload["audience"]), str(payload["day"])
+    if audience_id not in ws.audiences:
+        raise ValueError(f"unknown audience {audience_id!r}")
+    stories, pool = ws.stories(audience_id, day)
+    expected = {item_id for story in stories for item_id in story.item_ids}
+    shown = {str(item_id) for item_id in payload.get("shown", [])}
+    odd = {str(item_id) for item_id in payload.get("odd", [])}
+    if not expected or shown != expected:
+        raise ValueError("the page did not show this day's whole set of stories; reload it")
+    items = {item.id: item for item in ws.store.items_for(audience_id)}
+    now = datetime.now(UTC)
+    for story in stories:
+        for item_id in story.item_ids:
+            ws.labels.add_purity_label(
+                PurityLabel(
+                    audience_id=audience_id,
+                    day=day,
+                    cluster_id=story.cluster_id,
+                    item_id=item_id,
+                    labeller=ws.labeller,
+                    belongs=item_id not in odd,
+                    cluster_size=len(story.item_ids),
+                    pool_items=pool,
+                    url=items[item_id].url,
+                    title=items[item_id].title,
+                    labelled_at=now,
+                )
+            )
+    ws.push()
+    following = ws.next_open_story_day()
+    if following is None:
+        return "/stories"
+    return "/stories/day?" + urlencode({"audience": following[0], "day": following[1]})
 
 
 def save_pairs(ws: Workspace, payload: dict[str, Any]) -> str:
@@ -659,6 +865,24 @@ def application(ws: Workspace) -> Callable[[dict[str, Any], StartResponse], list
             if method == "GET" and path == "/day" and query.get("audience") in ws.audiences:
                 page = day_page(ws, query["audience"], query.get("day", ""))
                 return _reply(start_response, "200 OK", page, html)
+            if method == "GET" and path == "/stories":
+                return _reply(start_response, "200 OK", stories_overview(ws), html)
+            if method == "GET" and path == "/stories/next":
+                following = ws.next_open_story_day()
+                target = (
+                    "/stories/day?" + urlencode({"audience": following[0], "day": following[1]})
+                    if following
+                    else "/stories"
+                )
+                return _reply(start_response, "303 See Other", b"", html, location=target)
+            if method == "GET" and path == "/stories/day" and query.get("audience") in ws.audiences:
+                page = stories_page(ws, query["audience"], query.get("day", ""))
+                return _reply(start_response, "200 OK", page, html)
+            if method == "POST" and path == "/stories/save":
+                size = int(environ.get("CONTENT_LENGTH") or 0)
+                payload = json.loads(environ["wsgi.input"].read(size) or b"{}")
+                body = json.dumps({"next": save_stories(ws, payload)}).encode("utf-8")
+                return _reply(start_response, "200 OK", body, "application/json")
             if method == "GET" and path == "/pairs":
                 return _reply(start_response, "200 OK", pairs_overview(ws), html)
             if method == "GET" and path == "/pairs/next":

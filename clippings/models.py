@@ -171,3 +171,28 @@ class PairLabel(BaseModel):
     right_url: str
     right_title: str
     labelled_at: datetime
+
+
+class PurityLabel(BaseModel):
+    """Whether one news item belongs with the rest of the story the clustering put it in.
+
+    Asked only of stories with more than one news item: an item alone is in the right story
+    by construction. The story's size and the day's count of news items are kept, so purity
+    over every item, singletons included, can still be computed after retention deletes the
+    items and the clusters.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    audience_id: str
+    day: str
+    cluster_id: str
+    item_id: str
+    labeller: str
+    belongs: bool
+    cluster_size: int
+    # News items in the day's clustered pool, in stories of any size.
+    pool_items: int
+    url: str
+    title: str
+    labelled_at: datetime

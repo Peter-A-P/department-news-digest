@@ -40,9 +40,9 @@ Measured over 43 digests from 2026-10-07 to 2026-10-17, by `clippings report` on
 
 **Pipeline properties**
 
-| Deduplication precision / recall (pairs) | Collapse rate | Quotes verbatim, before / after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime, measurement month |
-|---|---|---|---|---|---|---|---|
-| _not yet_ (pair labels) | 1.16 (1.14 to 1.19) items per story | 100% (97% to 100%) / 100% (97% to 100%) | 100% (100% to 100%) | _not yet_ (hand check) | 17 h (16 to 19) / 42 h (40 to 43) | _not yet_ (reader study) | _not yet_ (measurement month) |
+| Deduplication precision / recall (pairs) | Collapse rate | Cluster purity, stories of several articles | Quotes verbatim, before / after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime, measurement month |
+|---|---|---|---|---|---|---|---|---|
+| _not yet_ (pair labels) | 1.16 (1.14 to 1.19) items per story | _not yet_ (story checks) | 100% (97% to 100%) / 100% (97% to 100%) | 100% (100% to 100%) | _not yet_ (hand check) | 17 h (16 to 19) / 42 h (40 to 43) | _not yet_ (reader study) | _not yet_ (measurement month) |
 
 Most discussed on Bluesky, judged worth showing: Artificial intelligence 100% (66% to 100%); Municipal affairs, Toronto 60% (20% to 100%); Regional affairs, Newfoundland and Labrador 100% (14% to 100%); Public health in Canada 100% (46% to 100%). A separate section below the stories, not counted in precision or recall.
 
@@ -109,7 +109,7 @@ uv run clippings sources probe            # fetch each feed once and check it is
 uv run clippings run ai                   # today's digest, written to out/site/
 uv run clippings serve                    # the pages at http://127.0.0.1:8080/
 uv run clippings render                   # re-render stored digests, no fetch, no model
-uv run clippings label --labeller you     # labelling page in the browser, one page per day; duplicate pairs at /pairs
+uv run clippings label --labeller you     # labelling page in the browser, one page per day; duplicate pairs at /pairs, story checks at /stories
 uv run clippings report                   # the results tables: README block and docs/report.md
 uv run clippings x-pick                   # add the X pick to the latest digests, not rebuilding them
 uv run clippings refresh                  # re-publish every stored digest with the current design
