@@ -48,7 +48,7 @@ from clippings.constants import CAD_PER_USD, cad
 from clippings.eval.labels import ranked_ids_for_day
 from clippings.eval.sample import stratified_sample
 from clippings.ingest.store import Store
-from clippings.models import Label
+from clippings.models import Label, PairLabel
 
 RESAMPLES = 2000
 NOT_YET = "_not yet_"
@@ -153,6 +153,99 @@ def quantile(
     )
 
 
+@dataclass(frozen=True)
+class PairDay:
+    """One audience-day's labelled pairs, as the deduplication estimates need them."""
+
+    day: str
+    together: tuple[bool, ...]
+    together_weight: float
+    near: tuple[bool, ...]
+    near_weight: float
+
+
+def _pair_draw(rng: random.Random, flags: Sequence[bool]) -> int:
+    rate = rate_draw(rng, sum(flags), len(flags))
+    return sum(1 for _ in flags if rng.random() < rate)
+
+
+def dedup_scores(
+    days: Sequence[PairDay], *, resamples: int = RESAMPLES, seed: int = 0
+) -> tuple[Estimate, Estimate]:
+    """Pairwise precision and recall of the clustering, from a stratified sample of pairs.
+
+    Precision: of the pairs put in one story, the share that are one story, each day's
+    labels weighted by the pairs they stand for. Recall: same-story pairs put together, over
+    those plus the same-story pairs kept apart among the pairs whose words overlap
+    (eval/pairs.py). The interval draws the days with replacement and redraws each stratum
+    as a binomial, as `recall` does.
+    """
+
+    def point(
+        sample: Sequence[PairDay], same_t: Sequence[float], same_n: Sequence[float]
+    ) -> tuple[float, float]:
+        found = sum(day.together_weight * k for day, k in zip(sample, same_t, strict=True))
+        put = sum(day.together_weight * len(day.together) for day in sample)
+        missed = sum(day.near_weight * k for day, k in zip(sample, same_n, strict=True))
+        precision = found / put if put else float("nan")
+        recall = found / (found + missed) if found + missed else float("nan")
+        return precision, recall
+
+    n = sum(len(day.together) + len(day.near) for day in days)
+    nan = Estimate(float("nan"), float("nan"), float("nan"), n, len(days))
+    if not days:
+        return nan, nan
+    p, r = point(days, [sum(d.together) for d in days], [sum(d.near) for d in days])
+    rng = random.Random(seed)
+    p_draws: list[float] = []
+    r_draws: list[float] = []
+    for _ in range(resamples):
+        drawn = [days[rng.randrange(len(days))] for _ in days]
+        dp, dr = point(
+            drawn,
+            [_pair_draw(rng, d.together) for d in drawn],
+            [_pair_draw(rng, d.near) for d in drawn],
+        )
+        if not math.isnan(dp):
+            p_draws.append(dp)
+        if not math.isnan(dr):
+            r_draws.append(dr)
+
+    def bounds(value: float, draws: list[float], units: int) -> Estimate:
+        if math.isnan(value) or not draws:
+            return Estimate(value, float("nan"), float("nan"), units, len(days))
+        draws.sort()
+        lo = draws[int(0.025 * len(draws))]
+        hi = draws[min(len(draws) - 1, int(0.975 * len(draws)))]
+        return Estimate(value, lo, hi, units, len(days))
+
+    together_n = sum(len(day.together) for day in days)
+    return bounds(p, p_draws, together_n), bounds(r, r_draws, n)
+
+
+def pair_days(labels: Iterable[PairLabel], labeller: str) -> list[PairDay]:
+    """This labeller's pairs by audience-day. The page saves a day's pairs together, so a
+    day with any label has them all."""
+    grouped: dict[tuple[str, str], list[PairLabel]] = defaultdict(list)
+    for label in labels:
+        if label.labeller == labeller:
+            grouped[(label.audience_id, label.day)].append(label)
+    days = []
+    for (_, day), day_labels in sorted(grouped.items()):
+        together = [label for label in day_labels if label.stratum == "together"]
+        near = [label for label in day_labels if label.stratum == "near"]
+        days.append(
+            PairDay(
+                day=day,
+                together=tuple(label.same_story for label in together),
+                together_weight=together[0].weight if together else 0.0,
+                near=tuple(label.same_story for label in near),
+                near_weight=near[0].weight if near else 0.0,
+            )
+        )
+    return days
+
+
 def kappa(
     pairs: Sequence[tuple[bool, bool]], *, resamples: int = RESAMPLES, seed: int = 0
 ) -> Estimate:
@@ -230,7 +323,13 @@ class Report:
     lag_p90: Estimate
     cost_per_day: Estimate
     uncosted_calls: int
-    pair_labels: int
+    # Deduplication against labelled pairs: precision and recall, the audience-days they
+    # come from, and the "check" pairs found to be one story, of those judged.
+    dedup_precision: Estimate | None
+    dedup_recall: Estimate | None
+    pair_days: int
+    check_same: int
+    check_n: int
     sources: list[SourceYield]
 
 
@@ -267,6 +366,7 @@ def build_report(
     audiences: Sequence[Audience],
     labeller: str,
     *,
+    pair_labels: Sequence[PairLabel] = (),
     now: datetime | None = None,
 ) -> Report:
     digests = [
@@ -401,6 +501,15 @@ def build_report(
         by_day[digest.day] += digest.cost_usd
 
     days_seen = sorted({digest.day for digest in digests})
+    audience_ids = {audience.id for audience in audiences}
+    own_pairs = [pair for pair in pair_labels if pair.audience_id in audience_ids]
+    judged = pair_days(own_pairs, labeller)
+    dedup_precision, dedup_recall = dedup_scores(judged) if judged else (None, None)
+    checks = [
+        pair.same_story
+        for pair in own_pairs
+        if pair.labeller == labeller and pair.stratum == "check"
+    ]
     return Report(
         generated_at=now or datetime.now(UTC),
         first_day=days_seen[0] if days_seen else "",
@@ -418,7 +527,11 @@ def build_report(
         lag_p90=quantile(lags, 0.9),
         cost_per_day=bootstrap_mean(list(by_day.values())),
         uncosted_calls=totals["uncosted"],
-        pair_labels=sum(len(store.pair_labels_for(a.id)) for a in audiences),
+        dedup_precision=dedup_precision,
+        dedup_recall=dedup_recall,
+        pair_days=len(judged),
+        check_same=sum(checks),
+        check_n=len(checks),
         sources=source_yield(store, labels, audiences, digests, labeller),
     )
 
@@ -518,8 +631,9 @@ def readme_tables(report: Report) -> str:
         )
     pairs = (
         NOT_YET + " (pair labels)"
-        if report.pair_labels == 0
-        else f"{report.pair_labels} pairs labelled"
+        if report.dedup_precision is None
+        else f"{pct(report.dedup_precision)} / {pct(report.dedup_recall)}, "
+        f"{report.pair_days} audience-days"
     )
     lines += [
         "",
@@ -536,6 +650,16 @@ def readme_tables(report: Report) -> str:
         f"{num(report.lag_p90, '.0f', ' h')} | {NOT_YET} (reader study) "
         f"| {NOT_YET} (measurement month) |",
         "",
+    ]
+    if report.pair_days:
+        lines += [
+            "Deduplication recall is over the pairs whose words overlap most, where a missed "
+            "duplicate almost always is; of "
+            f"{report.check_n} pairs drawn from outside them as a check, {report.check_same} "
+            f"{'was' if report.check_same == 1 else 'were'} the same story.",
+            "",
+        ]
+    lines += [
         "Most discussed on Bluesky, judged worth showing: "
         + "; ".join(f"{r.name} {pct(r.spotlight)}" for r in report.audiences)
         + ". A separate section below the stories, not counted in precision or recall.",

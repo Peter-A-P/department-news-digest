@@ -37,6 +37,8 @@ the trend view looks back a week; nothing in the product needs text older than t
 A label copies the item's URL and title rather than pointing at the item row. Retention
 deletes the item at thirty days, and the labelled week has to stay publishable after that:
 a labelled set is published as item ids, URLs and labels, never as article text.
+A duplicate-pair label copies both items' URLs and titles for the same reason, and records
+what the clustering decided, so the deduplication numbers survive the clusters too.
 
 `tests/test_pipeline.py::test_labelling_a_day_records_labels_that_outlive_the_item` runs
 retention over a labelled day and asserts the labels are still there and the items are not.

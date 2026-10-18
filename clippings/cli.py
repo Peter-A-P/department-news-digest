@@ -605,6 +605,8 @@ def label(
 ) -> None:
     """Label the days' samples in the browser: one page per audience and day, keyboard-driven.
 
+    Relevance at /, duplicate pairs at /pairs (eval/pairs.py), both kept in the same file.
+
     With a bucket, a fresh copy of the run's store is taken first, and this labeller's labels
     file (labels/<labeller>.duckdb) is fetched and sent back after every saved day.
     """
@@ -634,6 +636,7 @@ def label(
         )
         url = f"http://127.0.0.1:{port}/"
         typer.echo(f"labelling page at {url}  (ctrl+c to stop; every saved day is kept)")
+        typer.echo(f"duplicate pairs at {url}pairs")
         if open_browser:
             webbrowser.open(url)
         with (
@@ -674,7 +677,11 @@ def report(
             stack.enter_context(Store.open(path)) for path in sorted(label_dir.glob("*.duckdb"))
         ]
         result = build_report(
-            store, all_labels([store, *label_stores]), load_audiences(audiences), labeller
+            store,
+            all_labels([store, *label_stores]),
+            load_audiences(audiences),
+            labeller,
+            pair_labels=[pair for one in [store, *label_stores] for pair in one.pair_labels_for()],
         )
     Path("docs/report.md").write_text(detail(result), encoding="utf-8")
     typer.echo(readme_tables(result))

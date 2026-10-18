@@ -18,12 +18,23 @@ from typing import TYPE_CHECKING, Self
 import duckdb
 
 from clippings.constants import RETENTION_DAYS
-from clippings.models import Cluster, Item, ItemText, Label
+from clippings.models import Cluster, Item, ItemText, Label, PairLabel
 
 if TYPE_CHECKING:
     from clippings.assemble.digest import Digest
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
+
+# The pair-label columns added in version 5, created in place on older files.
+PAIR_COLUMNS = (
+    ("stratum", "TEXT DEFAULT ''"),
+    ("weight", "DOUBLE DEFAULT 0"),
+    ("together", "BOOLEAN DEFAULT FALSE"),
+    ("left_url", "TEXT DEFAULT ''"),
+    ("left_title", "TEXT DEFAULT ''"),
+    ("right_url", "TEXT DEFAULT ''"),
+    ("right_title", "TEXT DEFAULT ''"),
+)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -185,6 +196,13 @@ class Store:
         self._connection.execute(
             "ALTER TABLE labels ADD COLUMN IF NOT EXISTS graded BOOLEAN DEFAULT FALSE"
         )
+        # Version 5: pair labels carry their stratum, weight, the clustering's decision and
+        # both items' URLs and titles. No pair had been labelled before, so the defaults are
+        # never read as a judgement.
+        for column, kind in PAIR_COLUMNS:
+            self._connection.execute(
+                f"ALTER TABLE pair_labels ADD COLUMN IF NOT EXISTS {column} {kind}"
+            )
         self._connection.execute(
             "INSERT INTO meta (key, value) VALUES ('schema_version', ?) "
             "ON CONFLICT (key) DO UPDATE SET value = excluded.value",
@@ -516,36 +534,71 @@ class Store:
         ).fetchall()
         return {str(row[0]): (bool(row[1]), bool(row[2]), str(row[3])) for row in rows}
 
-    def add_pair_label(
-        self,
-        audience_id: str,
-        day: str,
-        left_id: str,
-        right_id: str,
-        labeller: str,
-        same_story: bool,
-    ) -> None:
-        left, right = sorted((left_id, right_id))
+    def add_pair_label(self, label: PairLabel) -> None:
+        """Record one pair judgement. Judging the same pair again replaces it."""
+        left, right = sorted((label.left_id, label.right_id))
+        if (left, right) != (label.left_id, label.right_id):
+            raise ValueError("a pair label's left_id must sort before its right_id")
         self._connection.execute(
-            "INSERT INTO pair_labels (audience_id, day, left_id, right_id, labeller, "
-            "same_story, labelled_at) VALUES (?, ?, ?, ?, ?, ?, ?) "
-            "ON CONFLICT (audience_id, day, left_id, right_id, labeller) DO UPDATE SET "
-            "same_story = excluded.same_story, labelled_at = excluded.labelled_at",
-            [audience_id, day, left, right, labeller, same_story, datetime.now(UTC)],
+            """
+            INSERT INTO pair_labels (
+                audience_id, day, left_id, right_id, labeller, same_story, labelled_at,
+                stratum, weight, together, left_url, left_title, right_url, right_title
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (audience_id, day, left_id, right_id, labeller) DO UPDATE SET
+                same_story = excluded.same_story, labelled_at = excluded.labelled_at
+            """,
+            [
+                label.audience_id,
+                label.day,
+                label.left_id,
+                label.right_id,
+                label.labeller,
+                label.same_story,
+                label.labelled_at,
+                label.stratum,
+                label.weight,
+                label.together,
+                label.left_url,
+                label.left_title,
+                label.right_url,
+                label.right_title,
+            ],
         )
 
     def pair_labels_for(
-        self, audience_id: str, day: str | None = None
-    ) -> dict[tuple[str, str], bool]:
-        query = "SELECT left_id, right_id, same_story FROM pair_labels WHERE audience_id = ?"
-        params: list[object] = [audience_id]
-        if day is not None:
-            query += " AND day = ?"
-            params.append(day)
-        return {
-            (str(row[0]), str(row[1])): bool(row[2])
+        self, audience_id: str | None = None, day: str | None = None, labeller: str | None = None
+    ) -> list[PairLabel]:
+        query = (
+            "SELECT audience_id, day, left_id, right_id, labeller, same_story, stratum, weight, "
+            "together, left_url, left_title, right_url, right_title, labelled_at "
+            "FROM pair_labels WHERE TRUE"
+        )
+        params: list[object] = []
+        for column, value in (("audience_id", audience_id), ("day", day), ("labeller", labeller)):
+            if value is not None:
+                query += f" AND {column} = ?"
+                params.append(value)
+        query += " ORDER BY audience_id, day, left_id, right_id"
+        return [
+            PairLabel(
+                audience_id=row[0],
+                day=row[1],
+                left_id=row[2],
+                right_id=row[3],
+                labeller=row[4],
+                same_story=bool(row[5]),
+                stratum=row[6],
+                weight=row[7],
+                together=bool(row[8]),
+                left_url=row[9],
+                left_title=row[10],
+                right_url=row[11],
+                right_title=row[12],
+                labelled_at=row[13],
+            )
             for row in self._connection.execute(query, params).fetchall()
-        }
+        ]
 
     # -- rankings and digests ------------------------------------------------------------
 

@@ -140,3 +140,34 @@ class Label(BaseModel):
     # and their must_read is unknown rather than false.
     must_read: bool = False
     graded: bool = False
+
+
+class PairLabel(BaseModel):
+    """One judgement of whether two news items of a day's pool are the same story.
+
+    Like a relevance label it copies both items' URLs and titles, so the labelled pairs stay
+    publishable after retention deletes the items, and it records what the clustering decided
+    when the pair was drawn, so the deduplication numbers do not depend on clusters that are
+    deleted with them. `left_id` sorts before `right_id`: a pair has no order.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    audience_id: str
+    day: str
+    left_id: str
+    right_id: str
+    labeller: str
+    same_story: bool
+    # "together": the clustering put the two in one story. "near": it kept them apart, but
+    # their words overlap enough that they might be one. "check": apart, drawn from the rest,
+    # and reported on its own as a test of the "near" boundary (eval/pairs.py).
+    stratum: Literal["together", "near", "check"]
+    # How many of the day's pairs in this stratum the label stands for.
+    weight: float
+    together: bool
+    left_url: str
+    left_title: str
+    right_url: str
+    right_title: str
+    labelled_at: datetime

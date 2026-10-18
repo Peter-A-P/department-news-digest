@@ -11,6 +11,10 @@ the system's rank or stratum, so the labeller is not told which stories the syst
 and "Save day" records an answer for every story on the page, so an unmarked story is a
 "no" the labeller saw, not a gap.
 
+The same server asks the deduplication question at /pairs: a day's sampled pairs of news
+items (eval/pairs.py), each to be marked "same story" or left as different, shuffled so the
+clustering's decision is not shown, and saved a whole day at a time for the same reason.
+
 It runs on the labeller's own machine, against a copy of the run's store, and writes to a
 labels file of its own (one per labeller). The daily job never touches that file, so a day
 can be labelled while a run is going, and two labellers cannot overwrite each other.
@@ -30,8 +34,9 @@ from urllib.parse import parse_qs, urlencode
 
 from clippings.config.audience import Audience
 from clippings.eval.labels import LabellingQueue, Question, build_queue, record
+from clippings.eval.pairs import PairSample, PairUnit, pair_sample_for_day
 from clippings.ingest.store import Store
-from clippings.models import Label
+from clippings.models import Item, Label, PairLabel
 
 StartResponse = Callable[[str, list[tuple[str, str]]], Any]
 
@@ -80,6 +85,22 @@ class Workspace:
         for audience_id in self.audiences:
             for day in self.days(audience_id):
                 if self.queue(audience_id, day, remaining_only=True).questions:
+                    return audience_id, day
+        return None
+
+    def pairs(self, audience_id: str, day: str) -> PairSample:
+        return pair_sample_for_day(self.store, audience_id, day)
+
+    def pair_answers(self, audience_id: str, day: str) -> dict[tuple[str, str], bool]:
+        return {
+            (label.left_id, label.right_id): label.same_story
+            for label in self.labels.pair_labels_for(audience_id, day, self.labeller)
+        }
+
+    def next_open_pair_day(self) -> tuple[str, str] | None:
+        for audience_id in self.audiences:
+            for day in self.days(audience_id):
+                if self.pairs(audience_id, day).units and not self.pair_answers(audience_id, day):
                     return audience_id, day
         return None
 
@@ -138,6 +159,9 @@ details.rubric { font-size: 0.86rem; color: var(--soft); margin: 0.4rem 0; }
   margin: 0.8rem 0; background: var(--card); cursor: pointer; }
 .spot.yes { background: var(--yes-bg); border: 1px solid var(--yes); }
 .spot .q { font-style: italic; }
+.row.pair { grid-template-columns: 2rem 1fr; }
+.sides { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+@media (max-width: 40rem) { .sides { grid-template-columns: 1fr; } }
 .save { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
   border-top: 1px solid var(--line); padding: 0.7rem 16px; text-align: center; }
 button { font: inherit; font-weight: 600; padding: 0.5rem 1.4rem; border-radius: 999px;
@@ -217,6 +241,53 @@ show(0); count();
 """
 
 
+PAIR_SCRIPT = """
+const rows = [...document.querySelectorAll('.row')];
+let at = 0;
+function show(n) {
+  at = Math.max(0, Math.min(rows.length - 1, n));
+  rows.forEach((r, i) => r.classList.toggle('focus', i === at));
+  rows[at] && rows[at].scrollIntoView({block: 'nearest'});
+}
+function count() {
+  document.getElementById('count').textContent =
+    rows.filter(r => r.classList.contains('yes')).length;
+}
+function set(n, same) { rows[n].classList.toggle('yes', same); count(); }
+rows.forEach((r, i) => r.addEventListener('click', e => {
+  if (e.target.closest('a')) return;
+  show(i); set(i, !r.classList.contains('yes'));
+}));
+async function save() {
+  const body = {token: TOKEN, audience: AUDIENCE, day: DAY,
+    same: rows.filter(r => r.classList.contains('yes')).map(r => r.dataset.id),
+    shown: rows.map(r => r.dataset.id)};
+  const button = document.getElementById('save');
+  button.disabled = true; button.textContent = 'Saving...';
+  const reply = await fetch('/pairs/save', {method: 'POST', body: JSON.stringify(body)});
+  if (!reply.ok) { button.textContent = 'Not saved: ' + await reply.text(); return; }
+  location.href = (await reply.json()).next;
+}
+document.getElementById('save').addEventListener('click', save);
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  const links = rows[at] ? rows[at].querySelectorAll('a') : [];
+  if (k === 'j' || k === 'ArrowDown') { show(at + 1); }
+  else if (k === 'k' || k === 'ArrowUp') { show(at - 1); }
+  else if (k === 's') { set(at, true); show(at + 1); }
+  else if (k === 'd') { set(at, false); show(at + 1); }
+  else if (k === ' ' || k === 'x') { set(at, !rows[at].classList.contains('yes')); }
+  else if (k === 'o' && links[0]) { window.open(links[0].href, '_blank'); }
+  else if (k === 'p' && links[1]) { window.open(links[1].href, '_blank'); }
+  else if (k === 'Enter' && e.shiftKey) { save(); }
+  else { return; }
+  e.preventDefault();
+});
+show(0); count();
+"""
+
+
 def _page(title: str, body: str, script: str = "") -> bytes:
     tail = f"<script>{script}</script>" if script else ""
     return (
@@ -225,6 +296,16 @@ def _page(title: str, body: str, script: str = "") -> bytes:
         f"<title>{escape(title)}</title><style>{STYLE}</style></head>"
         f"<body><main>{body}</main>{tail}</body></html>"
     ).encode()
+
+
+def _pair_key(unit: PairUnit) -> str:
+    return f"{unit.left_id}|{unit.right_id}"
+
+
+def _pair_link(path: str, target: tuple[str, str] | None) -> str:
+    if target is None:
+        return "/pairs"
+    return f"{path}?" + urlencode({"audience": target[0], "day": target[1]})
 
 
 def overview(ws: Workspace) -> bytes:
@@ -255,8 +336,135 @@ def overview(ws: Workspace) -> bytes:
         f"<table><tr><th></th>{head}</tr>{''.join(rows)}</table>"
         "<p class='meta'>Each cell is stories judged, of the day's sample. Click one to open "
         "or correct that day.</p>"
+        '<p><a href="/pairs">Duplicate pairs</a>: is each pair of articles one story?</p>'
     )
     return _page("Labelling", body)
+
+
+PAIR_RUBRIC = (
+    "Same story means the same event, announcement, decision or report: a reader who had "
+    "read one would not want both in a digest. A later update or a reaction to that same "
+    "event counts as the same story. Two different events on the same subject are "
+    "different stories."
+)
+
+
+def pairs_overview(ws: Workspace) -> bytes:
+    days = sorted({day for audience_id in ws.audiences for day in ws.days(audience_id)})
+    head = "".join(f"<th>{escape(day)}</th>" for day in days)
+    rows = []
+    left_total = 0
+    for audience_id, audience in ws.audiences.items():
+        cells = []
+        for day in days:
+            if day not in ws.days(audience_id):
+                cells.append("<td></td>")
+                continue
+            total = len(ws.pairs(audience_id, day).units)
+            done = total if ws.pair_answers(audience_id, day) else 0
+            left_total += total - done
+            link = "/pairs/day?" + urlencode({"audience": audience_id, "day": day})
+            css = ' class="done"' if done == total else ""
+            cells.append(f'<td{css}><a href="{escape(link)}">{done}/{total}</a></td>')
+        rows.append(f"<tr><th>{escape(audience.name)}</th>{''.join(cells)}</tr>")
+    following = ws.next_open_pair_day()
+    action = (
+        f'<p><a href="/pairs/next"><button>Continue with pairs</button></a> '
+        f"{left_total} pairs left</p>"
+        if following
+        else "<p>Every day's pairs are labelled.</p>"
+    )
+    body = (
+        f'<a href="/">Relevance labelling</a><h1>Duplicate pairs, as {escape(ws.labeller)}</h1>'
+        f"{action}<p class='meta'>{escape(PAIR_RUBRIC)}</p>"
+        f"<table><tr><th></th>{head}</tr>{''.join(rows)}</table>"
+        "<p class='meta'>Each cell is pairs judged, of the day's sample.</p>"
+    )
+    return _page("Duplicate pairs", body)
+
+
+def _pair_side(item: Item) -> str:
+    published = item.published_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M")
+    return (
+        f'<div class="side"><a class="title" href="{escape(item.url)}" target="_blank" '
+        f'rel="noopener">{escape(item.title)}</a>'
+        f'<div class="meta">{escape(item.domain)} &middot; {published} UTC</div>'
+        f'<div class="snip">{escape(_snippet(item.summary))}</div></div>'
+    )
+
+
+def pairs_page(ws: Workspace, audience_id: str, day: str) -> bytes:
+    audience = ws.audiences[audience_id]
+    sample = ws.pairs(audience_id, day)
+    items = {item.id: item for item in ws.store.items_for(audience_id)}
+    answers = ws.pair_answers(audience_id, day)
+    units = sorted(sample.units, key=_pair_key)
+    random.Random(f"{audience_id}|{day}|pairs-order").shuffle(units)
+    rows = []
+    for unit in units:
+        same = answers.get((unit.left_id, unit.right_id), False)
+        rows.append(
+            f'<div class="row pair{" yes" if same else ""}" data-id="{escape(_pair_key(unit))}">'
+            '<div class="mark"></div><div class="sides">'
+            f"{_pair_side(items[unit.left_id])}{_pair_side(items[unit.right_id])}</div></div>"
+        )
+    saved = " &middot; saved before, reopened" if answers else ""
+    body = (
+        '<div class="bar">'
+        f'<a href="/pairs">All days</a><h1>Duplicate pairs: {escape(audience.name)}, '
+        f"{escape(day)}</h1>"
+        f"<div>{len(units)} pairs &middot; <b id='count'>0</b> marked same story{saved}</div>"
+        f'<div class="keys">{escape(PAIR_RUBRIC)} Unmarked means different. '
+        "<kbd>s</kbd> same <kbd>d</kbd> different <kbd>space</kbd> toggle "
+        "<kbd>j</kbd>/<kbd>k</kbd> move <kbd>o</kbd>/<kbd>p</kbd> open first/second "
+        "<kbd>shift</kbd>+<kbd>enter</kbd> save day. Or click a pair.</div>"
+        "</div>"
+        + "".join(rows)
+        + '<div class="save"><button id="save">Save day and continue</button></div>'
+    )
+    script = (
+        f"const TOKEN = {json.dumps(ws.token)}, AUDIENCE = {json.dumps(audience_id)}, "
+        f"DAY = {json.dumps(day)};\n{PAIR_SCRIPT}"
+    )
+    return _page(f"Pairs: {audience.name}, {day}", body, script)
+
+
+def save_pairs(ws: Workspace, payload: dict[str, Any]) -> str:
+    """Record an answer for every pair the page showed. Returns where to go next."""
+    if payload.get("token") != ws.token:
+        raise PermissionError("this page is from an earlier session; reload it")
+    audience_id, day = str(payload["audience"]), str(payload["day"])
+    if audience_id not in ws.audiences:
+        raise ValueError(f"unknown audience {audience_id!r}")
+    by_key = {_pair_key(unit): unit for unit in ws.pairs(audience_id, day).units}
+    shown = {str(key) for key in payload.get("shown", [])}
+    same = {str(key) for key in payload.get("same", [])}
+    if not by_key or shown != set(by_key):
+        raise ValueError("the page did not show this day's whole sample of pairs; reload it")
+    items = {item.id: item for item in ws.store.items_for(audience_id)}
+    now = datetime.now(UTC)
+    for key, unit in by_key.items():
+        left, right = items[unit.left_id], items[unit.right_id]
+        ws.labels.add_pair_label(
+            PairLabel(
+                audience_id=audience_id,
+                day=day,
+                left_id=unit.left_id,
+                right_id=unit.right_id,
+                labeller=ws.labeller,
+                same_story=key in same,
+                stratum=unit.stratum,
+                weight=unit.weight,
+                together=unit.together,
+                left_url=left.url,
+                left_title=left.title,
+                right_url=right.url,
+                right_title=right.title,
+                labelled_at=now,
+            )
+        )
+    ws.push()
+    return _pair_link("/pairs/day", ws.next_open_pair_day())
 
 
 def day_page(ws: Workspace, audience_id: str, day: str) -> bytes:
@@ -451,6 +659,19 @@ def application(ws: Workspace) -> Callable[[dict[str, Any], StartResponse], list
             if method == "GET" and path == "/day" and query.get("audience") in ws.audiences:
                 page = day_page(ws, query["audience"], query.get("day", ""))
                 return _reply(start_response, "200 OK", page, html)
+            if method == "GET" and path == "/pairs":
+                return _reply(start_response, "200 OK", pairs_overview(ws), html)
+            if method == "GET" and path == "/pairs/next":
+                target = _pair_link("/pairs/day", ws.next_open_pair_day())
+                return _reply(start_response, "303 See Other", b"", html, location=target)
+            if method == "GET" and path == "/pairs/day" and query.get("audience") in ws.audiences:
+                page = pairs_page(ws, query["audience"], query.get("day", ""))
+                return _reply(start_response, "200 OK", page, html)
+            if method == "POST" and path == "/pairs/save":
+                size = int(environ.get("CONTENT_LENGTH") or 0)
+                payload = json.loads(environ["wsgi.input"].read(size) or b"{}")
+                body = json.dumps({"next": save_pairs(ws, payload)}).encode("utf-8")
+                return _reply(start_response, "200 OK", body, "application/json")
             if method == "POST" and path == "/save":
                 size = int(environ.get("CONTENT_LENGTH") or 0)
                 payload = json.loads(environ["wsgi.input"].read(size) or b"{}")

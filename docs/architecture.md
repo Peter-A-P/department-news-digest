@@ -79,9 +79,13 @@ carried a citation, come from the checker's own record. Stories per day, how oft
 were collapsed and how long a story takes to appear come from the database. The cost per digest
 and per day comes from the gateway's ledger, converted to Canadian dollars.
 
-Three measures are not done yet: how well duplicates are detected, how faithful the summaries
-are, and how much time a reader saves. They wait for labelled pairs, a hand check and a reader
-study, and the README says "not yet" rather than leaving them blank. One command writes the
+How well duplicates are detected comes from pairs of articles labelled "same story" or not,
+on a second page of the same tool. Each day it asks about pairs the clustering joined, pairs
+it kept apart that share many words, and a couple of others as a check.
+
+Two measures are not done yet: how faithful the summaries are, and how much time a reader
+saves. They wait for a hand check and a reader study, and the README says "not yet" rather
+than leaving them blank. One command writes the
 README and the report, and neither is edited by hand.
 
 Where it lives: `clippings.eval.sample`, `clippings.eval.label_ui`, the gateway ledger and

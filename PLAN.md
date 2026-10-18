@@ -262,6 +262,18 @@ stars as "must read" the ones they would put in a ten-story digest first; the he
 is over must-read stories, with the same importance weights, and recall over all relevant
 stories is reported beside it with the relevant stories per day that bound it.
 
+Duplicate pairs are labelled the same way, on a second page of the labelling tool, decided
+2026-10-17 when the pair sampler was built. A day's pool of a hundred news items holds about
+five thousand pairs, nearly all of them plainly two stories, so a uniform sample would almost
+never meet a duplicate the clustering missed. Each audience-day is sampled in three strata:
+five pairs the clustering put together (precision), six it kept apart from among the day's
+top three pairs per item by word overlap (where a missed duplicate almost always is; over 43
+audience-days that top held 843 of the 846 pairs the clustering joined), and two from all
+the rest. Recall is estimated within the overlapping pairs, with weights, and says so; the
+two "check" pairs a day are reported on their own as a test of that boundary rather than
+weighted in, where one chance match among thousands would decide the number. About 13 pairs
+per audience-day, a few minutes each, and intervals that redraw whole days, as for relevance.
+
 ### 2.7 Out of scope, on purpose
 
 - A reader app: bookmarks, accounts, notifications, mobile layout. The product is the
@@ -281,7 +293,7 @@ stories is reported beside it with the relevant stories per day that bound it.
 | Bluesky public API (AT Protocol) | Search and feeds per audience | Public discussion | Public API; user preferences respected |
 | X API v2, pay-per-use | One search of ten posts and one author lookup per audience per day; for AI, thirty posts from named people and twenty by subject | The day's X pick only | Official API, terms read and recorded; shown whole on its day only; not for government users without an Enterprise plan |
 | Hand-labelled week | About 420 labels per audience, 60 per day; one audience double-labelled | Precision, recall, kappa | Own |
-| Labelled duplicate pairs | 300 pairs across the week | Deduplication precision and recall | Own |
+| Labelled duplicate pairs | About 13 pairs per audience-day in three strata, about 360 over the labelled week (section 2.6) | Deduplication precision and recall | Own |
 
 Nothing raw is committed. The labelled sets are published as item ids, URLs and labels,
 never as article text.
