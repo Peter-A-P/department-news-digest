@@ -11,9 +11,15 @@ for a share that came out at none or all, so "100%" of 40 is never printed as a 
 
 Recall is a ratio estimate over a stratified sample (PLAN.md section 2.6). The top stratum is
 a census of the stories the system ranked highest, the random stratum a sample of the rest in
-which each label stands for `weight` stories. The interval resamples each day's random
-stratum as a binomial (Jeffreys at none or all); the top stratum, being a census, is not
-resampled. It is printed as an importance-weighted estimate, because that is what it is.
+which each label stands for `weight` stories. The interval resamples the labelled days, then
+each drawn day's random stratum as a binomial (Jeffreys at none or all); within a day the top
+stratum, being a census, is not resampled. It is printed as an importance-weighted estimate,
+because that is what it is.
+
+Precision resamples whole days too. Stories from one morning's digest share a pool and a
+news cycle, so they are not independent evidence; until 2026-10-17 both intervals treated
+them as if they were, and recall's reflected only the random strata, not how much the
+digest varied from one day to the next.
 """
 
 from __future__ import annotations
@@ -26,7 +32,13 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from drift.analysis.stats import Estimate, bootstrap_mean, jeffreys_proportion, percentile
+from drift.analysis.stats import (
+    Estimate,
+    bootstrap_mean,
+    bootstrap_mean_by_cluster,
+    jeffreys_proportion,
+    percentile,
+)
 from gate.judge.calibration import cohens_kappa
 from gate.stats import rate_draw
 
@@ -69,38 +81,53 @@ def _ratio(days: Sequence[DayLabels], buried: Sequence[float]) -> float:
 def recall(days: Sequence[DayLabels], *, resamples: int = RESAMPLES, seed: int = 0) -> Estimate:
     """Relevant stories the digests showed, over the relevant stories estimated in the pools.
 
-    Each replicate redraws every day's random stratum as a binomial at the 03 gate's
-    `rate_draw`: the observed share, or at none or all the Jeffreys posterior. A plain resample
-    of a stratum with no relevant story in it redraws nothing every time and prints a
-    zero-width interval, as if "none found in 18" meant "none there" (the first labelled days,
-    2026-10-10, did exactly that).
+    Each replicate draws the days with replacement, then redraws every drawn day's random
+    stratum as a binomial at the 03 gate's `rate_draw`: the observed share, or at none or all
+    the Jeffreys posterior. A plain resample of a stratum with no relevant story in it redraws
+    nothing every time and prints a zero-width interval, as if "none found in 18" meant "none
+    there" (the first labelled days, 2026-10-10, did exactly that).
+
+    Without the draw over days, the only uncertainty left was the random strata's, and in a
+    week where no random stratum held a must-read story the Jeffreys draws could only add
+    buried stories: the point was the top of its own interval, which said nothing about how
+    the digest did on a day not labelled (found 2026-10-17: AI must-read recall printed 83%,
+    63% to 83%; drawn over days it is 57% to 100%).
     """
     n = sum(len(day.top) + len(day.random) for day in days)
     point = _ratio(days, [day.weight * sum(day.random) for day in days])
     if not days or math.isnan(point):
-        return Estimate(point, float("nan"), float("nan"), n)
+        return Estimate(point, float("nan"), float("nan"), n, len(days))
+    if len(days) == 1 and not days[0].random:
+        # One census day: nothing to resample, so no interval is invented.
+        return Estimate(point, float("nan"), float("nan"), n, 1)
     rng = random.Random(seed)
     draws = []
     for _ in range(resamples):
+        drawn = [days[rng.randrange(len(days))] for _ in days]
         buried = []
-        for day in days:
+        for day in drawn:
             size = len(day.random)
             rate = rate_draw(rng, sum(day.random), size)
             buried.append(day.weight * sum(1 for _ in range(size) if rng.random() < rate))
-        value = _ratio(days, buried)
+        value = _ratio(drawn, buried)
         if not math.isnan(value):
             draws.append(value)
     draws.sort()
     if not draws:
-        return Estimate(point, float("nan"), float("nan"), n)
+        return Estimate(point, float("nan"), float("nan"), n, len(days))
     lo = draws[int(0.025 * len(draws))]
     hi = draws[min(len(draws) - 1, int(0.975 * len(draws)))]
-    return Estimate(point, lo, hi, n)
+    return Estimate(point, lo, hi, n, len(days))
 
 
 def share(flags: Sequence[bool]) -> Estimate:
     """A share of yes/no units, with the gate's interval (Jeffreys at none or all)."""
     return bootstrap_mean([1.0 if flag else 0.0 for flag in flags])
+
+
+def share_by_day(flags: Sequence[bool], days: Sequence[str]) -> Estimate:
+    """A share of yes/no units that come in days, resampled a whole day at a time."""
+    return bootstrap_mean_by_cluster([1.0 if flag else 0.0 for flag in flags], days)
 
 
 def counted_share(successes: int, n: int) -> Estimate:
@@ -267,6 +294,7 @@ def build_report(
         result.labelled_days = sorted(complete)
         if complete:
             shown_flags: list[bool] = []
+            shown_days: list[str] = []
             days: list[DayLabels] = []
             must_days: list[DayLabels] = []
             for day, day_labels in sorted(complete.items()):
@@ -275,6 +303,7 @@ def build_report(
                 shown = _shown_items(store, digest) if digest else []
                 flags = [by_item[item_id].relevant for item_id in shown if item_id in by_item]
                 shown_flags += flags
+                shown_days += [day] * len(flags)
                 random_labels = [label for label in day_labels if label.stratum == "random"]
                 if all(label.graded for label in day_labels):
                     must_days.append(
@@ -299,7 +328,7 @@ def build_report(
                         weight=random_labels[0].weight if random_labels else 0.0,
                     )
                 )
-            result.precision = share(shown_flags)
+            result.precision = share_by_day(shown_flags, shown_days)
             result.recall = recall(days)
             result.relevant_per_day = bootstrap_mean(
                 [sum(day.top) + day.weight * sum(day.random) for day in days]

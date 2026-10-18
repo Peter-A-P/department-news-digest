@@ -70,8 +70,9 @@ Every number in the README has a stated source, and some are still waiting for t
 How many of the stories shown were worth showing, and how many important stories were caught,
 come from days labelled by hand. For each audience and day, a sampler picks the top 30 stories
 plus 30 at random, a person labels them in a small labelling tool, and they are scored with the
-release gate's method, with intervals. Twelve audience-days are labelled so far, and the
-numbers fill in as more are done.
+release gate's method, with intervals. The intervals redraw whole days, because stories from
+one morning share a news cycle and are not separate pieces of evidence. Twenty-eight
+audience-days are labelled so far, and the numbers fill in as more are done.
 
 How often quotes were exact before and after repair, and how many first-draft sentences
 carried a citation, come from the checker's own record. Stories per day, how often duplicates

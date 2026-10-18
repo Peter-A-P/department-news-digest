@@ -27,16 +27,16 @@ file an owner can send. It has no send path.
 ## Result
 
 <!-- report:start -->
-Measured over 43 digests from 2026-10-07 to 2026-10-17, by `clippings report` on 2026-10-17. 95% intervals throughout. 28 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
+Measured over 43 digests from 2026-10-07 to 2026-10-17, by `clippings report` on 2026-10-18. 95% intervals throughout. 28 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
 
 **Relevance, per audience, against a hand-labelled week**
 
 | Audience | Precision at K (95% CI) | Recall of must-read stories, importance-weighted (95% CI) | Must-read stories per day | Recall of all relevant stories | Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |
 |---|---|---|---|---|---|---|---|---|
-| Artificial intelligence | 68% (55% to 80%), 7 days | 83% (63% to 83%) | 3.4 (2.4 to 4.6) | 58% (54% to 61%) | 9.3 (5.7 to 13.6) | _not yet_ | 8.2 (6.6 to 9.6) | CA$0.060 (CA$0.046 to CA$0.073) |
-| Municipal affairs, Toronto | 70% (50% to 90%), 5 days | 65% (56% to 71%) | 3.1 (1.4 to 5.2) | 51% (47% to 54%) | 5.5 (2.6 to 9.2) | _not yet_ | 5.2 (3.3 to 7.1) | CA$0.052 (CA$0.033 to CA$0.073) |
-| Regional affairs, Newfoundland and Labrador | 83% (76% to 91%), 9 days | 67% (58% to 68%) | 7.3 (5.1 to 9.0) | 51% (48% to 52%) | 16.4 (13.0 to 19.9) | _not yet_ | 10.0 on all 11 | CA$0.069 (CA$0.063 to CA$0.076) |
-| Public health in Canada | 100% (76% to 100%), 7 days | 60% (43% to 60%) | 1.4 (0.9 to 2.1) | 45% (39% to 50%) | 2.9 (1.6 to 4.1) | _not yet_ | 3.6 (1.7 to 5.8) | CA$0.037 (CA$0.018 to CA$0.058) |
+| Artificial intelligence | 68% (53% to 84%), 7 days | 83% (57% to 100%) | 3.4 (2.4 to 4.6) | 58% (48% to 72%) | 9.3 (5.7 to 13.6) | _not yet_ | 8.2 (6.6 to 9.6) | CA$0.060 (CA$0.046 to CA$0.073) |
+| Municipal affairs, Toronto | 70% (60% to 92%), 5 days | 65% (45% to 100%) | 3.1 (1.4 to 5.2) | 51% (38% to 75%) | 5.5 (2.6 to 9.2) | _not yet_ | 5.2 (3.3 to 7.1) | CA$0.052 (CA$0.033 to CA$0.073) |
+| Regional affairs, Newfoundland and Labrador | 83% (74% to 91%), 9 days | 67% (50% to 75%) | 7.3 (5.1 to 9.0) | 51% (40% to 62%) | 16.4 (13.0 to 19.9) | _not yet_ | 10.0 on all 11 | CA$0.069 (CA$0.063 to CA$0.076) |
+| Public health in Canada | 100% (55% to 100%), 7 days | 60% (11% to 88%) | 1.4 (0.9 to 2.1) | 45% (22% to 62%) | 2.9 (1.6 to 4.1) | _not yet_ | 3.6 (1.7 to 5.8) | CA$0.037 (CA$0.018 to CA$0.058) |
 
 **Pipeline properties**
 
