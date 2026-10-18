@@ -63,7 +63,7 @@ Where it lives: `clippings.sources`, `clippings.ingest.remote`, `clippings.clust
 
 ## How the published numbers are produced
 
-![Precision and recall come from hand-labelled audience-days drawn by a stratified sampler and scored through the release gate's harness; quote and citation checks come from the verifier's own record; cost comes from the gateway ledger; deduplication, faithfulness and reader time wait for their labels and studies.](architecture/measurement.svg)
+![Precision and recall come from hand-labelled audience-days drawn by a stratified sampler and scored through the release gate's harness; quote and citation checks come from the verifier's own record; cost comes from the gateway ledger; deduplication and cluster purity have labelling pages and wait for their labels; faithfulness and reader time wait for a hand check and a study.](architecture/measurement.svg)
 
 Every number in the README has a stated source, and some are still waiting for theirs.
 
