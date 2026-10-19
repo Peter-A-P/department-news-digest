@@ -238,6 +238,18 @@ with a run lock, holding items, clusters, scores, digests and the ledger export.
 Everything fits the free tiers at this volume. This is the portfolio's GCP example and the
 cheapest way to run a daily pipeline that a department could copy.
 
+The trend view (built 2026-10-18) is a page per audience beside its archive: the
+organisations, people, places and topics in the audience's own file, counted in the news
+articles its sources published in the week to the latest digest and the week before, with
+the newest articles behind each term, titles and links only. A name counts when the title or
+feed summary carries it whole; a topic when two thirds of its content words appear, since no
+headline contains "transit service and expansion". A term is said to have risen or fallen
+only when an exact binomial test (5%) finds its share of the two weeks' coverage moved by more
+than the change in all coverage explains; on the first page that is four AI terms of 15, and
+no Toronto, Newfoundland and Labrador or public health term, when the raw counts moved for
+nearly all of them. It is rebuilt at the end of every run, needs no model call, and looks back
+fourteen days, inside the thirty for which items are kept.
+
 ### 2.6 Measured on the harness, labelled the honest way
 
 Labelling every ingested item for a week is thousands of labels per audience and not a

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import webbrowser
+from collections.abc import Sequence
 from contextlib import ExitStack, suppress
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -32,7 +33,9 @@ from clippings import graph
 from clippings.assemble.deletions import expire_x_picks, recheck_picks
 from clippings.assemble.digest import Digest
 from clippings.assemble.publish import GcsSite, LocalSite, Site, publish_digest, publish_indexes
+from clippings.assemble.render import trends_page
 from clippings.assemble.sources_panel import panel_for
+from clippings.assemble.trends import latest_trends
 from clippings.cluster.embed import Hashing, default_embedder
 from clippings.config.audience import Audience
 from clippings.config.load import EXAMPLES, AudienceFileError, load_audience, load_audiences
@@ -251,7 +254,18 @@ def run(
             [(one.id, one.name, one.description) for one in everyone],
             {one.id: store.digest_days(one.id) for one in everyone},
             panels,
+            trend_pages(store, everyone),
         )
+
+
+def trend_pages(store: Store, everyone: Sequence[Audience]) -> dict[str, str]:
+    """Each audience's trend view for the week to its latest digest."""
+    pages = {}
+    for one in everyone:
+        found = latest_trends(store, one)
+        if found is not None:
+            pages[one.id] = trends_page(one.name, one.id, found)
+    return pages
 
 
 @app.command()
@@ -289,6 +303,7 @@ def refresh(
             [(one.id, one.name, one.description) for one in everyone],
             {one.id: store.digest_days(one.id) for one in everyone},
             panels,
+            trend_pages(store, everyone),
         )
         typer.echo(f"published   {pages} digest pages and the indexes")
         if sync is not None:
@@ -456,6 +471,7 @@ def render(
             [(one.id, one.name, one.description) for one in everyone],
             {one.id: store.digest_days(one.id) for one in everyone},
             {one.id: panel_for(one, store) for one in everyone},
+            trend_pages(store, everyone),
         )
 
 

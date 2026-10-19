@@ -30,7 +30,8 @@ remembering to. `tests/test_store.py` fails if an item a day past the window sur
 text survives the item.
 
 Thirty days is not a compromise between usefulness and caution. The digest is daily and
-the trend view looks back a week; nothing in the product needs text older than that.
+the trend view looks back two weeks and shows titles and links only; nothing in the
+product needs text older than that.
 
 ## Why the labels outlive the items
 

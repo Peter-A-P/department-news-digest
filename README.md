@@ -88,7 +88,9 @@ similarity, entities, source trust and recency, and sends only the top candidate
 model re-ranker through the portfolio gateway. A summariser writes cited sentences with
 marked quotes; a verifier rejects any quote not verbatim in its source and any uncited
 sentence, repairing once and dropping otherwise. The digest is rendered as a page and a
-draft file. Precision and recall are measured against a hand-labelled week through the AI
+draft file, and each audience's archive links a trend view: its own organisations, people,
+places and topics counted in two weeks of coverage, a change called only when it is beyond
+chance. Precision and recall are measured against a hand-labelled week through the AI
 Release Gate's harness, with intervals.
 
 The site's front page explains the same for a visitor, below the audience cards: why this

@@ -29,6 +29,7 @@ from html import escape
 
 from clippings.assemble.about import about_sections
 from clippings.assemble.digest import Digest, DigestSentence, DigestStory, Spotlight, XPick
+from clippings.assemble.trends import Trends, describe
 from clippings.constants import CAD_PER_USD, cad
 
 # Sentences shown before "Read more"; the rest of the summary is one click away.
@@ -195,6 +196,13 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 .days { list-style: none; padding: 0; margin: 1.5rem 0; max-width: var(--column); }
 .days li { border-bottom: 1px solid var(--line); }
 .days a { display: block; padding: 0.6rem 0; font-family: var(--serif); font-size: 1.15rem; }
+
+.trend-rose { color: var(--green); font-weight: 600; }
+.trend-fell { color: var(--rose); font-weight: 600; }
+.trend-terms details { border-bottom: 1px solid var(--line); padding: 0.5rem 0; }
+.trend-terms summary { cursor: pointer; font-family: var(--serif); font-size: 1.1rem; }
+.trend-terms ul { margin: 0.4rem 0 0.2rem; padding-left: 1.1rem; font-size: 0.88rem; }
+.trend-terms .src-note { display: inline; }
 
 .src-panel { margin-top: 1rem; }
 .src-body { margin-top: 0.8rem; }
@@ -830,17 +838,99 @@ def audience_index(
     description: str = "",
     audience_id: str = "",
     sources: str = "",
+    trends: bool = False,
 ) -> str:
     items = "\n".join(f'<li><a href="{escape(day)}/">{escape(day)}</a></li>' for day in days)
     lead = f'<p class="lead">{escape(description)}</p>' if description else ""
+    trend_link = (
+        '<p class="jump"><a href="trends/">Trends: this week against the week before</a></p>'
+        if trends
+        else ""
+    )
     body = (
         '<header class="hero">'
         '<p class="crumbs"><a href="../">All digests</a></p>'
         '<p class="eyebrow">Archive</p>'
-        f"<h1>{escape(audience_name)}</h1>{lead}{sources}</header>\n"
+        f"<h1>{escape(audience_name)}</h1>{lead}{trend_link}{sources}</header>\n"
         f'<ul class="days">\n{items}\n</ul>'
     )
     return _page(audience_name, body, hue=hue(audience_id) if audience_id else "teal")
+
+
+KIND_LABEL = {
+    "organisation": "Organisation",
+    "person": "Person",
+    "place": "Place",
+    "topic": "Topic",
+}
+
+
+def trends_page(audience_name: str, audience_id: str, trends: Trends) -> str:
+    """One audience's trend view: its own terms, counted in two weeks of coverage."""
+    rows = []
+    details = []
+    for term in trends.terms:
+        css = {"rose": "trend-rose", "fell": "trend-fell"}.get(term.change, "")
+        rows.append(
+            f"<tr><td>{escape(term.label)}</td><td>{KIND_LABEL[term.kind]}</td>"
+            f"<td>{term.this_week}</td><td>{term.last_week}</td>"
+            f'<td class="{css}">{escape(term.change)}</td></tr>'
+        )
+        if term.items:
+            items = "".join(
+                f'<li><a href="{escape(item.url)}">{escape(item.title)}</a> '
+                f'<span class="src-note">{escape(item.domain)}, '
+                f"{item.published_at.astimezone(UTC):%Y-%m-%d}"
+                f"{', in a digest' if item.in_digest else ''}</span></li>"
+                for item in term.items
+            )
+            more = (
+                f'<p class="src-note">The {len(term.items)} newest of {term.this_week}.</p>'
+                if term.this_week > len(term.items)
+                else ""
+            )
+            details.append(
+                f"<details><summary>{escape(term.label)}: {term.this_week} this week</summary>"
+                f"<ul>{items}</ul>{more}</details>"
+            )
+    partial = (
+        " The week before began before this audience's first digest, so it holds only what "
+        "the feeds still carried on the first day."
+        if trends.partial_last
+        else ""
+    )
+    unseen = (
+        f'<p class="src-note">Not named in either week: {escape(", ".join(trends.unseen))}.</p>'
+        if trends.unseen
+        else ""
+    )
+    table = (
+        '<div class="src-wrap"><table class="src-table"><tr><th>Term</th><th>Kind</th>'
+        f"<th>Articles, week to {trends.end:%Y-%m-%d}</th>"
+        f"<th>Week to {trends.last_end:%Y-%m-%d}</th>"
+        f"<th>Change</th></tr>{''.join(rows)}</table></div>"
+        if rows
+        else "<p>None of this audience's terms was named in its news in either week.</p>"
+    )
+    body = (
+        '<header class="hero">'
+        f'<p class="crumbs"><a href="../../">All digests</a> &middot; <a href="../">'
+        f"{escape(audience_name)}</a></p>"
+        '<p class="eyebrow">Trends</p>'
+        f"<h1>{escape(audience_name)}</h1>"
+        f'<p class="lead">{escape(describe(trends.terms))}</p>'
+        f"<p>The organisations, people, places and topics this audience follows, counted in the "
+        f"news articles its sources published in the week {trends.start:%Y-%m-%d} to "
+        f"{trends.end:%Y-%m-%d} ({trends.this_total} articles) and the week before "
+        f"({trends.last_total}). A term rose or fell only when its share of coverage changed "
+        f"by more than chance would explain (an exact binomial test at 5%); otherwise it is "
+        f"about the same. Reprints count, because this is coverage.{partial}</p>"
+        "</header>\n"
+        f"{table}{unseen}"
+        f'<h2 class="section-title">The articles behind them</h2>'
+        f'<div class="trend-terms">{"".join(details)}</div>'
+    )
+    return _page(f"Trends: {audience_name}", body, hue=hue(audience_id))
 
 
 def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:

@@ -116,14 +116,21 @@ def publish_indexes(
     audiences: Sequence[tuple[str, str, str]],
     days_by_audience: dict[str, list[str]],
     panels: Mapping[str, str] | None = None,
+    trend_pages: Mapping[str, str] | None = None,
 ) -> None:
     """The front page and each audience's archive, newest day first. `panels` holds each
-    audience's "Sources checked" panel, already rendered."""
+    audience's "Sources checked" panel, already rendered; `trend_pages` each audience's trend
+    view (assemble/trends.py), written beside its archive and linked from it."""
     rows: list[tuple[str, str, str, str | None]] = []
     for audience_id, name, description in audiences:
         days = sorted(days_by_audience.get(audience_id, []), reverse=True)
         panel = (panels or {}).get(audience_id, "")
-        page = render.audience_index(name, days, description, audience_id, panel)
+        trend = (trend_pages or {}).get(audience_id)
+        if trend is not None:
+            site.write(f"{audience_id}/trends/index.html", trend.encode("utf-8"))
+        page = render.audience_index(
+            name, days, description, audience_id, panel, trends=trend is not None
+        )
         site.write(f"{audience_id}/index.html", page.encode("utf-8"))
         rows.append((audience_id, name, description, days[0] if days else None))
     site.write("index.html", render.site_index(rows).encode("utf-8"))
