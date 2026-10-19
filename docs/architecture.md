@@ -63,7 +63,7 @@ Where it lives: `clippings.sources`, `clippings.ingest.remote`, `clippings.clust
 
 ## How the published numbers are produced
 
-![Precision and recall come from hand-labelled audience-days drawn by a stratified sampler and scored through the release gate's harness; quote and citation checks come from the verifier's own record; cost comes from the gateway ledger; deduplication, cluster purity and faithfulness have labelling pages and wait for their labels; reader time waits for a study.](architecture/measurement.svg)
+![Precision and recall come from hand-labelled audience-days drawn by a stratified sampler and scored through the release gate's harness; quote and citation checks come from the verifier's own record; cost comes from the gateway ledger; deduplication, cluster purity and faithfulness have labelling pages and wait for their labels; reader time has a timed study waiting for its readers; uptime is counted from the runs in the store.](architecture/measurement.svg)
 
 Every number in the README has a stated source, and some are still waiting for theirs.
 
@@ -92,9 +92,14 @@ A person judges whether the sources say everything the sentence says. The checke
 already proved the quotes and numbers; this is the check for a paraphrase that goes further
 than its source.
 
-One measure is not done yet: how much time a reader saves. It waits for a reader study, and
-the README says "not yet" rather than leaving it blank. One command writes the README and the
-report, and neither is edited by hand.
+How much time a reader saves comes from a timed study: three readers, each briefed on five
+mornings, some from the digest and some from the news items it was made from, the two swapped
+between readers. Uptime comes from the store: a day is up when the 09:00 UTC run, or its
+automatic retry, published every audience's digest, and down when a person had to step in.
+
+Anything still waiting for its labels or its readers is printed as "not yet" rather than left
+blank. One command writes the README and the report, and neither is edited by hand.
 
 Where it lives: `clippings.eval.sample`, `clippings.eval.pairs`, `clippings.eval.faithfulness`,
-`clippings.eval.label_ui`, the gateway ledger and `clippings report`.
+`clippings.eval.label_ui`, `clippings.eval.reader_study`, `clippings.eval.uptime`, the gateway
+ledger and `clippings report`.

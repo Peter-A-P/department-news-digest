@@ -4,14 +4,15 @@
     clippings render    re-render stored digests to the site directory
     clippings serve     serve the published pages, read-only
     clippings sources   check the terms record, or probe that the feeds are feeds
-    clippings label     label a day's sample for precision and recall
+    clippings label     label a day's sample, pairs, story checks and sentences
+    clippings reader-study  time a reader briefed from the digest and from the sources
+    clippings report    the results tables: the README block and docs/report.md
     clippings x-pick    add the X pick to the latest digests, without rebuilding them
     clippings refresh   re-publish every stored digest with the current page design
     clippings retention delete items past the thirty-day window
     clippings audiences list the configured audiences
 
-`eval` and `report` arrive with the measurement work in week three. There is no send
-command, and there will not be one.
+There is no send command, and there will not be one.
 """
 
 from __future__ import annotations
@@ -38,6 +39,8 @@ from clippings.config.load import EXAMPLES, AudienceFileError, load_audience, lo
 from clippings.constants import RETENTION_DAYS, cad
 from clippings.eval.label_ui import Workspace
 from clippings.eval.label_ui import application as label_application
+from clippings.eval.reader_study import Study
+from clippings.eval.reader_study import application as study_application
 from clippings.eval.report import (
     all_labels,
     build_report,
@@ -650,6 +653,76 @@ def label(
             server.serve_forever()
 
 
+@app.command("reader-study")
+def reader_study(
+    reader: Annotated[
+        int,
+        typer.Option(
+            help="The reader's number, 1 to 3: it sets which days are read from the digest. "
+            "Readers are pseudonyms, never names."
+        ),
+    ],
+    audience: Annotated[str, typer.Option(help="The audience the reader is briefed for.")] = "ai",
+    bucket: Annotated[
+        str | None,
+        typer.Option(
+            envvar="CLIPPINGS_BUCKET",
+            help="Take the run's store from this bucket and keep the sessions there.",
+        ),
+    ] = None,
+    audiences: AudienceDir = EXAMPLES,
+    db: DbPath = DEFAULT_DB,
+    port: Annotated[int, typer.Option(help="Local port for the study page.")] = 8767,
+    open_browser: Annotated[bool, typer.Option("--open/--no-open")] = True,
+) -> None:
+    """Time a reader briefed from the digest against from the sources (eval/reader_study.py).
+
+    Five sessions, one per study day, the condition alternating by day and swapped between
+    readers. Sessions are kept in labels/study-reader-<n>.duckdb, which `clippings report`
+    reads with the labels.
+    """
+    from clippings.serve.app import FONTS
+
+    if reader < 1:
+        raise typer.BadParameter("readers are numbered from 1")
+    chosen = {one.id: one for one in load_audiences(audiences)}
+    if audience not in chosen:
+        raise typer.BadParameter(f"unknown audience {audience!r}")
+    sessions_path = Path("data/labels") / f"study-reader-{reader}.duckdb"
+    sessions_name = f"labels/study-reader-{reader}.duckdb"
+    objects = GcsObjectStore(bucket) if bucket else None
+    store_path = db
+    if objects is not None:
+        store_path = Path("data/label-snapshot.duckdb")
+        typer.echo(f"copying the run's store from gs://{bucket}/{StateSync.DB}")
+        objects.download(StateSync.DB, store_path)
+        if not sessions_path.exists():
+            objects.download(sessions_name, sessions_path)
+    with Store.open(store_path) as store, Store.open(sessions_path) as sessions:
+
+        def push() -> None:
+            sessions.checkpoint()
+            if objects is not None:
+                objects.upload(sessions_path, sessions_name)
+
+        study = Study(
+            store=store,
+            sessions=sessions,
+            audience=chosen[audience],
+            reader_number=reader,
+            push=push,
+        )
+        url = f"http://127.0.0.1:{port}/"
+        typer.echo(f"reader study at {url}  (ctrl+c to stop; every finished session is kept)")
+        if open_browser:
+            webbrowser.open(url)
+        with (
+            make_server("127.0.0.1", port, study_application(study, FONTS)) as server,
+            suppress(KeyboardInterrupt),
+        ):
+            server.serve_forever()
+
+
 @app.command()
 def report(
     labeller: Annotated[
@@ -691,6 +764,9 @@ def report(
             ],
             faith_labels=[
                 label for one in [store, *label_stores] for label in one.faith_labels_for()
+            ],
+            reader_sessions=[
+                session for one in [store, *label_stores] for session in one.reader_sessions()
             ],
         )
     Path("docs/report.md").write_text(detail(result), encoding="utf-8")

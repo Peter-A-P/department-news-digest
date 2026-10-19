@@ -7,6 +7,7 @@ decides only what runs next.
 
 from __future__ import annotations
 
+import os
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -88,9 +89,16 @@ class RunReport:
 
 
 def new_run_id(now: datetime | None = None) -> str:
-    """A run id that sorts by time and is unique per container."""
+    """A run id that sorts by time and is unique per container.
+
+    A Cloud Run job's automatic retry is marked `-retry<n>`, from the attempt number Cloud Run
+    sets: uptime (eval/uptime.py) counts a retry of the scheduled run as unattended and a run
+    started by hand as not, and the start time alone cannot tell them apart.
+    """
     stamp = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%SZ")
-    return f"{stamp}-{uuid.uuid4().hex[:6]}"
+    attempt = os.environ.get("CLOUD_RUN_TASK_ATTEMPT", "0")
+    retry = f"-retry{attempt}" if attempt.isdigit() and int(attempt) > 0 else ""
+    return f"{stamp}-{uuid.uuid4().hex[:6]}{retry}"
 
 
 def ingest(

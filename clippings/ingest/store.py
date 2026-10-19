@@ -26,12 +26,13 @@ from clippings.models import (
     Label,
     PairLabel,
     PurityLabel,
+    ReaderSession,
 )
 
 if TYPE_CHECKING:
     from clippings.assemble.digest import Digest
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 # The pair-label columns added in version 5, created in place on older files.
 PAIR_COLUMNS = (
@@ -154,6 +155,22 @@ CREATE TABLE IF NOT EXISTS faith_labels (
     cited_urls  TEXT NOT NULL,
     labelled_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (audience_id, day, story_id, sentence, labeller)
+);
+
+-- The reader study: one row per timed session. Version 8; a new table. picks is a JSON list.
+CREATE TABLE IF NOT EXISTS reader_sessions (
+    reader          TEXT NOT NULL,
+    audience_id     TEXT NOT NULL,
+    day             TEXT NOT NULL,
+    condition       TEXT NOT NULL,
+    seconds_active  DOUBLE NOT NULL,
+    seconds_wall    DOUBLE NOT NULL,
+    shown           INTEGER NOT NULL,
+    picks           TEXT NOT NULL,
+    picks_in_digest INTEGER NOT NULL,
+    started_at      TIMESTAMPTZ NOT NULL,
+    finished_at     TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (reader, audience_id, day)
 );
 
 -- Labelled item pairs for the deduplication numbers.
@@ -750,6 +767,62 @@ class Store:
                 headline=row[8],
                 cited_urls=tuple(json.loads(row[9])),
                 labelled_at=row[10],
+            )
+            for row in self._connection.execute(query, params).fetchall()
+        ]
+
+    def add_reader_session(self, session: ReaderSession) -> None:
+        """Record one timed session. A reader does a day once; doing it again replaces it."""
+        self._connection.execute(
+            """
+            INSERT INTO reader_sessions (
+                reader, audience_id, day, condition, seconds_active, seconds_wall, shown,
+                picks, picks_in_digest, started_at, finished_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (reader, audience_id, day) DO UPDATE SET
+                condition = excluded.condition, seconds_active = excluded.seconds_active,
+                seconds_wall = excluded.seconds_wall, shown = excluded.shown,
+                picks = excluded.picks, picks_in_digest = excluded.picks_in_digest,
+                started_at = excluded.started_at, finished_at = excluded.finished_at
+            """,
+            [
+                session.reader,
+                session.audience_id,
+                session.day,
+                session.condition,
+                session.seconds_active,
+                session.seconds_wall,
+                session.shown,
+                json.dumps(list(session.picks)),
+                session.picks_in_digest,
+                session.started_at,
+                session.finished_at,
+            ],
+        )
+
+    def reader_sessions(self, reader: str | None = None) -> list[ReaderSession]:
+        query = (
+            "SELECT reader, audience_id, day, condition, seconds_active, seconds_wall, shown, "
+            "picks, picks_in_digest, started_at, finished_at FROM reader_sessions WHERE TRUE"
+        )
+        params: list[object] = []
+        if reader is not None:
+            query += " AND reader = ?"
+            params.append(reader)
+        query += " ORDER BY reader, audience_id, day"
+        return [
+            ReaderSession(
+                reader=row[0],
+                audience_id=row[1],
+                day=row[2],
+                condition=row[3],
+                seconds_active=row[4],
+                seconds_wall=row[5],
+                shown=row[6],
+                picks=tuple(json.loads(row[7])),
+                picks_in_digest=row[8],
+                started_at=row[9],
+                finished_at=row[10],
             )
             for row in self._connection.execute(query, params).fetchall()
         ]

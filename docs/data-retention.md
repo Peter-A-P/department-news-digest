@@ -45,6 +45,10 @@ sentence, its story's headline and the URLs of the sources it cites; the article
 judged against is deleted at thirty days like any other, which is why the sample has to be
 checked before then.
 
+The reader study keeps, per session, a pseudonym (`reader-1`), the audience, the day, which
+way the reader was briefed, two times, how many stories or items were shown and, from the
+sources, the URLs of the items the reader ticked. No name, no address, nothing typed.
+
 `tests/test_pipeline.py::test_labelling_a_day_records_labels_that_outlive_the_item` runs
 retention over a labelled day and asserts the labels are still there and the items are not.
 

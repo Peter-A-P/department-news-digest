@@ -299,6 +299,30 @@ share is weighted by each day's shown sentences, its interval redraws whole days
 sentences judged not supported are listed in the report. The article text is deleted at
 thirty days, so the sample has to be checked before then: early November for the first days.
 
+Reader time comes from a timed study (built 2026-10-18), three readers and five days as
+section 5 sets. A reader is briefed on one audience's morning, for a meeting on what that
+audience needs to know, either from the digest or from the news items it was made from,
+listed newest first as a feed reader would, reprints included; from the sources they also
+tick the items they would brief on, which keeps the scan honest and says how many of a
+person's own picks the digest showed. The conditions alternate by day and are swapped
+between readers, so every day is read both ways and no reader sees a day twice. The clock is
+time with the page in view, kept in the reader's browser, with time from start to done kept
+beside it. The days are the audience's first five digest days with a story from
+`measure_from` (AI by default: 2026-10-11 to 10-15), and their items are deleted thirty days
+after publication, so the study runs before about 2026-11-10. Readers are pseudonyms,
+`reader-1` to `reader-3`; the README reports mean minutes per condition and how many times as
+long the sources took, with intervals that resample sessions within each condition.
+
+Uptime is counted from the store, not from Cloud Run's console, so a stranger with the
+database gets the same number (decided 2026-10-18). A day is up when the run Cloud Scheduler
+started at 09:00 UTC, or Cloud Run's automatic retry of it, published every audience's digest;
+a day rescued by a run started by hand is down, because the claim is that it runs without a
+person. A run's id carries its start time, and a retry now marks itself `-retry<n>`, so the
+two are told apart without the console. Counted from 2026-10-08, the first morning the
+schedule fired; checked against Cloud Run's execution list on 2026-10-18, it finds the one
+day that was down (2026-10-08, out of memory, rerun by hand). It is reported from that day
+until the measurement month has a start date, and then over the month.
+
 ### 2.7 Out of scope, on purpose
 
 - A reader app: bookmarks, accounts, notifications, mobile layout. The product is the

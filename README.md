@@ -27,28 +27,30 @@ file an owner can send. It has no send path.
 ## Result
 
 <!-- report:start -->
-Measured over 43 digests from 2026-10-07 to 2026-10-17, by `clippings report` on 2026-10-18. 95% intervals throughout. 28 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
+Measured over 47 digests from 2026-10-07 to 2026-10-18, by `clippings report` on 2026-10-19. 95% intervals throughout. 29 audience-days hand-labelled so far; the relevance columns fill as the labelled week does.
 
 **Relevance, per audience, against a hand-labelled week**
 
 | Audience | Precision at K (95% CI) | Recall of must-read stories, importance-weighted (95% CI) | Must-read stories per day | Recall of all relevant stories | Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |
 |---|---|---|---|---|---|---|---|---|
-| Artificial intelligence | 68% (53% to 84%), 7 days | 83% (57% to 100%) | 3.4 (2.4 to 4.6) | 58% (48% to 72%) | 9.3 (5.7 to 13.6) | _not yet_ | 8.2 (6.6 to 9.6) | CA$0.060 (CA$0.046 to CA$0.073) |
-| Municipal affairs, Toronto | 70% (60% to 92%), 5 days | 65% (45% to 100%) | 3.1 (1.4 to 5.2) | 51% (38% to 75%) | 5.5 (2.6 to 9.2) | _not yet_ | 5.2 (3.3 to 7.1) | CA$0.052 (CA$0.033 to CA$0.073) |
-| Regional affairs, Newfoundland and Labrador | 83% (74% to 91%), 9 days | 67% (50% to 75%) | 7.3 (5.1 to 9.0) | 51% (40% to 62%) | 16.4 (13.0 to 19.9) | _not yet_ | 10.0 on all 11 | CA$0.069 (CA$0.063 to CA$0.076) |
-| Public health in Canada | 100% (55% to 100%), 7 days | 60% (11% to 88%) | 1.4 (0.9 to 2.1) | 45% (22% to 62%) | 2.9 (1.6 to 4.1) | _not yet_ | 3.6 (1.7 to 5.8) | CA$0.037 (CA$0.018 to CA$0.058) |
+| Artificial intelligence | 68% (53% to 84%), 7 days | 83% (57% to 100%) | 3.4 (2.4 to 4.6) | 58% (48% to 72%) | 9.3 (5.7 to 13.6) | _not yet_ | 8.4 (6.9 to 9.6) | CA$0.062 (CA$0.048 to CA$0.074) |
+| Municipal affairs, Toronto | 71% (62% to 88%), 6 days | 57% (38% to 86%) | 3.2 (1.7 to 5.0) | 50% (38% to 70%) | 5.7 (3.2 to 8.7) | _not yet_ | 5.1 (3.3 to 7.0) | CA$0.051 (CA$0.033 to CA$0.071) |
+| Regional affairs, Newfoundland and Labrador | 83% (74% to 91%), 9 days | 67% (50% to 75%) | 7.3 (5.1 to 9.0) | 51% (40% to 62%) | 16.4 (13.0 to 19.9) | _not yet_ | 9.9 (9.8 to 10.0) | CA$0.069 (CA$0.063 to CA$0.075) |
+| Public health in Canada | 100% (55% to 100%), 7 days | 60% (11% to 88%) | 1.4 (0.9 to 2.1) | 45% (22% to 62%) | 2.9 (1.6 to 4.1) | _not yet_ | 3.3 (1.5 to 5.5) | CA$0.034 (CA$0.016 to CA$0.054) |
 
 **Pipeline properties**
 
-| Deduplication precision / recall (pairs) | Collapse rate | Cluster purity, stories of several articles | Quotes verbatim, before / after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime, measurement month |
+| Deduplication precision / recall (pairs) | Collapse rate | Cluster purity, stories of several articles | Quotes verbatim, before / after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime of the scheduled daily run |
 |---|---|---|---|---|---|---|---|---|
-| _not yet_ (pair labels) | 1.16 (1.14 to 1.19) items per story | _not yet_ (story checks) | 100% (97% to 100%) / 100% (97% to 100%) | 100% (100% to 100%) | _not yet_ (hand check) | 17 h (16 to 19) / 42 h (40 to 43) | _not yet_ (reader study) | _not yet_ (measurement month) |
+| _not yet_ (pair labels) | 1.16 (1.14 to 1.19) items per story | _not yet_ (story checks) | 100% (97% to 100%) / 100% (97% to 100%) | 100% (100% to 100%) | _not yet_ (hand check) | 17 h (15 to 18) / 42 h (40 to 43) | _not yet_ (reader study) | 91% (64% to 99%), 10 of 11 days since 2026-10-08 |
 
-Most discussed on Bluesky, judged worth showing: Artificial intelligence 100% (66% to 100%); Municipal affairs, Toronto 60% (20% to 100%); Regional affairs, Newfoundland and Labrador 100% (14% to 100%); Public health in Canada 100% (46% to 100%). A separate section below the stories, not counted in precision or recall.
+Uptime counts a day as up when the run Cloud Scheduler started at 09:00 UTC, or Cloud Run's automatic retry of it, published every audience's digest; a day rescued by a run started by hand is down (2026-10-08).
 
-Most discussed on X, judged worth showing: Artificial intelligence 100% (76% to 100%); Municipal affairs, Toronto 100% (46% to 100%); Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API, while Reddit access is pending.
+Most discussed on Bluesky, judged worth showing: Artificial intelligence 100% (66% to 100%); Municipal affairs, Toronto 67% (33% to 100%); Regional affairs, Newfoundland and Labrador 100% (14% to 100%); Public health in Canada 100% (46% to 100%). A separate section below the stories, not counted in precision or recall.
 
-All four digests together cost CA$0.213 (CA$0.167 to CA$0.257) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
+Most discussed on X, judged worth showing: Artificial intelligence 100% (76% to 100%); Municipal affairs, Toronto 100% (55% to 100%); Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API, while Reddit access is pending.
+
+All four digests together cost CA$0.210 (CA$0.169 to CA$0.250) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
 <!-- report:end -->
 
 ## What this does not do
@@ -110,6 +112,7 @@ uv run clippings run ai                   # today's digest, written to out/site/
 uv run clippings serve                    # the pages at http://127.0.0.1:8080/
 uv run clippings render                   # re-render stored digests, no fetch, no model
 uv run clippings label --labeller you     # labelling page in the browser, one page per day; duplicate pairs at /pairs, story checks at /stories, faithfulness at /faithfulness
+uv run clippings reader-study --reader 1  # one reader's five timed sessions, in the browser
 uv run clippings report                   # the results tables: README block and docs/report.md
 uv run clippings x-pick                   # add the X pick to the latest digests, not rebuilding them
 uv run clippings refresh                  # re-publish every stored digest with the current design

@@ -35,6 +35,18 @@ def cad(usd: float) -> float:
     return usd * CAD_PER_USD
 
 
+# The daily run is started by Cloud Scheduler at 09:00 UTC (deploy/deploy.sh). A run whose
+# id says it started within the grace period after that is the scheduled one; uptime counts
+# the days on which it, or Cloud Run's automatic retry of it, published every audience's
+# digest. Fifteen minutes, because the scheduled run has started within a minute of the hour
+# on every day so far, and a run started by hand is never that close to it by accident.
+SCHEDULED_RUN_UTC: Final = (9, 0)
+SCHEDULED_GRACE_MINUTES: Final = 15
+
+# The first morning the schedule fired: the service was deployed at 09:55 UTC on 2026-10-07,
+# after that day's 09:00, so that day's digests came from a run started by hand.
+UPTIME_FROM: Final = "2026-10-08"
+
 # Every model call this project makes is over public sources only.
 GATEWAY_DATA_CLASS: Final = "public"
 

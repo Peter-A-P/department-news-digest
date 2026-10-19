@@ -226,3 +226,29 @@ class FaithLabel(BaseModel):
     headline: str
     cited_urls: tuple[str, ...]
     labelled_at: datetime
+
+
+class ReaderSession(BaseModel):
+    """One reader's timed briefing on one day, from the digest or from the sources.
+
+    A reader is a pseudonym (`reader-1`), never a name: the study publishes times, not people.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    reader: str
+    audience_id: str
+    day: str
+    condition: Literal["digest", "sources"]
+    # Time with the page in view, which is what the study reports, and time from start to
+    # done, kept to show how much was spent away from it.
+    seconds_active: float
+    seconds_wall: float
+    # What was in front of the reader: stories in the digest, or news items in the day's pool.
+    shown: int
+    # From the sources only: the items the reader would brief on, by URL, and how many of them
+    # were in a story the digest showed, counted when the session was saved.
+    picks: tuple[str, ...] = ()
+    picks_in_digest: int = 0
+    started_at: datetime
+    finished_at: datetime

@@ -44,11 +44,12 @@ from gate.stats import rate_draw
 
 from clippings.assemble.digest import Digest
 from clippings.config.audience import Audience
-from clippings.constants import CAD_PER_USD, cad
+from clippings.constants import CAD_PER_USD, UPTIME_FROM, cad
 from clippings.eval.labels import ranked_ids_for_day
 from clippings.eval.sample import stratified_sample
+from clippings.eval.uptime import UptimeDay, uptime_days
 from clippings.ingest.store import Store
-from clippings.models import FaithLabel, Label, PairLabel, PurityLabel
+from clippings.models import FaithLabel, Label, PairLabel, PurityLabel, ReaderSession
 
 RESAMPLES = 2000
 NOT_YET = "_not yet_"
@@ -311,6 +312,65 @@ def faithfulness(
     return Estimate(point, lo, hi, n, len(days))
 
 
+@dataclass(frozen=True)
+class ReaderTimes:
+    """The reader study's numbers: minutes per condition, and how many times as long."""
+
+    digest: Estimate
+    sources: Estimate
+    ratio: Estimate
+    sessions: int
+    readers: int
+    # From the sources: the items readers ticked, and of them, those in a story the digest
+    # showed.
+    picks: int
+    picks_in_digest: int
+
+
+def reader_times(
+    sessions: Sequence[ReaderSession], *, resamples: int = RESAMPLES, seed: int = 0
+) -> ReaderTimes:
+    """Minutes with the page in view, from the digest and from the sources.
+
+    The ratio's interval resamples the sessions within each condition. With three readers the
+    sessions are not independent of who read them, and the interval does not pretend to know
+    how much: the conditions alternate within every reader, so a slow reader slows both.
+    """
+    minutes = {
+        condition: [s.seconds_active / 60 for s in sessions if s.condition == condition]
+        for condition in ("digest", "sources")
+    }
+    digest, sources = minutes["digest"], minutes["sources"]
+    nan = float("nan")
+    ratio = Estimate(nan, nan, nan, len(sessions), len({s.reader for s in sessions}))
+    if digest and sources:
+        # One session of either kind: a ratio, but nothing to resample.
+        point = (sum(sources) / len(sources)) / (sum(digest) / len(digest))
+        ratio = Estimate(point, nan, nan, len(sessions), len({s.reader for s in sessions}))
+    if len(digest) > 1 and len(sources) > 1:
+        point = (sum(sources) / len(sources)) / (sum(digest) / len(digest))
+        rng = random.Random(seed)
+        draws = []
+        for _ in range(resamples):
+            d = [digest[rng.randrange(len(digest))] for _ in digest]
+            o = [sources[rng.randrange(len(sources))] for _ in sources]
+            if sum(d):
+                draws.append((sum(o) / len(o)) / (sum(d) / len(d)))
+        draws.sort()
+        lo = draws[int(0.025 * len(draws))]
+        hi = draws[min(len(draws) - 1, int(0.975 * len(draws)))]
+        ratio = Estimate(point, lo, hi, len(sessions), len({s.reader for s in sessions}))
+    return ReaderTimes(
+        digest=bootstrap_mean(digest) if digest else Estimate(nan, nan, nan, 0, 0),
+        sources=bootstrap_mean(sources) if sources else Estimate(nan, nan, nan, 0, 0),
+        ratio=ratio,
+        sessions=len(sessions),
+        readers=len({s.reader for s in sessions}),
+        picks=sum(len(s.picks) for s in sessions),
+        picks_in_digest=sum(s.picks_in_digest for s in sessions),
+    )
+
+
 def kappa(
     pairs: Sequence[tuple[bool, bool]], *, resamples: int = RESAMPLES, seed: int = 0
 ) -> Estimate:
@@ -405,6 +465,10 @@ class Report:
     faith: Estimate | None
     faith_unclear: int
     faith_unsupported: list[FaithLabel]
+    # The reader study, once a session is done.
+    readers: ReaderTimes | None
+    # The scheduled run, day by day since UPTIME_FROM.
+    uptime: list[UptimeDay]
     sources: list[SourceYield]
 
 
@@ -444,6 +508,7 @@ def build_report(
     pair_labels: Sequence[PairLabel] = (),
     purity_labels: Sequence[PurityLabel] = (),
     faith_labels: Sequence[FaithLabel] = (),
+    reader_sessions: Sequence[ReaderSession] = (),
     now: datetime | None = None,
 ) -> Report:
     digests = [
@@ -593,6 +658,7 @@ def build_report(
         for label in faith_labels
         if label.audience_id in audience_ids and label.labeller == labeller
     ]
+    own_sessions = [session for session in reader_sessions if session.audience_id in audience_ids]
     checks = [
         pair.same_story
         for pair in own_pairs
@@ -626,6 +692,8 @@ def build_report(
         faith=faithfulness(own_faith, labeller) if own_faith else None,
         faith_unclear=sum(label.verdict == "unclear" for label in own_faith),
         faith_unsupported=[label for label in own_faith if label.verdict == "unsupported"],
+        readers=reader_times(own_sessions) if own_sessions else None,
+        uptime=uptime_days(store, [audience.id for audience in audiences], now),
         sources=source_yield(store, labels, audiences, digests, labeller),
     )
 
@@ -739,6 +807,19 @@ def readme_tables(report: Report) -> str:
         if report.faith is None
         else f"{pct(report.faith)}, {report.faith.n} sentences"
     )
+    readers = (
+        NOT_YET + " (reader study)"
+        if report.readers is None
+        else f"{num(report.readers.digest, '.1f')} vs {num(report.readers.sources, '.1f')}, "
+        f"{report.readers.sessions} sessions"
+    )
+    up = sum(day.up for day in report.uptime)
+    uptime = (
+        NOT_YET
+        if not report.uptime
+        else f"{pct(counted_share(up, len(report.uptime)))}, {up} of {len(report.uptime)} "
+        f"days since {UPTIME_FROM}"
+    )
     lines += [
         "",
         "**Pipeline properties**",
@@ -747,14 +828,14 @@ def readme_tables(report: Report) -> str:
         "stories of several articles | Quotes verbatim, before / "
         "after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) "
         "| Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) "
-        "| Uptime, measurement month |",
+        "| Uptime of the scheduled daily run |",
         "|---|---|---|---|---|---|---|---|---|",
         f"| {pairs} | {num(report.collapse)} items per story | {purity} "
         f"| {pct(report.quotes_first)} / "
         f"{pct(report.quotes_after_repair)} | {pct(report.citation_first)} "
         f"| {faith} | {num(report.lag_p50, '.0f', ' h')} / "
-        f"{num(report.lag_p90, '.0f', ' h')} | {NOT_YET} (reader study) "
-        f"| {NOT_YET} (measurement month) |",
+        f"{num(report.lag_p90, '.0f', ' h')} | {readers} "
+        f"| {uptime} |",
         "",
     ]
     if report.purity_days:
@@ -776,6 +857,38 @@ def readme_tables(report: Report) -> str:
             "sources they cite say, hand-checked against what the summariser read, weighted by "
             "the sentences each day's digest showed; the sentences judged not supported are "
             f"listed in [docs/report.md](docs/report.md).{unclear}",
+            "",
+        ]
+    if report.readers is not None:
+        r = report.readers
+        ratio = (
+            NOT_YET
+            if math.isnan(r.ratio.point)
+            else f"{r.ratio.point:.1f} (interval undefined, one session of a kind)"
+            if math.isnan(r.ratio.lo)
+            else num(r.ratio, ".1f")
+        )
+        picked = (
+            f" Of the {r.picks} items readers ticked as worth a briefing when working from the "
+            f"sources, {pct(counted_share(r.picks_in_digest, r.picks))} were in a story the "
+            "digest showed."
+            if r.picks
+            else ""
+        )
+        lines += [
+            f"Reader minutes are minutes with the page in view, from {r.readers} "
+            f"reader{'s' if r.readers != 1 else ''} briefed on a morning either from the digest "
+            "or from the news items it was made from; from the sources they took "
+            f"{ratio} times as long.{picked}",
+            "",
+        ]
+    missed = [day for day in report.uptime if not day.up]
+    if report.uptime:
+        lines += [
+            "Uptime counts a day as up when the run Cloud Scheduler started at 09:00 UTC, or "
+            "Cloud Run's automatic retry of it, published every audience's digest; a day "
+            "rescued by a run started by hand is down"
+            + (f" ({', '.join(day.day for day in missed)})." if missed else "."),
             "",
         ]
     if report.pair_days:
