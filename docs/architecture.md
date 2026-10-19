@@ -63,7 +63,7 @@ Where it lives: `clippings.sources`, `clippings.ingest.remote`, `clippings.clust
 
 ## How the published numbers are produced
 
-![Precision and recall come from hand-labelled audience-days drawn by a stratified sampler and scored through the release gate's harness; quote and citation checks come from the verifier's own record; cost comes from the gateway ledger; deduplication and cluster purity have labelling pages and wait for their labels; faithfulness and reader time wait for a hand check and a study.](architecture/measurement.svg)
+![Precision and recall come from hand-labelled audience-days drawn by a stratified sampler and scored through the release gate's harness; quote and citation checks come from the verifier's own record; cost comes from the gateway ledger; deduplication, cluster purity and faithfulness have labelling pages and wait for their labels; reader time waits for a study.](architecture/measurement.svg)
 
 Every number in the README has a stated source, and some are still waiting for theirs.
 
@@ -85,10 +85,16 @@ it kept apart that share many words, and a couple of others as a check. A third 
 every story made of several articles and asks which articles do not belong, which gives the
 share of articles that sit in the right story.
 
-Two measures are not done yet: how faithful the summaries are, and how much time a reader
-saves. They wait for a hand check and a reader study, and the README says "not yet" rather
-than leaving them blank. One command writes the
-README and the report, and neither is edited by hand.
+How faithful the summaries are comes from a fourth page. It draws four sentences from each
+day's digest over a week per audience, about a hundred and ten in all, and shows each one
+beside what the summariser read of the sources it cites, with its quotes and numbers marked.
+A person judges whether the sources say everything the sentence says. The checker has
+already proved the quotes and numbers; this is the check for a paraphrase that goes further
+than its source.
 
-Where it lives: `clippings.eval.sample`, `clippings.eval.label_ui`, the gateway ledger and
-`clippings report`.
+One measure is not done yet: how much time a reader saves. It waits for a reader study, and
+the README says "not yet" rather than leaving it blank. One command writes the README and the
+report, and neither is edited by hand.
+
+Where it lives: `clippings.eval.sample`, `clippings.eval.pairs`, `clippings.eval.faithfulness`,
+`clippings.eval.label_ui`, the gateway ledger and `clippings report`.

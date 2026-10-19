@@ -48,7 +48,7 @@ from clippings.constants import CAD_PER_USD, cad
 from clippings.eval.labels import ranked_ids_for_day
 from clippings.eval.sample import stratified_sample
 from clippings.ingest.store import Store
-from clippings.models import Label, PairLabel, PurityLabel
+from clippings.models import FaithLabel, Label, PairLabel, PurityLabel
 
 RESAMPLES = 2000
 NOT_YET = "_not yet_"
@@ -270,6 +270,47 @@ def purity_scores(labels: Iterable[PurityLabel], labeller: str) -> tuple[Estimat
     return share_by_day(joined, joined_days), share_by_day(every, every_days), len(pools)
 
 
+def faithfulness(
+    labels: Iterable[FaithLabel], labeller: str, *, resamples: int = RESAMPLES, seed: int = 0
+) -> Estimate:
+    """Digest sentences their cited sources support, from this labeller's sampled sentences.
+
+    Each judgement stands for `weight` of its day's shown sentences, so the point is a ratio
+    over the days. "Can't tell" is left out of both sides and reported on its own, so a
+    sentence nobody could check is never counted as supported. The interval draws the days
+    with replacement and redraws each day's judgements as a binomial, as `dedup_scores` does.
+    """
+    grouped: dict[tuple[str, str], list[FaithLabel]] = defaultdict(list)
+    for label in labels:
+        if label.labeller == labeller and label.verdict != "unclear":
+            grouped[(label.audience_id, label.day)].append(label)
+    days = [
+        (tuple(label.verdict == "supported" for label in day), day[0].weight)
+        for day in grouped.values()
+    ]
+
+    def ratio(sample: Sequence[tuple[tuple[bool, ...], float]], hits: Sequence[int]) -> float:
+        judged = sum(weight * len(flags) for flags, weight in sample)
+        found = sum(weight * k for (_, weight), k in zip(sample, hits, strict=True))
+        return found / judged if judged else float("nan")
+
+    n = sum(len(flags) for flags, _ in days)
+    point = ratio(days, [sum(flags) for flags, _ in days])
+    if not days or math.isnan(point):
+        return Estimate(point, float("nan"), float("nan"), n, len(days))
+    rng = random.Random(seed)
+    draws = []
+    for _ in range(resamples):
+        drawn = [days[rng.randrange(len(days))] for _ in days]
+        value = ratio(drawn, [_pair_draw(rng, flags) for flags, _ in drawn])
+        if not math.isnan(value):
+            draws.append(value)
+    draws.sort()
+    lo = draws[int(0.025 * len(draws))]
+    hi = draws[min(len(draws) - 1, int(0.975 * len(draws)))]
+    return Estimate(point, lo, hi, n, len(days))
+
+
 def kappa(
     pairs: Sequence[tuple[bool, bool]], *, resamples: int = RESAMPLES, seed: int = 0
 ) -> Estimate:
@@ -359,6 +400,11 @@ class Report:
     purity_joined: Estimate | None
     purity_all: Estimate | None
     purity_days: int
+    # Claim faithfulness on the sampled sentences: the weighted share supported, the
+    # sentences that were judged and could not be, and the ones judged not supported.
+    faith: Estimate | None
+    faith_unclear: int
+    faith_unsupported: list[FaithLabel]
     sources: list[SourceYield]
 
 
@@ -397,6 +443,7 @@ def build_report(
     *,
     pair_labels: Sequence[PairLabel] = (),
     purity_labels: Sequence[PurityLabel] = (),
+    faith_labels: Sequence[FaithLabel] = (),
     now: datetime | None = None,
 ) -> Report:
     digests = [
@@ -541,6 +588,11 @@ def build_report(
         if any(label.labeller == labeller for label in own_purity)
         else (None, None, 0)
     )
+    own_faith = [
+        label
+        for label in faith_labels
+        if label.audience_id in audience_ids and label.labeller == labeller
+    ]
     checks = [
         pair.same_story
         for pair in own_pairs
@@ -571,6 +623,9 @@ def build_report(
         purity_joined=purity_joined,
         purity_all=purity_all,
         purity_days=purity_days,
+        faith=faithfulness(own_faith, labeller) if own_faith else None,
+        faith_unclear=sum(label.verdict == "unclear" for label in own_faith),
+        faith_unsupported=[label for label in own_faith if label.verdict == "unsupported"],
         sources=source_yield(store, labels, audiences, digests, labeller),
     )
 
@@ -679,6 +734,11 @@ def readme_tables(report: Report) -> str:
         if report.purity_joined is None
         else f"{pct(report.purity_joined)}, {report.purity_days} audience-days"
     )
+    faith = (
+        NOT_YET + " (hand check)"
+        if report.faith is None
+        else f"{pct(report.faith)}, {report.faith.n} sentences"
+    )
     lines += [
         "",
         "**Pipeline properties**",
@@ -692,7 +752,7 @@ def readme_tables(report: Report) -> str:
         f"| {pairs} | {num(report.collapse)} items per story | {purity} "
         f"| {pct(report.quotes_first)} / "
         f"{pct(report.quotes_after_repair)} | {pct(report.citation_first)} "
-        f"| {NOT_YET} (hand check) | {num(report.lag_p50, '.0f', ' h')} / "
+        f"| {faith} | {num(report.lag_p50, '.0f', ' h')} / "
         f"{num(report.lag_p90, '.0f', ' h')} | {NOT_YET} (reader study) "
         f"| {NOT_YET} (measurement month) |",
         "",
@@ -702,6 +762,20 @@ def readme_tables(report: Report) -> str:
             "Cluster purity is the share of articles in a story of several that a labeller "
             "judged to belong with the rest; over every news article, stories of one "
             f"included, it is {pct(report.purity_all)}.",
+            "",
+        ]
+    if report.faith is not None:
+        unclear = (
+            f" {report.faith_unclear} more could not be checked, because what the summariser "
+            "read was no longer on record, and are left out."
+            if report.faith_unclear
+            else ""
+        )
+        lines += [
+            "Faithfulness is the share of sampled digest sentences that say only what the "
+            "sources they cite say, hand-checked against what the summariser read, weighted by "
+            "the sentences each day's digest showed; the sentences judged not supported are "
+            f"listed in [docs/report.md](docs/report.md).{unclear}",
             "",
         ]
     if report.pair_days:
@@ -747,6 +821,23 @@ def detail(report: Report) -> str:
         days = ", ".join(result.labelled_days) or "none yet"
         extra = f"; kappa against `{result.kappa_with}`" if result.kappa_with else ""
         lines.append(f"- {result.name}: {days}{extra}")
+    if report.faith is not None:
+        lines += [
+            "",
+            "## Sentences judged not supported",
+            "",
+            "From the faithfulness sample: each sentence as the digest showed it, its story, "
+            "and the sources it cited.",
+            "",
+        ]
+        for label in report.faith_unsupported:
+            cited = ", ".join(f"<{url}>" for url in label.cited_urls) or "no source on record"
+            lines.append(
+                f'- {label.audience_id}, {label.day}, "{label.headline}": {label.text} '
+                f"Cited: {cited}"
+            )
+        if not report.faith_unsupported:
+            lines.append("None so far.")
     lines += [
         "",
         "## Source yield",

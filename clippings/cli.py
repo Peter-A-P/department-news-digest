@@ -606,7 +606,8 @@ def label(
     """Label the days' samples in the browser: one page per audience and day, keyboard-driven.
 
     Relevance at /, duplicate pairs at /pairs and story checks for cluster purity at /stories
-    (eval/pairs.py), all kept in the same file.
+    (eval/pairs.py), and digest sentences checked against their sources at /faithfulness
+    (eval/faithfulness.py), all kept in the same file.
 
     With a bucket, a fresh copy of the run's store is taken first, and this labeller's labels
     file (labels/<labeller>.duckdb) is fetched and sent back after every saved day.
@@ -639,6 +640,7 @@ def label(
         typer.echo(f"labelling page at {url}  (ctrl+c to stop; every saved day is kept)")
         typer.echo(f"duplicate pairs at {url}pairs")
         typer.echo(f"story checks at {url}stories")
+        typer.echo(f"faithfulness at {url}faithfulness")
         if open_browser:
             webbrowser.open(url)
         with (
@@ -686,6 +688,9 @@ def report(
             pair_labels=[pair for one in [store, *label_stores] for pair in one.pair_labels_for()],
             purity_labels=[
                 label for one in [store, *label_stores] for label in one.purity_labels_for()
+            ],
+            faith_labels=[
+                label for one in [store, *label_stores] for label in one.faith_labels_for()
             ],
         )
     Path("docs/report.md").write_text(detail(result), encoding="utf-8")

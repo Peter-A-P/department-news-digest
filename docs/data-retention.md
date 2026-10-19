@@ -40,7 +40,10 @@ a labelled set is published as item ids, URLs and labels, never as article text.
 A duplicate-pair label copies both items' URLs and titles for the same reason, and records
 what the clustering decided, so the deduplication numbers survive the clusters too. A story
 check copies the article's URL and title, the story's size and the day's count of articles,
-so purity can be recomputed without the clusters.
+so purity can be recomputed without the clusters. A faithfulness judgement copies the digest
+sentence, its story's headline and the URLs of the sources it cites; the article text it was
+judged against is deleted at thirty days like any other, which is why the sample has to be
+checked before then.
 
 `tests/test_pipeline.py::test_labelling_a_day_records_labels_that_outlive_the_item` runs
 retention over a labelled day and asserts the labels are still there and the items are not.

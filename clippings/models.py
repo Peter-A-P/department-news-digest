@@ -196,3 +196,33 @@ class PurityLabel(BaseModel):
     url: str
     title: str
     labelled_at: datetime
+
+
+Verdict = Literal["supported", "unsupported", "unclear"]
+
+
+class FaithLabel(BaseModel):
+    """Whether one digest sentence says only what the sources it cites say.
+
+    The sentence's words, its story's headline and the cited sources' URLs are copied here: a
+    digest is kept, but the article text the judgement was made against is deleted at thirty
+    days, and the sample has to stay publishable as sentences, links and verdicts after that.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    audience_id: str
+    day: str
+    story_id: str
+    # The sentence's place in its story's summary, from 0.
+    sentence: int
+    labeller: str
+    # "unclear": the labeller could not tell, usually because what the summariser read is no
+    # longer on record. Counted apart, never as supported.
+    verdict: Verdict
+    # How many of the day's shown sentences this judgement stands for.
+    weight: float
+    text: str
+    headline: str
+    cited_urls: tuple[str, ...]
+    labelled_at: datetime

@@ -16,7 +16,8 @@ items (eval/pairs.py), each to be marked "same story" or left as different, shuf
 clustering's decision is not shown, and saved a whole day at a time for the same reason.
 At /stories it asks the purity question: each story made of several news items, with its
 items in a shuffled order, and the labeller marks any item that does not belong with the
-rest.
+rest. At /faithfulness it asks whether each sampled digest sentence says only what its cited
+sources say (eval/faithfulness.py), showing what the summariser read of each source.
 
 It runs on the labeller's own machine, against a copy of the run's store, and writes to a
 labels file of its own (one per labeller). The daily job never touches that file, so a day
@@ -27,15 +28,22 @@ from __future__ import annotations
 
 import json
 import random
+import re
 import secrets
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from html import escape
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlencode
 
 from clippings.config.audience import Audience
+from clippings.eval.faithfulness import (
+    SentenceSample,
+    cited_sources,
+    sample_days,
+    sentence_sample,
+)
 from clippings.eval.labels import LabellingQueue, Question, build_queue, record
 from clippings.eval.pairs import (
     JoinedStory,
@@ -45,7 +53,9 @@ from clippings.eval.pairs import (
     pair_sample_for_day,
 )
 from clippings.ingest.store import Store
-from clippings.models import Item, Label, PairLabel, PurityLabel
+from clippings.models import FaithLabel, Item, Label, PairLabel, PurityLabel, Verdict
+from clippings.summarise.cite import QUOTE
+from clippings.summarise.verify import NUMBER
 
 StartResponse = Callable[[str, list[tuple[str, str]]], Any]
 
@@ -122,6 +132,27 @@ class Workspace:
                     return audience_id, day
         return None
 
+    def faith_days(self, audience_id: str) -> list[str]:
+        return sample_days(self.store, audience_id, self.audiences[audience_id].measure_from)
+
+    def sentences(self, audience_id: str, day: str) -> SentenceSample | None:
+        digest = self.store.digest_for(audience_id, day)
+        return sentence_sample(digest) if digest is not None else None
+
+    def faith_answers(self, audience_id: str, day: str) -> dict[str, str]:
+        return {
+            f"{label.story_id}|{label.sentence}": label.verdict
+            for label in self.labels.faith_labels_for(audience_id, day, self.labeller)
+        }
+
+    def next_open_faith_day(self) -> tuple[str, str] | None:
+        for audience_id in self.audiences:
+            for day in self.faith_days(audience_id):
+                sample = self.sentences(audience_id, day)
+                if sample and sample.units and not self.faith_answers(audience_id, day):
+                    return audience_id, day
+        return None
+
     def next_open_pair_day(self) -> tuple[str, str] | None:
         for audience_id in self.audiences:
             for day in self.days(audience_id):
@@ -192,6 +223,23 @@ details.rubric { font-size: 0.86rem; color: var(--soft); margin: 0.4rem 0; }
 .row.member.odd { background: var(--must-bg); border-color: var(--must); }
 .row.member.odd .mark { border-color: var(--must); color: var(--must); }
 .row.member.odd .mark::after { content: "\\2715"; }
+.claim { border: 1px solid var(--line); border-radius: 10px; padding: 0.6rem 0.8rem;
+  margin: 0.9rem 0; background: var(--card); }
+.claim.focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.claim .said { font-size: 1.05rem; margin: 0.3rem 0 0.5rem; }
+.claim.supported { border-color: var(--yes); }
+.claim.unsupported { border-color: var(--must); background: var(--must-bg); }
+.claim.unclear { border-style: dashed; }
+.verdicts button { background: transparent; color: var(--soft); border: 1px solid var(--line);
+  padding: 0.25rem 0.8rem; margin-right: 0.3rem; font-size: 0.86rem; }
+.claim.supported .verdicts .supported { background: var(--yes); color: var(--card); }
+.claim.unsupported .verdicts .unsupported { background: var(--must); color: var(--card); }
+.claim.unclear .verdicts .unclear { background: var(--faint); color: var(--card); }
+details.src { margin: 0.5rem 0 0; font-size: 0.86rem; }
+details.src summary { cursor: pointer; color: var(--soft); }
+.read { white-space: pre-wrap; color: var(--soft); max-height: 22rem; overflow-y: auto;
+  border-left: 3px solid var(--line); padding: 0.2rem 0.6rem; margin-top: 0.3rem; }
+mark { background: var(--yes-bg); color: var(--ink); outline: 1px solid var(--yes); }
 .save { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
   border-top: 1px solid var(--line); padding: 0.7rem 16px; text-align: center; }
 button { font: inherit; font-weight: 600; padding: 0.5rem 1.4rem; border-radius: 999px;
@@ -361,6 +409,54 @@ show(0); count();
 """
 
 
+FAITH_SCRIPT = """
+const claims = [...document.querySelectorAll('.claim')];
+const VERDICTS = ['supported', 'unsupported', 'unclear'];
+let at = 0;
+function show(n) {
+  at = Math.max(0, Math.min(claims.length - 1, n));
+  claims.forEach((c, i) => c.classList.toggle('focus', i === at));
+  claims[at] && claims[at].scrollIntoView({block: 'nearest'});
+}
+function verdict(c) { return VERDICTS.find(v => c.classList.contains(v)) || ''; }
+function count() {
+  const left = claims.filter(c => !verdict(c)).length;
+  document.getElementById('left').textContent = left;
+  document.getElementById('save').disabled = left > 0;
+}
+function set(n, v) {
+  VERDICTS.forEach(w => claims[n].classList.toggle(w, w === v));
+  count();
+}
+claims.forEach((c, i) => c.querySelectorAll('.verdicts button').forEach(b =>
+  b.addEventListener('click', () => { show(i); set(i, b.dataset.verdict); })));
+async function save() {
+  if (claims.some(c => !verdict(c))) return;
+  const body = {token: TOKEN, audience: AUDIENCE, day: DAY,
+    verdicts: Object.fromEntries(claims.map(c => [c.dataset.id, verdict(c)]))};
+  const button = document.getElementById('save');
+  button.disabled = true; button.textContent = 'Saving...';
+  const reply = await fetch('/faithfulness/save', {method: 'POST', body: JSON.stringify(body)});
+  if (!reply.ok) { button.textContent = 'Not saved: ' + await reply.text(); return; }
+  location.href = (await reply.json()).next;
+}
+document.getElementById('save').addEventListener('click', save);
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  if (k === 'j' || k === 'ArrowDown') { show(at + 1); }
+  else if (k === 'k' || k === 'ArrowUp') { show(at - 1); }
+  else if (k === 's') { set(at, 'supported'); show(at + 1); }
+  else if (k === 'n') { set(at, 'unsupported'); show(at + 1); }
+  else if (k === 'c') { set(at, 'unclear'); show(at + 1); }
+  else if (k === 'Enter' && e.shiftKey) { save(); }
+  else { return; }
+  e.preventDefault();
+});
+show(0); count();
+"""
+
+
 def _page(title: str, body: str, script: str = "") -> bytes:
     tail = f"<script>{script}</script>" if script else ""
     return (
@@ -411,6 +507,8 @@ def overview(ws: Workspace) -> bytes:
         "or correct that day.</p>"
         '<p><a href="/pairs">Duplicate pairs</a>: is each pair of articles one story?</p>'
         '<p><a href="/stories">Story checks</a>: does every article in a story belong there?</p>'
+        '<p><a href="/faithfulness">Faithfulness</a>: does each digest sentence say only what '
+        "its sources say?</p>"
     )
     return _page("Labelling", body)
 
@@ -594,6 +692,178 @@ def stories_page(ws: Workspace, audience_id: str, day: str) -> bytes:
         f"DAY = {json.dumps(day)};\n{STORY_SCRIPT}"
     )
     return _page(f"Stories: {audience.name}, {day}", body, script)
+
+
+FAITH_RUBRIC = (
+    "Supported means everything the sentence says is stated in, or follows directly from, "
+    "what the summariser read of the sources it cites, shown under it. Something true that "
+    "is not in those words, a wrong attribution, a changed number or a stronger claim than "
+    "the source makes is not supported. Can't tell is for when what was read is no longer "
+    "on record and the article does not settle it."
+)
+
+
+def _faith_link(target: tuple[str, str] | None) -> str:
+    if target is None:
+        return "/faithfulness"
+    return "/faithfulness/day?" + urlencode({"audience": target[0], "day": target[1]})
+
+
+def faith_overview(ws: Workspace) -> bytes:
+    days = sorted({day for audience_id in ws.audiences for day in ws.faith_days(audience_id)})
+    head = "".join(f"<th>{escape(day)}</th>" for day in days)
+    rows = []
+    left_total = 0
+    for audience_id, audience in ws.audiences.items():
+        mine = ws.faith_days(audience_id)
+        cells = []
+        for day in days:
+            sample = ws.sentences(audience_id, day) if day in mine else None
+            if sample is None:
+                cells.append("<td></td>")
+                continue
+            total = len(sample.units)
+            done = total if ws.faith_answers(audience_id, day) else 0
+            left_total += total - done
+            css = ' class="done"' if done == total else ""
+            link = _faith_link((audience_id, day))
+            cells.append(f'<td{css}><a href="{escape(link)}">{done}/{total}</a></td>')
+        rows.append(f"<tr><th>{escape(audience.name)}</th>{''.join(cells)}</tr>")
+    action = (
+        f'<p><a href="/faithfulness/next"><button>Continue with sentences</button></a> '
+        f"{left_total} sentences left</p>"
+        if ws.next_open_faith_day()
+        else "<p>Every sampled sentence is checked.</p>"
+    )
+    body = (
+        f'<a href="/">Relevance labelling</a><h1>Faithfulness, as {escape(ws.labeller)}</h1>'
+        f"{action}<p class='meta'>{escape(FAITH_RUBRIC)}</p>"
+        f"<table><tr><th></th>{head}</tr>{''.join(rows)}</table>"
+        "<p class='meta'>Each cell is sentences checked, of those drawn from the day's digest: "
+        "the first seven digest days of each audience's labelled week. The article text is "
+        "deleted thirty days after publication, so check a day well before then.</p>"
+    )
+    return _page("Faithfulness", body)
+
+
+def _highlighted(text: str, sentence: str) -> str:
+    """The source text, escaped, with the sentence's quotes and numbers marked where they occur."""
+    quotes = [quote for quote in QUOTE.findall(sentence) if quote.strip()]
+    figures = {match.group(0).rstrip(".") for match in NUMBER.finditer(sentence)}
+    pieces = [re.escape(quote) for quote in sorted(quotes, key=len, reverse=True)]
+    pieces += [rf"(?<![\d,.]){re.escape(figure)}(?![\d])" for figure in sorted(figures)]
+    if not pieces:
+        return escape(text)
+    out = []
+    last = 0
+    for match in re.finditer("|".join(pieces), text, re.IGNORECASE):
+        out.append(escape(text[last : match.start()]))
+        out.append(f"<mark>{escape(match.group(0))}</mark>")
+        last = match.end()
+    out.append(escape(text[last:]))
+    return "".join(out)
+
+
+def faith_page(ws: Workspace, audience_id: str, day: str) -> bytes:
+    audience = ws.audiences[audience_id]
+    digest = ws.store.digest_for(audience_id, day)
+    sample = ws.sentences(audience_id, day)
+    if digest is None or sample is None:
+        raise ValueError(f"no digest for {audience_id} on {day}")
+    stories = {story.story_id: story for story in digest.stories}
+    answers = ws.faith_answers(audience_id, day)
+    cards = []
+    for unit in sample.units:
+        story = stories[unit.story_id]
+        said = story.sentences[unit.sentence].text
+        sources = []
+        for cited in cited_sources(ws.store, audience_id, story, unit.sentence):
+            link = cited.link
+            note = f'<div class="meta">{escape(cited.note)}</div>' if cited.note else ""
+            read = f'<div class="read">{_highlighted(cited.text, said)}</div>' if cited.text else ""
+            sources.append(
+                f'<details class="src" open><summary>{escape(link.sid)} '
+                f"{escape(link.domain)}: "
+                f'<a href="{escape(link.url)}" target="_blank" rel="noopener">'
+                f"{escape(link.title)}</a></summary>{note}{read}</details>"
+            )
+        verdict = answers.get(unit.key, "")
+        buttons = "".join(
+            f'<button class="{key}" data-verdict="{key}">{label} <kbd>{hotkey}</kbd></button>'
+            for key, label, hotkey in (
+                ("supported", "Supported", "s"),
+                ("unsupported", "Not supported", "n"),
+                ("unclear", "Can't tell", "c"),
+            )
+        )
+        cards.append(
+            f'<section class="claim {verdict}" data-id="{escape(unit.key)}">'
+            f'<div class="meta">From the story: <a href="{escape(story.url)}" target="_blank" '
+            f'rel="noopener">{escape(story.headline)}</a></div>'
+            f'<p class="said">{escape(said)}</p><div class="verdicts">{buttons}</div>'
+            f"{''.join(sources)}</section>"
+        )
+    saved = " &middot; saved before, reopened" if answers else ""
+    body = (
+        '<div class="bar">'
+        f'<a href="/faithfulness">All days</a><h1>Faithfulness: {escape(audience.name)}, '
+        f"{escape(day)}</h1>"
+        f"<div>{len(cards)} sentences of the {sample.shown} the digest showed &middot; "
+        f"<b id='left'>{len(cards)}</b> left to judge{saved}</div>"
+        f'<div class="keys">{escape(FAITH_RUBRIC)} Quotes and numbers from the sentence are '
+        "marked where they occur. <kbd>s</kbd> supported <kbd>n</kbd> not supported "
+        "<kbd>c</kbd> can't tell <kbd>j</kbd>/<kbd>k</kbd> move "
+        "<kbd>shift</kbd>+<kbd>enter</kbd> save day. Every sentence needs an answer.</div>"
+        "</div>"
+        + "".join(cards)
+        + '<div class="save"><button id="save">Save day and continue</button></div>'
+    )
+    script = (
+        f"const TOKEN = {json.dumps(ws.token)}, AUDIENCE = {json.dumps(audience_id)}, "
+        f"DAY = {json.dumps(day)};\n{FAITH_SCRIPT}"
+    )
+    return _page(f"Faithfulness: {audience.name}, {day}", body, script)
+
+
+def save_faith(ws: Workspace, payload: dict[str, Any]) -> str:
+    """Record a verdict for every sentence the page showed. Returns where to go next."""
+    if payload.get("token") != ws.token:
+        raise PermissionError("this page is from an earlier session; reload it")
+    audience_id, day = str(payload["audience"]), str(payload["day"])
+    if audience_id not in ws.audiences:
+        raise ValueError(f"unknown audience {audience_id!r}")
+    digest = ws.store.digest_for(audience_id, day)
+    sample = ws.sentences(audience_id, day)
+    if digest is None or sample is None or not sample.units:
+        raise ValueError(f"no sentences to judge for {audience_id} on {day}")
+    verdicts = {str(key): str(value) for key, value in (payload.get("verdicts") or {}).items()}
+    if set(verdicts) != {unit.key for unit in sample.units}:
+        raise ValueError("the page did not show this day's whole sample of sentences; reload it")
+    if not set(verdicts.values()) <= {"supported", "unsupported", "unclear"}:
+        raise ValueError("every sentence needs a verdict: supported, not supported or can't tell")
+    stories = {story.story_id: story for story in digest.stories}
+    now = datetime.now(UTC)
+    for unit in sample.units:
+        story = stories[unit.story_id]
+        sentence = story.sentences[unit.sentence]
+        by_sid = {link.sid: link for link in story.sources}
+        ws.labels.add_faith_label(
+            FaithLabel(
+                audience_id=audience_id,
+                day=day,
+                story_id=unit.story_id,
+                sentence=unit.sentence,
+                labeller=ws.labeller,
+                verdict=cast(Verdict, verdicts[unit.key]),
+                weight=unit.weight,
+                text=sentence.text,
+                headline=story.headline,
+                cited_urls=tuple(by_sid[sid].url for sid in sentence.cites if sid in by_sid),
+                labelled_at=now,
+            )
+        )
+    ws.push()
+    return _faith_link(ws.next_open_faith_day())
 
 
 def save_stories(ws: Workspace, payload: dict[str, Any]) -> str:
@@ -882,6 +1152,23 @@ def application(ws: Workspace) -> Callable[[dict[str, Any], StartResponse], list
                 size = int(environ.get("CONTENT_LENGTH") or 0)
                 payload = json.loads(environ["wsgi.input"].read(size) or b"{}")
                 body = json.dumps({"next": save_stories(ws, payload)}).encode("utf-8")
+                return _reply(start_response, "200 OK", body, "application/json")
+            if method == "GET" and path == "/faithfulness":
+                return _reply(start_response, "200 OK", faith_overview(ws), html)
+            if method == "GET" and path == "/faithfulness/next":
+                target = _faith_link(ws.next_open_faith_day())
+                return _reply(start_response, "303 See Other", b"", html, location=target)
+            if (
+                method == "GET"
+                and path == "/faithfulness/day"
+                and query.get("audience") in ws.audiences
+            ):
+                page = faith_page(ws, query["audience"], query.get("day", ""))
+                return _reply(start_response, "200 OK", page, html)
+            if method == "POST" and path == "/faithfulness/save":
+                size = int(environ.get("CONTENT_LENGTH") or 0)
+                payload = json.loads(environ["wsgi.input"].read(size) or b"{}")
+                body = json.dumps({"next": save_faith(ws, payload)}).encode("utf-8")
                 return _reply(start_response, "200 OK", body, "application/json")
             if method == "GET" and path == "/pairs":
                 return _reply(start_response, "200 OK", pairs_overview(ws), html)

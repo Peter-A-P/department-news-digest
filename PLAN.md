@@ -284,6 +284,21 @@ news article beside it. It complements pair precision, which samples five joined
 and weights a large story by its pairs: purity checks every article of every joined story, so
 one badly chained story is neither missed nor allowed to swamp the number.
 
+Claim faithfulness comes from a fourth page (built 2026-10-18). The verifier already proves
+every quote verbatim and every number present in a cited source; what it cannot check is a
+paraphrase that says more than its source, so that is what a person is asked. Four sentences
+are drawn from each audience-day's digest over the first seven digest days with a sentence
+from `measure_from`, about 110 in all, the plan's hundred with room for a short day. A day
+whose digest was empty (public health had three in its labelled week) has nothing to check,
+and the next day stands in for it. Each sentence is shown beside what the summariser read of
+the sources it cites, the title, the feed summary and the start of the article, with its
+quotes and numbers marked, and is judged supported, not supported, or "can't tell" when what
+was read is gone; every sentence needs an answer, because a default would count an unread
+sentence as supported. "Can't tell" is reported apart and never counted as supported. The
+share is weighted by each day's shown sentences, its interval redraws whole days, and the
+sentences judged not supported are listed in the report. The article text is deleted at
+thirty days, so the sample has to be checked before then: early November for the first days.
+
 ### 2.7 Out of scope, on purpose
 
 - A reader app: bookmarks, accounts, notifications, mobile layout. The product is the
@@ -455,7 +470,7 @@ Whichever produces the clearest evidence becomes `docs/rejected.md`.
 | Deferred | Kept so the door stays open |
 |---|---|
 | French-language audiences and bilingual digests | Language is already an audience field; the embeddings are multilingual; the rubric prompt is parameterised |
-| Claim faithfulness with the 03 calibrated judge on every digest | The adapter exists in `eval/faithfulness.py`; enabled when the judge is calibrated and the cost is accepted |
+| Claim faithfulness with the 03 calibrated judge on every digest | The hand-checked sample from `eval/faithfulness.py` keeps each sentence, its sources' links and the verdict: the calibration set such a judge needs. The adapter is written when the judge is calibrated and the cost is accepted |
 | Per-reader personalisation | Audiences are the unit; a reader is a smaller audience, one more file |
 | Alerts on breaking stories | The pipeline is a graph; an hourly trigger on a subset of sources is a scheduler change |
 | Learning from reader feedback on relevance | Digest pages could collect a thumbs signal into the labels table; the evaluation would then have a second, ongoing label source |

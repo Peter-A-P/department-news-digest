@@ -67,22 +67,24 @@ def story_sources(
             item.id,
         )
     )
-    sources = []
-    for index, item in enumerate(members[:limit], start=1):
-        extracted = texts.get(item.id)
-        parts = [item.title.strip(), item.summary.strip()]
-        if extracted is not None:
-            words = extracted.text.split()
-            parts.append(" ".join(words[:TEXT_WORDS]))
-        sources.append(
-            Source(
-                sid=f"s{index}",
-                item=item,
-                text="\n\n".join(part for part in parts if part),
-                extracted=extracted is not None,
-            )
+    return tuple(
+        Source(
+            sid=f"s{index}",
+            item=item,
+            text=source_text(item, texts.get(item.id)),
+            extracted=item.id in texts,
         )
-    return tuple(sources)
+        for index, item in enumerate(members[:limit], start=1)
+    )
+
+
+def source_text(item: Item, extracted: ItemText | None) -> str:
+    """What the summariser reads of one item: the title, the feed summary, then the start of
+    the article where it was extracted. The faithfulness check shows a person the same."""
+    parts = [item.title.strip(), item.summary.strip()]
+    if extracted is not None:
+        parts.append(" ".join(extracted.text.split()[:TEXT_WORDS]))
+    return "\n\n".join(part for part in parts if part)
 
 
 @dataclass(frozen=True)

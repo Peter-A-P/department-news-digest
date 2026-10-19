@@ -18,12 +18,20 @@ from typing import TYPE_CHECKING, Self
 import duckdb
 
 from clippings.constants import RETENTION_DAYS
-from clippings.models import Cluster, Item, ItemText, Label, PairLabel, PurityLabel
+from clippings.models import (
+    Cluster,
+    FaithLabel,
+    Item,
+    ItemText,
+    Label,
+    PairLabel,
+    PurityLabel,
+)
 
 if TYPE_CHECKING:
     from clippings.assemble.digest import Digest
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 # The pair-label columns added in version 5, created in place on older files.
 PAIR_COLUMNS = (
@@ -129,6 +137,23 @@ CREATE TABLE IF NOT EXISTS purity_labels (
     title        TEXT NOT NULL,
     labelled_at  TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (audience_id, day, cluster_id, item_id, labeller)
+);
+
+-- Faithfulness: per sampled digest sentence, whether its cited sources support it. Version
+-- 7; a new table, so older files gain it on open. cited_urls is a JSON list.
+CREATE TABLE IF NOT EXISTS faith_labels (
+    audience_id TEXT NOT NULL,
+    day         TEXT NOT NULL,
+    story_id    TEXT NOT NULL,
+    sentence    INTEGER NOT NULL,
+    labeller    TEXT NOT NULL,
+    verdict     TEXT NOT NULL,
+    weight      DOUBLE NOT NULL,
+    text        TEXT NOT NULL,
+    headline    TEXT NOT NULL,
+    cited_urls  TEXT NOT NULL,
+    labelled_at TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (audience_id, day, story_id, sentence, labeller)
 );
 
 -- Labelled item pairs for the deduplication numbers.
@@ -668,6 +693,62 @@ class Store:
                 pool_items=row[7],
                 url=row[8],
                 title=row[9],
+                labelled_at=row[10],
+            )
+            for row in self._connection.execute(query, params).fetchall()
+        ]
+
+    def add_faith_label(self, label: FaithLabel) -> None:
+        """Record one sentence's judgement. Judging it again replaces it."""
+        self._connection.execute(
+            """
+            INSERT INTO faith_labels (
+                audience_id, day, story_id, sentence, labeller, verdict, weight, text,
+                headline, cited_urls, labelled_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (audience_id, day, story_id, sentence, labeller) DO UPDATE SET
+                verdict = excluded.verdict, labelled_at = excluded.labelled_at
+            """,
+            [
+                label.audience_id,
+                label.day,
+                label.story_id,
+                label.sentence,
+                label.labeller,
+                label.verdict,
+                label.weight,
+                label.text,
+                label.headline,
+                json.dumps(list(label.cited_urls)),
+                label.labelled_at,
+            ],
+        )
+
+    def faith_labels_for(
+        self, audience_id: str | None = None, day: str | None = None, labeller: str | None = None
+    ) -> list[FaithLabel]:
+        query = (
+            "SELECT audience_id, day, story_id, sentence, labeller, verdict, weight, text, "
+            "headline, cited_urls, labelled_at FROM faith_labels WHERE TRUE"
+        )
+        params: list[object] = []
+        for column, value in (("audience_id", audience_id), ("day", day), ("labeller", labeller)):
+            if value is not None:
+                query += f" AND {column} = ?"
+                params.append(value)
+        query += " ORDER BY audience_id, day, story_id, sentence"
+        return [
+            FaithLabel(
+                audience_id=row[0],
+                day=row[1],
+                story_id=row[2],
+                sentence=row[3],
+                labeller=row[4],
+                verdict=row[5],
+                weight=row[6],
+                text=row[7],
+                headline=row[8],
+                cited_urls=tuple(json.loads(row[9])),
                 labelled_at=row[10],
             )
             for row in self._connection.execute(query, params).fetchall()
