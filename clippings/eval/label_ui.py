@@ -59,6 +59,9 @@ from clippings.summarise.verify import NUMBER
 
 StartResponse = Callable[[str, list[tuple[str, str]]], Any]
 
+# The pair and story pages ask about an audience's labelled week, as relevance is labelled.
+WEEK = 7
+
 # Enough of the feed's summary to judge by; the link is there for the rest.
 SNIPPET_WORDS = 45
 
@@ -80,6 +83,12 @@ class Workspace:
         # digest was not chosen by measures the rubric change, not the system.
         start = self.audiences[audience_id].measure_from or ""
         return [day for day in self.store.cluster_days(audience_id) if day >= start]
+
+    def week(self, audience_id: str) -> list[str]:
+        """The days the pair and story pages ask about: the audience's first `WEEK` days from
+        `measure_from`, its labelled week. The numbers need a week, and listing every day
+        since asked for 511 pairs and 259 stories by 2026-10-20, growing daily."""
+        return self.days(audience_id)[:WEEK]
 
     def queue(self, audience_id: str, day: str, *, remaining_only: bool = False) -> LabellingQueue:
         # The whole sample unless asked otherwise, so a finished day can be reopened.
@@ -127,7 +136,7 @@ class Workspace:
 
     def next_open_story_day(self) -> tuple[str, str] | None:
         for audience_id in self.audiences:
-            for day in self.days(audience_id):
+            for day in self.week(audience_id):
                 if self.stories(audience_id, day)[0] and not self.story_answers(audience_id, day):
                     return audience_id, day
         return None
@@ -155,7 +164,7 @@ class Workspace:
 
     def next_open_pair_day(self) -> tuple[str, str] | None:
         for audience_id in self.audiences:
-            for day in self.days(audience_id):
+            for day in self.week(audience_id):
                 if self.pairs(audience_id, day).units and not self.pair_answers(audience_id, day):
                     return audience_id, day
         return None
@@ -522,14 +531,14 @@ PAIR_RUBRIC = (
 
 
 def pairs_overview(ws: Workspace) -> bytes:
-    days = sorted({day for audience_id in ws.audiences for day in ws.days(audience_id)})
+    days = sorted({day for audience_id in ws.audiences for day in ws.week(audience_id)})
     head = "".join(f"<th>{escape(day)}</th>" for day in days)
     rows = []
     left_total = 0
     for audience_id, audience in ws.audiences.items():
         cells = []
         for day in days:
-            if day not in ws.days(audience_id):
+            if day not in ws.week(audience_id):
                 cells.append("<td></td>")
                 continue
             total = len(ws.pairs(audience_id, day).units)
@@ -550,7 +559,8 @@ def pairs_overview(ws: Workspace) -> bytes:
         f'<a href="/">Relevance labelling</a><h1>Duplicate pairs, as {escape(ws.labeller)}</h1>'
         f"{action}<p class='meta'>{escape(PAIR_RUBRIC)}</p>"
         f"<table><tr><th></th>{head}</tr>{''.join(rows)}</table>"
-        "<p class='meta'>Each cell is pairs judged, of the day's sample.</p>"
+        "<p class='meta'>Each cell is pairs judged, of the day's sample, over each audience's "
+        "first seven days from the start of its measurement.</p>"
     )
     return _page("Duplicate pairs", body)
 
@@ -610,14 +620,14 @@ STORY_RUBRIC = (
 
 
 def stories_overview(ws: Workspace) -> bytes:
-    days = sorted({day for audience_id in ws.audiences for day in ws.days(audience_id)})
+    days = sorted({day for audience_id in ws.audiences for day in ws.week(audience_id)})
     head = "".join(f"<th>{escape(day)}</th>" for day in days)
     rows = []
     left_total = 0
     for audience_id, audience in ws.audiences.items():
         cells = []
         for day in days:
-            if day not in ws.days(audience_id):
+            if day not in ws.week(audience_id):
                 cells.append("<td></td>")
                 continue
             total = len(ws.stories(audience_id, day)[0])
@@ -638,7 +648,7 @@ def stories_overview(ws: Workspace) -> bytes:
         f"{action}<p class='meta'>{escape(STORY_RUBRIC)}</p>"
         f"<table><tr><th></th>{head}</tr>{''.join(rows)}</table>"
         "<p class='meta'>Each cell is stories checked, of the day's stories of several "
-        "articles.</p>"
+        "articles, over each audience's first seven days from the start of its measurement.</p>"
     )
     return _page("Story checks", body)
 

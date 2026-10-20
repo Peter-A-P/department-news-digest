@@ -296,6 +296,10 @@ news article beside it. It complements pair precision, which samples five joined
 and weights a large story by its pairs: purity checks every article of every joined story, so
 one badly chained story is neither missed nor allowed to swamp the number.
 
+Both pages ask about each audience's labelled week only, its first seven days from
+`measure_from` (decided by Peter, 2026-10-20). Listing every day since had grown to 511 pairs
+and 259 stories, and kept growing; the week is 337 pairs and 161 stories.
+
 Claim faithfulness comes from a fourth page (built 2026-10-18). The verifier already proves
 every quote verbatim and every number present in a cited source; what it cannot check is a
 paraphrase that says more than its source, so that is what a person is asked. Four sentences

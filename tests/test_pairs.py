@@ -326,3 +326,22 @@ def test_purity_interval_reflects_days_that_went_differently() -> None:
     joined, _, _ = purity_scores(labels, "peter")
     assert joined.point == pytest.approx(5 / 8)
     assert joined.lo < joined.point < joined.hi and joined.clusters == 2
+
+
+def test_the_pair_and_story_pages_ask_about_the_labelled_week_only(
+    store: Store, audience: Audience
+) -> None:
+    from datetime import timedelta
+
+    store.add_items(_items().values(), "test-audience")
+    days = [(NOW + timedelta(days=n)).date().isoformat() for n in range(9)]
+    for day in days:
+        store.save_clusters([c.model_copy(update={"day": day}) for c in MERGED])
+    ws = Workspace(
+        store=store, labels=Store.memory(), labeller="peter", audiences={audience.id: audience}
+    )
+    assert ws.week(audience.id) == days[:7]
+    _, page = call(ws, "GET", "/pairs")
+    assert days[6] in page.decode() and days[7] not in page.decode()
+    _, page = call(ws, "GET", "/stories")
+    assert days[6] in page.decode() and days[7] not in page.decode()
