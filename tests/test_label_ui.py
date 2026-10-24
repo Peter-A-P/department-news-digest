@@ -199,3 +199,18 @@ def test_the_x_pick_is_judged_on_its_own_and_kept_out_of_the_sample(
     picked = [label for label in labels if label.stratum == "x_pick"]
     assert len(picked) == 1 and picked[0].relevant and picked[0].item_id == "x:123"
     assert len(labels) == len(shown) + 1
+
+
+def test_labelling_without_a_bucket_is_refused_unless_local_is_asked_for() -> None:
+    from typer.testing import CliRunner
+
+    from clippings.cli import app
+
+    result = CliRunner().invoke(
+        app, ["label", "--labeller", "peter", "--no-open"], env={"CLIPPINGS_BUCKET": None}
+    )
+    assert result.exit_code == 2
+    result = CliRunner().invoke(
+        app, ["reader-study", "--reader", "1", "--no-open"], env={"CLIPPINGS_BUCKET": None}
+    )
+    assert result.exit_code == 2

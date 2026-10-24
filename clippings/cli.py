@@ -607,6 +607,26 @@ def audiences_list(audiences: AudienceDir = EXAMPLES) -> None:
         raise typer.Exit(code=2) from exc
 
 
+def _require_bucket(bucket: str | None, local: bool, command: str) -> None:
+    """Labels and study sessions only mean something against the production store.
+
+    On 2026-10-23 the labelling tool was started without a bucket and opened the local
+    development store, whose only measured days were two Newfoundland and Labrador days from
+    a development run: a day of pairs, story checks and sentences was judged against
+    clusters and digests production never made, and never uploaded. So the bucket is
+    required, and the local store has to be asked for by name.
+    """
+    if bucket or local:
+        return
+    typer.echo(
+        "No bucket: this would open the local development store, not the run's. Use\n"
+        f"  uv run --extra gcs clippings {command} --bucket clippings-digest-clippings\n"
+        "or set CLIPPINGS_BUCKET. Pass --local only to work against data/clippings.duckdb.",
+        err=True,
+    )
+    raise typer.Exit(code=2)
+
+
 @app.command()
 def label(
     labeller: Annotated[str, typer.Option(help="Who is labelling; two are needed for kappa.")],
@@ -619,6 +639,13 @@ def label(
     ] = None,
     audiences: AudienceDir = EXAMPLES,
     db: DbPath = DEFAULT_DB,
+    local: Annotated[
+        bool,
+        typer.Option(
+            "--local",
+            help="Work against the local store instead of the bucket's, for development only.",
+        ),
+    ] = False,
     port: Annotated[int, typer.Option(help="Local port for the labelling page.")] = 8766,
     open_browser: Annotated[bool, typer.Option("--open/--no-open")] = True,
 ) -> None:
@@ -631,6 +658,7 @@ def label(
     With a bucket, a fresh copy of the run's store is taken first, and this labeller's labels
     file (labels/<labeller>.duckdb) is fetched and sent back after every saved day.
     """
+    _require_bucket(bucket, local, f"label --labeller {labeller}")
     labels_path = Path("data/labels") / f"{labeller}.duckdb"
     labels_name = f"labels/{labeller}.duckdb"
     objects = GcsObjectStore(bucket) if bucket else None
@@ -688,6 +716,13 @@ def reader_study(
     ] = None,
     audiences: AudienceDir = EXAMPLES,
     db: DbPath = DEFAULT_DB,
+    local: Annotated[
+        bool,
+        typer.Option(
+            "--local",
+            help="Work against the local store instead of the bucket's, for development only.",
+        ),
+    ] = False,
     port: Annotated[int, typer.Option(help="Local port for the study page.")] = 8767,
     open_browser: Annotated[bool, typer.Option("--open/--no-open")] = True,
 ) -> None:
@@ -704,6 +739,7 @@ def reader_study(
     chosen = {one.id: one for one in load_audiences(audiences)}
     if audience not in chosen:
         raise typer.BadParameter(f"unknown audience {audience!r}")
+    _require_bucket(bucket, local, f"reader-study --reader {reader}")
     sessions_path = Path("data/labels") / f"study-reader-{reader}.duckdb"
     sessions_name = f"labels/study-reader-{reader}.duckdb"
     objects = GcsObjectStore(bucket) if bucket else None

@@ -113,8 +113,8 @@ uv run clippings sources probe            # fetch each feed once and check it is
 uv run clippings run ai                   # today's digest, written to out/site/
 uv run clippings serve                    # the pages at http://127.0.0.1:8080/
 uv run clippings render                   # re-render stored digests, no fetch, no model
-uv run clippings label --labeller you     # labelling page in the browser, one page per day; duplicate pairs at /pairs, story checks at /stories, faithfulness at /faithfulness
-uv run clippings reader-study --reader 1  # one reader's five timed sessions, in the browser
+uv run --extra gcs clippings label --labeller you --bucket BUCKET      # labelling page against the run's store; duplicate pairs at /pairs, story checks at /stories, faithfulness at /faithfulness
+uv run --extra gcs clippings reader-study --reader 1 --bucket BUCKET  # one reader's five timed sessions, in the browser
 uv run clippings report                   # the results tables: README block and docs/report.md
 uv run clippings x-pick                   # add the X pick to the latest digests, not rebuilding them
 uv run clippings refresh                  # re-publish every stored digest with the current design
