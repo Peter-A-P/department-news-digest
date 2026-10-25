@@ -165,9 +165,30 @@ class PairDay:
     near_weight: float
 
 
-def _pair_draw(rng: random.Random, flags: Sequence[bool]) -> int:
-    rate = rate_draw(rng, sum(flags), len(flags))
-    return sum(1 for _ in flags if rng.random() < rate)
+def _stratum_draws(
+    rng: random.Random, drawn: Sequence[Sequence[bool]], pooled: Sequence[Sequence[bool]]
+) -> list[int]:
+    """Each drawn day's count of yeses in one stratum, for one bootstrap replicate.
+
+    When the stratum, pooled over every labelled day, holds both answers, each drawn day's
+    labels are resampled with replacement: a two-stage bootstrap, days and then the pairs
+    drawn within them, so a day with none stays at none. When it holds only one (no
+    missed duplicate in any day's "near" pairs, say), one rate is drawn for the replicate at
+    the gate's `rate_draw`, Jeffreys at none or all, and every drawn day is redrawn at it, so
+    "none in 160" is not printed as a certainty.
+
+    Until 2026-10-25 every day was redrawn at its own Jeffreys rate. Over 27 labelled days,
+    22 of whose six "near" pairs held no duplicate, that treated each of them as evidence of
+    a rate near 7% and put dedup recall at 85% with an interval of 40% to 84%, the point
+    above its own interval; precision, from days with five of five, was pulled down the same
+    way.
+    """
+    k = sum(sum(flags) for flags in pooled)
+    n = sum(len(flags) for flags in pooled)
+    if 0 < k < n:
+        return [sum(rng.choice(flags) for _ in flags) if flags else 0 for flags in drawn]
+    rate = rate_draw(rng, k, n)
+    return [sum(1 for _ in flags if rng.random() < rate) for flags in drawn]
 
 
 def dedup_scores(
@@ -178,8 +199,8 @@ def dedup_scores(
     Precision: of the pairs put in one story, the share that are one story, each day's
     labels weighted by the pairs they stand for. Recall: same-story pairs put together, over
     those plus the same-story pairs kept apart among the pairs whose words overlap
-    (eval/pairs.py). The interval draws the days with replacement and redraws each stratum
-    as a binomial, as `recall` does.
+    (eval/pairs.py). The interval draws the days with replacement, and redraws a stratum
+    as a binomial only when no labelled day holds the other answer (`_stratum_draws`).
     """
 
     def point(
@@ -204,8 +225,8 @@ def dedup_scores(
         drawn = [days[rng.randrange(len(days))] for _ in days]
         dp, dr = point(
             drawn,
-            [_pair_draw(rng, d.together) for d in drawn],
-            [_pair_draw(rng, d.near) for d in drawn],
+            _stratum_draws(rng, [d.together for d in drawn], [d.together for d in days]),
+            _stratum_draws(rng, [d.near for d in drawn], [d.near for d in days]),
         )
         if not math.isnan(dp):
             p_draws.append(dp)
@@ -279,7 +300,7 @@ def faithfulness(
     Each judgement stands for `weight` of its day's shown sentences, so the point is a ratio
     over the days. "Can't tell" is left out of both sides and reported on its own, so a
     sentence nobody could check is never counted as supported. The interval draws the days
-    with replacement and redraws each day's judgements as a binomial, as `dedup_scores` does.
+    with replacement, as `dedup_scores` does (`_stratum_draws`).
     """
     grouped: dict[tuple[str, str], list[FaithLabel]] = defaultdict(list)
     for label in labels:
@@ -303,7 +324,8 @@ def faithfulness(
     draws = []
     for _ in range(resamples):
         drawn = [days[rng.randrange(len(days))] for _ in days]
-        value = ratio(drawn, [_pair_draw(rng, flags) for flags, _ in drawn])
+        hits = _stratum_draws(rng, [flags for flags, _ in drawn], [flags for flags, _ in days])
+        value = ratio(drawn, hits)
         if not math.isnan(value):
             draws.append(value)
     draws.sort()

@@ -345,3 +345,21 @@ def test_the_pair_and_story_pages_ask_about_the_labelled_week_only(
     assert days[6] in page.decode() and days[7] not in page.decode()
     _, page = call(ws, "GET", "/stories")
     assert days[6] in page.decode() and days[7] not in page.decode()
+
+
+def test_dedup_points_sit_inside_their_intervals_when_most_days_find_no_miss() -> None:
+    # 22 days with nothing missed among six near pairs, 5 with one: the shape of the first
+    # labelled week, which printed recall 85% with an interval of 40% to 84%.
+    quiet = PairDay(
+        "d", together=(True,) * 5, together_weight=2.0, near=(False,) * 6, near_weight=30.0
+    )
+    miss = PairDay(
+        "d",
+        together=(True,) * 4 + (False,),
+        together_weight=2.0,
+        near=(True,) + (False,) * 5,
+        near_weight=30.0,
+    )
+    precision, recall = dedup_scores([quiet] * 22 + [miss] * 5)
+    for estimate in (precision, recall):
+        assert estimate.lo <= estimate.point <= estimate.hi

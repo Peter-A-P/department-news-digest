@@ -284,7 +284,11 @@ audience-days that top held 843 of the 846 pairs the clustering joined), and two
 the rest. Recall is estimated within the overlapping pairs, with weights, and says so; the
 two "check" pairs a day are reported on their own as a test of that boundary rather than
 weighted in, where one chance match among thousands would decide the number. About 13 pairs
-per audience-day, a few minutes each, and intervals that redraw whole days, as for relevance.
+per audience-day, a few minutes each, and intervals that redraw whole days, as for relevance,
+then the pairs within each drawn day; a stratum is redrawn at a Jeffreys rate only when no
+labelled day holds the other answer (2026-10-25: redrawing every day at its own Jeffreys
+rate, when 22 of 27 days found no missed duplicate, printed recall 85% with an interval of
+40% to 84%).
 
 Cluster purity comes from a third page (decided by Peter, 2026-10-17): every story the
 clustering made of several news items, its articles shuffled, and the labeller marks any that

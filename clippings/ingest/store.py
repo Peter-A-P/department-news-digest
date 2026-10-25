@@ -843,7 +843,14 @@ class Store:
         run_id: str,
         rows: Sequence[tuple[str, float, int | None, float, str]],
     ) -> None:
-        """Rows of (cluster id, pre-filter, rerank score or None, final, reason), best first."""
+        """Rows of (cluster id, pre-filter, rerank score or None, final, reason), best first.
+
+        A day with nothing to rank has nothing to save. DuckDB refuses an empty `executemany`,
+        and on 2026-10-25 that refusal, on a public health day whose every story had been
+        shown before, stopped the scheduled run and its retry before that audience's digest.
+        """
+        if not rows:
+            return
         self._connection.executemany(
             "INSERT INTO rankings (audience_id, day, run_id, position, cluster_id, prefilter, "
             "rerank, final, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "

@@ -225,3 +225,33 @@ def test_without_a_model_client_the_run_stops_after_the_free_stages(
     assert state["trace"][-1] == "stop:no model client"
     assert len(state["report"].selected) == 2
     assert not any(tmp_path.iterdir())
+
+
+def test_a_day_with_nothing_to_rank_publishes_an_empty_digest(
+    small_audience: Audience, store: Store, context: FetchContext, tmp_path: Path
+) -> None:
+    # Nothing new to rank, as public health had on 2026-10-25: the run must still publish
+    # the day's (empty) digest rather than stop.
+    from clippings.assemble.publish import LocalSite
+
+    state = graph.run(
+        Pipeline(
+            audience=small_audience,
+            store=store,
+            context=context,
+            embedder=Hashing(),
+            run_id="20260912T120000Z-test",
+            client=ScriptedClient(Model()),
+            site=LocalSite(tmp_path),
+            sources=(FixtureSource(result()),),
+            extract=False,
+        )
+    )
+    assert not state["report"].ranked
+    digest = store.digest_for(small_audience.id, "2026-09-12")
+    assert digest is not None and digest.stories == ()
+
+
+def test_saving_an_empty_ranking_is_a_no_op(store: Store) -> None:
+    store.save_ranking("a", "2026-10-25", "r", [])
+    assert store.ranking_for("a", "2026-10-25") == []
