@@ -47,7 +47,7 @@ morning Eastern time, and each step exists because the obvious version of it eit
 too much or cannot be checked.</p>
 <ol class="steps">
 <li><strong>Read the sources</strong>News feeds, publishers' site indexes, the GDELT global
-news index and Bluesky search. A source is requested only if its terms of use were read and
+news index, Bluesky search and, for the AI and Toronto audiences, X's paid API. A source is requested only if its terms of use were read and
 dated in the project's record; the code refuses anything else, and a site's robots rules
 are obeyed.</li>
 <li><strong>Store and clean</strong>Articles go into DuckDB for {retention} days. Readable text is
@@ -163,30 +163,32 @@ same command and get the same numbers.</p>
 <div class="split">
 <div class="panel built"><h3>Built and running</h3><ul>
 <li>Four example audiences, each with a daily digest since 7 October 2026.</li>
-<li>Reading from news feeds, publishers' site indexes, GDELT and Bluesky, with the terms
-record enforced in the code.</li>
+<li>Reading from news feeds, publishers' site indexes, GDELT, Bluesky and, for two audiences,
+X, with the terms record enforced in the code.</li>
 <li>Duplicate removal and story grouping, the free pre-filter, the model re-ranker against
 each rubric, and selection with a diversity penalty.</li>
 <li>Cited summaries and the quote verifier, with one repair attempt per failing sentence.</li>
-<li>The day's Bluesky pick, shown in full while it exists.</li>
-<li>A labelling tool built for speed, a day of stories on one screen and a key per judgement,
-and the report that turns labels into the results table with intervals.</li>
-<li>Hard spending caps, and the cost of every digest from the gateway's ledger.</li>
+<li>The day's Bluesky pick, shown in full while it exists, and the day's X pick, shown whole
+on its day only.</li>
+<li>A trend view per audience: the organisations, people, places and topics it follows,
+this week against the week before.</li>
+<li>A labelled week for all four audiences, and precision and recall published with
+intervals in the README.</li>
+<li>Duplicate grouping judged pair by pair over the labelled week, with its numbers in the
+README.</li>
+<li>Labelling pages built for speed, a day on one screen and a key per judgement, and the
+report that turns labels into the results tables with intervals.</li>
+<li>Hard spending caps, the cost of every digest from the gateway's ledger, and the uptime
+of the scheduled run counted from the runs themselves.</li>
 </ul></div>
 <div class="panel tocome"><h3>Still to come</h3><ul>
-<li>A labelled stretch for all four audiences. Newfoundland and Labrador is first; the other
-three are measured from 11 October 2026, after their rubrics were tightened for busy
-readers.</li>
-<li>Precision and recall per audience published with intervals, and a second labeller's
-agreement on one audience.</li>
-<li>One X post a day, read through X's paid API while the Reddit request is pending, once its
-terms are recorded as read and the account is funded. Shown whole, with its author, on the
-day it is picked only.</li>
+<li>A second labeller's agreement on one audience, which says how subjective "relevant" is.</li>
+<li>Checks the verifier cannot make: whether every article in a story belongs there, and a
+sample of summary sentences read against their sources for faithfulness.</li>
+<li>A small timed study: minutes to be briefed from the digest against from the sources.</li>
 <li>Reddit, once Reddit approves the access request. Its posts will appear only as commentary
 inside news stories and never beyond a {quote}-word quote. If access is refused, it is
 dropped.</li>
-<li>Checks the verifier cannot make: duplicate grouping judged pair by pair, and a sample of
-summaries read against their sources for faithfulness.</li>
 <li>The pre-filter's weights and the diversity penalty tuned against the labels, in place of
 the starting values chosen by reasoning.</li>
 <li>The repository made public, with the results table at the top of its README.</li>
