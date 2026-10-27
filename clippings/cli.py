@@ -1,6 +1,7 @@
 """`clippings` on the command line.
 
     clippings run       a day for one audience or all of them: fetch to published page
+    clippings fetch     fetch one source for every audience and store it, nothing else
     clippings render    re-render stored digests to the site directory
     clippings serve     serve the published pages, read-only
     clippings sources   check the terms record, or probe that the feeds are feeds
@@ -59,7 +60,7 @@ from clippings.gateway import (
     open_client,
 )
 from clippings.graph import Pipeline
-from clippings.ingest.pipeline import RunReport, new_run_id
+from clippings.ingest.pipeline import RunReport, default_sources, ingest, new_run_id
 from clippings.ingest.remote import (
     GcsObjectStore,
     GcsRunLock,
@@ -266,6 +267,69 @@ def trend_pages(store: Store, everyone: Sequence[Audience]) -> dict[str, str]:
         if found is not None:
             pages[one.id] = trends_page(one.name, one.id, found)
     return pages
+
+
+@app.command()
+def fetch(
+    source: Annotated[str, typer.Argument(help="The source kind to fetch, such as gdelt.")],
+    audiences: AudienceDir = EXAMPLES,
+    db: DbPath = DEFAULT_DB,
+    lock: Annotated[Path, typer.Option(help="Run lock file.")] = DEFAULT_LOCK,
+    site: Annotated[Path, typer.Option(help="Unused; the fetch publishes nothing.")] = (
+        DEFAULT_SITE
+    ),
+    bucket: Annotated[
+        str | None,
+        typer.Option(envvar="CLIPPINGS_BUCKET", help="Cloud Storage bucket. Production only."),
+    ] = None,
+) -> None:
+    """Fetch one source for every audience and store what is new: no clustering, no model
+    call, nothing published. The morning run then finds the items in its pool.
+
+    For GDELT, which counts requests per address and refuses most of them from Cloud Run's
+    shared addresses: from 2026-10-07 to 2026-10-26 about a quarter of the scheduled run's
+    GDELT queries were answered, and on 2026-10-26 none, which left the AI digest two
+    stories on a quiet Sunday. A small fetch every three hours gives each query eight
+    chances a day instead of one, and each takes only what is new since its watermark.
+
+    If the daily run holds the lock, the fetch steps aside and exits cleanly: the run is
+    fetching anyway.
+    """
+    chosen = [one for one in default_sources() if one.kind == source]
+    if not chosen:
+        kinds = ", ".join(one.kind for one in default_sources())
+        raise typer.BadParameter(f"unknown source {source!r}; one of {kinds}")
+    try:
+        gate = TermsGate()
+    except TermsRecordError as exc:
+        typer.echo(f"terms record: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    with ExitStack() as stack:
+        try:
+            db, _, _, sync = _open_state(stack, bucket=bucket, db=db, lock=lock, site=site)
+        except typer.Exit as exc:
+            if exc.exit_code == 3:
+                typer.echo("the daily run holds the lock; this fetch steps aside")
+                return
+            raise
+        http = stack.enter_context(http_client())
+        store = stack.enter_context(Store.open(db))
+        context = FetchContext(
+            client=http,
+            gate=gate,
+            robots=RobotsCache(http),
+            now=datetime.now(UTC),
+            secrets=_secrets(),
+        )
+        run_id = new_run_id(context.now)
+        # One adapter for every audience, so GDELT's interval holds across them.
+        for one in load_audiences(audiences):
+            report = ingest(one, store, context, run_id=run_id, sources=chosen)
+            for line in report.sources:
+                state = "ok" if line.ok else f"failed: {line.detail[:80]}"
+                typer.echo(f"{one.id:24s} {line.origin[:48]:48s} {line.stored:4d} new  {state}")
+        if sync is not None:
+            store.checkpoint()
 
 
 @app.command()

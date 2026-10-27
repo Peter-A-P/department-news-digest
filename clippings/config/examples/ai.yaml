@@ -144,10 +144,13 @@ sources:
       terms: anthropic.com
       include: /news/
 
+  # One query rather than two since 2026-10-26: GDELT refuses most requests from Cloud Run's
+  # shared addresses, so every request saved is a better chance for the rest. The other
+  # audiences' pairs cannot be joined, because GDELT takes OR only inside one level of
+  # parentheses.
   gdelt:
     queries:
-      - '"artificial intelligence"'
-      - '("large language model" OR "generative AI")'
+      - '("artificial intelligence" OR "large language model" OR "generative AI")'
     limit: 75
 
   reddit:

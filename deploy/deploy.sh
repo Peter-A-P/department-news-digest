@@ -143,6 +143,23 @@ else
     --oauth-service-account-email="$SCHEDULER_SA"
 fi
 
+# GDELT refuses most requests from Cloud Run's shared addresses, so a small GDELT-only fetch
+# runs every three hours and the morning run finds what it stored. At half past, on hours
+# that miss 09:00, so it never meets the daily run's lock; if it does, it steps aside.
+GDELT_SCHEDULE="${GDELT_SCHEDULE:-30 1-22/3 * * *}"
+FETCH_BODY='{"overrides":{"containerOverrides":[{"args":["fetch","gdelt"]}]}}'
+if gcloud scheduler jobs describe clippings-gdelt --location="$REGION" >/dev/null 2>&1; then
+  gcloud scheduler jobs update http clippings-gdelt --location="$REGION" \
+    --schedule="$GDELT_SCHEDULE" --time-zone=UTC --uri="$RUN_URI" --http-method=POST \
+    --update-headers="Content-Type=application/json" --message-body="$FETCH_BODY" \
+    --oauth-service-account-email="$SCHEDULER_SA"
+else
+  gcloud scheduler jobs create http clippings-gdelt --location="$REGION" \
+    --schedule="$GDELT_SCHEDULE" --time-zone=UTC --uri="$RUN_URI" --http-method=POST \
+    --headers="Content-Type=application/json" --message-body="$FETCH_BODY" \
+    --oauth-service-account-email="$SCHEDULER_SA"
+fi
+
 echo "== The read-only service"
 gcloud run deploy clippings-web --image="$IMAGE" --region="$REGION" \
   --service-account="$WEB_SA" --set-env-vars="CLIPPINGS_BUCKET=${BUCKET}" \

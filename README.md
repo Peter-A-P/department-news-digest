@@ -120,6 +120,7 @@ uv run clippings render                   # re-render stored digests, no fetch, 
 uv run --extra gcs clippings label --labeller you --bucket BUCKET      # labelling page against the run's store; duplicate pairs at /pairs, story checks at /stories, faithfulness at /faithfulness
 uv run --extra gcs clippings reader-study --reader 1 --bucket BUCKET  # one reader's five timed sessions, in the browser
 uv run clippings report                   # the results tables: README block and docs/report.md
+uv run clippings fetch gdelt              # fetch one source for every audience and store it, nothing else
 uv run clippings x-pick                   # add the X pick to the latest digests, not rebuilding them
 uv run clippings refresh                  # re-publish every stored digest with the current design
 uv run clippings retention                # delete items past thirty days (run also does this)

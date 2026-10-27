@@ -238,6 +238,17 @@ with a run lock, holding items, clusters, scores, digests and the ledger export.
 Everything fits the free tiers at this volume. This is the portfolio's GCP example and the
 cheapest way to run a daily pipeline that a department could copy.
 
+GDELT is also fetched on its own every three hours (decided by Peter, 2026-10-26). It counts
+requests per address, and Cloud Run's outbound addresses are shared with everyone else on
+Google Cloud: from 2026-10-07 to 2026-10-26 it answered about a quarter of the scheduled
+run's queries, and none on 2026-10-26, which left the AI digest two stories on a quiet
+Sunday. `clippings fetch gdelt` stores what is new for every audience and nothing else, at
+half past the hour on hours that miss 09:00, so each query has eight chances a day and the
+morning run finds the items in its pool. AI's two queries became one, a request saved; the
+other audiences' pairs cannot be joined under GDELT's one level of parentheses. A fixed
+outbound address through Cloud NAT would likely end the refusals, at about US$32 a month,
+more than this project's whole running estimate, so it was not taken.
+
 The trend view (built 2026-10-18) is a page per audience beside its archive: the
 organisations, people, places and topics in the audience's own file, counted in the news
 articles its sources published in the week to the latest digest and the week before, with

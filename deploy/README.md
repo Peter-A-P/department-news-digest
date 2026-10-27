@@ -144,6 +144,11 @@ gcloud storage cp gs://BUCKET/state/boundary.sqlite /tmp/ && \
 
 ## Changing the schedule
 
+A second schedule, `clippings-gdelt`, runs the same job as `clippings fetch gdelt` at half
+past every third hour (`GDELT_SCHEDULE`, default `30 1-22/3 * * *`), because GDELT refuses
+most requests from Cloud Run's shared addresses and eight tries a day get through where one
+does not. It stores items and nothing else, and steps aside if the daily run holds the lock.
+
 `SCHEDULE="30 8 * * *" deploy/deploy.sh` redeploys with a new cron (UTC). One run serves
 every audience, so the time is the earliest delivery time among them: 07:00 in St. John's
 is 09:30 UTC in summer and 10:30 in winter, and 09:00 UTC is before both.
