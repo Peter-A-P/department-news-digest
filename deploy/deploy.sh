@@ -146,6 +146,11 @@ fi
 # GDELT refuses most requests from Cloud Run's shared addresses, so a small GDELT-only fetch
 # runs every three hours and the morning run finds what it stored. At half past, on hours
 # that miss 09:00, so it never meets the daily run's lock; if it does, it steps aside.
+# Starting the job with other arguments needs run.jobs.runWithOverrides, which run.invoker
+# lacks: the first scheduled fetch, 2026-10-31, was refused with a 403. The narrowest role
+# that has it, on this job only.
+retry gcloud run jobs add-iam-policy-binding clippings-daily --region="$REGION" \
+  --member="serviceAccount:${SCHEDULER_SA}" --role=roles/run.jobsExecutorWithOverrides >/dev/null
 GDELT_SCHEDULE="${GDELT_SCHEDULE:-30 1-22/3 * * *}"
 FETCH_BODY='{"overrides":{"containerOverrides":[{"args":["fetch","gdelt"]}]}}'
 if gcloud scheduler jobs describe clippings-gdelt --location="$REGION" >/dev/null 2>&1; then
