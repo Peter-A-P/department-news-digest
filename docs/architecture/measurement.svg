@@ -92,8 +92,8 @@
 <rect x="608.3" y="424.0" width="39.3" height="20.0" rx="3" fill="#FFFFFF"/>
 <text x="628.0" y="436.0" font-size="12" text-anchor="middle" fill="#14201E">writes</text>
 <text x="1120.0" y="501.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">95% intervals throughout;</text>
-<text x="1120.0" y="516.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">the relevance columns fill</text>
-<text x="1120.0" y="531.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">as the labelled week does</text>
+<text x="1120.0" y="516.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">a number without its labels</text>
+<text x="1120.0" y="531.2" font-size="11" text-anchor="middle" fill="#5C6B67" font-style="italic">is printed as not yet</text>
 <rect x="28" y="600" width="26" height="16" rx="3" fill="#FFFFFF" stroke="#A64C1C" stroke-width="1.6"/>
 <text x="62" y="612" font-size="11" fill="#5C6B67">a published number</text>
 <path d="M 185.01999999999998 608 L 213.01999999999998 608" stroke="#14201E" stroke-width="1.4" fill="none" stroke-dasharray="6 4" marker-end="url(#arrow)"/>

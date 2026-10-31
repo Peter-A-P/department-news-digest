@@ -790,8 +790,12 @@ def readme_tables(report: Report) -> str:
     lines = [
         f"Measured over {report.digests} digests from {report.first_day} to {report.last_day}, "
         f"by `clippings report` on {report.generated_at:%Y-%m-%d}. 95% intervals throughout. "
-        f"{labelled} audience-days hand-labelled so far; the relevance columns fill as the "
-        "labelled week does.",
+        f"{labelled} audience-days hand-labelled"
+        + (
+            ": every audience has its labelled week."
+            if all(len(result.labelled_days) >= 7 for result in report.audiences)
+            else " so far; the relevance columns fill as the labelled week does."
+        ),
         "",
         "**Relevance, per audience, against a hand-labelled week**",
         "",
