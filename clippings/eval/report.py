@@ -881,7 +881,8 @@ def readme_tables(report: Report) -> str:
         lines += [
             "Faithfulness is the share of sampled digest sentences that say only what the "
             "sources they cite say, hand-checked against what the summariser read, weighted by "
-            "the sentences each day's digest showed; the sentences judged not supported are "
+            "the sentences each day's digest showed. "
+            f"{len(report.faith_unsupported)} of {report.faith.n} were judged not supported, "
             f"listed in [docs/report.md](docs/report.md).{unclear}",
             "",
         ]

@@ -237,4 +237,5 @@ def test_the_report_fills_the_faithfulness_cell_and_lists_what_was_not_supported
     tables = readme_tables(report)
     assert "(hand check)" not in tables and "50% (" in tables and ", 2 sentences" in tables
     assert "1 more could not be checked" in tables
+    assert "1 of 2 were judged not supported" in tables
     assert "Sentence 1. Cited: <https://gov.example/a>" in detail(report)
