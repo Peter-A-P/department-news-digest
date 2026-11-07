@@ -364,12 +364,36 @@ def menu(current: str = "") -> str:
     return f'<nav class="tabs" aria-label="This site"><div class="tabs-inner">{links}</div></nav>\n'
 
 
+SITE = "https://digest.peterparker.ca"
+PREVIEW_DESCRIPTION = (
+    "This morning's news for four example audiences: every report of an event merged into one "
+    "story, every sentence citing its sources, every quote checked word for word."
+)
+PREVIEW_ALT = "The day's news, every quote checked against its source."
+
+
+def _preview(title: str) -> str:
+    """The link-preview tags: a page shared in a chat or a post shows the site's card."""
+    rows = (
+        '<meta property="og:type" content="website">',
+        '<meta property="og:site_name" content="Peter Parker">',
+        f'<meta property="og:title" content="{escape(title)}">',
+        f'<meta property="og:description" content="{escape(PREVIEW_DESCRIPTION)}">',
+        f'<meta property="og:image" content="{SITE}/og.png">',
+        '<meta property="og:image:width" content="1200">',
+        '<meta property="og:image:height" content="630">',
+        f'<meta property="og:image:alt" content="{escape(PREVIEW_ALT)}">',
+        '<meta name="twitter:card" content="summary_large_image">',
+    )
+    return "".join(f"{r}\n" for r in rows)
+
+
 def _page(title: str, body: str, *, nav: str = "", hue: str = "teal", current: str = "") -> str:
     nav_html = f'<p class="top-nav">{nav}</p>' if nav else ""
     return (
         '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{escape(title)}</title>\n<style>{STYLE}</style>\n</head>\n"
+        f"<title>{escape(title)}</title>\n{_preview(title)}<style>{STYLE}</style>\n</head>\n"
         f'<body class="aud-{hue}">\n'
         '<header class="top"><div class="top-inner">\n'
         '<a class="brand" href="https://peterparker.ca">'

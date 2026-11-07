@@ -26,6 +26,8 @@ FONTS = {
     f"/fonts/{path.name}": path.read_bytes()
     for path in (Path(__file__).parent / "fonts").glob("*.woff2")
 }
+# The link-preview card the pages' og:image names (1200 x 630, made in the portfolio plan).
+OG_CARD = (Path(__file__).parent / "og.png").read_bytes()
 
 # The architecture page and its diagrams, from docs/ as committed (the image copies them in
 # beside the package). Rendered once, at start, from the document itself.
@@ -106,6 +108,15 @@ def application(site: Site) -> Callable[[Environ, StartResponse], Iterable[bytes
                 content_type,
                 method,
                 extra=[("Cache-Control", "public, max-age=3600")],
+            )
+        if path == "/og.png" and method in {"GET", "HEAD"}:
+            return _respond(
+                start_response,
+                "200 OK",
+                OG_CARD,
+                "image/png",
+                method,
+                extra=[("Cache-Control", "public, max-age=86400")],
             )
         if path in FONTS and method in {"GET", "HEAD"}:
             return _respond(
