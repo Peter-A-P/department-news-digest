@@ -402,7 +402,7 @@ def test_the_front_page_explains_itself_and_shows_only_what_the_report_measured(
         assert f"V-{key}-V" in page
     # No measured share typed into the prose: outside the chart, the only percentages are
     # the interval's level.
-    prose = re.sub(r"<svg.*?</svg>", "", about, flags=re.S)
+    prose = re.sub(r'<div class="dotchart".*?</figure>', "", about, flags=re.S)
     assert set(re.findall(r"\d+%", prose)) <= {"95%"}
     # A value the report did not write stops the page instead of leaving a gap.
     del fake["faith"]

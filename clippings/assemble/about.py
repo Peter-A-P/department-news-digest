@@ -303,56 +303,74 @@ people on the AI audience. Measured over {{digests}} digests from {{first_day}} 
 
 
 def _chart(audiences: list[dict[str, Any]]) -> str:
-    """Precision and must-read recall per audience, each a dot on its 95% interval, drawn on
-    the server so the page needs no script. Each audience's name sits above its two rows, so
-    the chart keeps its width on a phone. Colours come from classes in the stylesheet."""
-    left, plot_w, value_w, name_h, row_h, top = 8, 430, 70, 26, 26, 30
-    group_h = name_h + 2 * row_h + 8
-    height = top + group_h * len(audiences)
-    width = left + plot_w + value_w
+    """Precision and must-read recall per audience, each a dot on its 95% interval.
 
-    def x(value: float) -> float:
-        return left + value * plot_w
+    Built from HTML and CSS rather than SVG, so the text stays the page's own size at any
+    width and the plot takes the whole column: on a wide screen each audience's name sits to
+    the left of its two rows, on a phone above them. Positions are percentages handed to the
+    stylesheet as custom properties; colours come from classes, so dark mode works."""
 
-    parts = [
-        f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" aria-label="Precision '
-        'and must-read recall per audience, each with its 95% interval">'
-    ]
-    for tick in (0, 0.25, 0.5, 0.75, 1.0):
-        anchor = "start" if tick == 0 else "end" if tick == 1.0 else "middle"
-        parts.append(
-            f'<line class="grid" x1="{x(tick):.0f}" y1="{top - 6}" x2="{x(tick):.0f}" '
-            f'y2="{height - 6}"/><text class="tick" x="{x(tick):.0f}" y="{top - 12}" '
-            f'text-anchor="{anchor}">{tick:.0%}</text>'
-        )
-    for index, audience in enumerate(audiences):
-        base = top + group_h * index
-        parts.append(
-            f'<text class="name halo" x="{left}" y="{base + name_h - 8}">'
-            f"{escape(audience['name'])}</text>"
-        )
-        for row, (kind, key) in enumerate((("precision", "precision"), ("recall", "must_recall"))):
+    def pct(value: float) -> str:
+        return f"{value * 100:.1f}%"
+
+    ticks = "".join(
+        f'<span class="dc-tick{" minor" if tick in (25, 75) else ""}" style="--x:{tick}%">'
+        f"{tick}%</span>"
+        for tick in (0, 25, 50, 75, 100)
+    )
+    groups = []
+    for audience in audiences:
+        rows = []
+        for kind, key, label in (
+            ("precision", "precision", "Precision"),
+            ("recall", "must_recall", "Must-read recall"),
+        ):
             triple = audience[key]
             if triple is None:
                 continue
             point, lo, hi = triple
-            y = base + name_h + row * row_h + row_h / 2
-            parts.append(
-                f'<line class="whisker {kind}" x1="{x(lo):.1f}" y1="{y:.0f}" x2="{x(hi):.1f}" '
-                f'y2="{y:.0f}"/><circle class="dot {kind}" cx="{x(point):.1f}" cy="{y:.0f}" '
-                f'r="6.5"/><text class="val" x="{width - 4}" y="{y + 5:.0f}" '
-                f'text-anchor="end">{escape(audience[f"{key}_text"].split(" (")[0])}</text>'
+            text = audience[f"{key}_text"]
+            figure, _, interval = text.partition(" (")
+            rows.append(
+                f'<div class="dc-row {kind}"><span class="dc-kind">{label}</span>'
+                f'<div class="dc-track" style="--lo:{pct(lo)};--hi:{pct(hi)};--p:{pct(point)}">'
+                '<span class="dc-ci"></span><span class="dc-dot"></span></div>'
+                f'<div class="dc-val"><b>{escape(figure)}</b> '
+                f"<span>{escape(interval.rstrip(')'))}</span></div></div>"
             )
-    parts.append("</svg>")
+        groups.append(
+            f'<div class="dc-group"><div class="dc-name">{escape(audience["name"])}'
+            f"<span>{audience['days']} labelled days</span></div>{''.join(rows)}</div>"
+        )
     return (
-        '<figure class="chart-figure">' + "".join(parts) + '<ul class="legend">'
-        '<li><span class="sw precision"></span>Precision: of the stories shown, the share worth '
-        'showing</li><li><span class="sw recall"></span>Must-read recall: of the stories a '
-        "person would put first, the share the digest chose</li></ul>"
-        "<figcaption>Each dot is the measured share and its line the 95% interval. Public "
-        "health's lines are long because its digests are short: on a quiet day there were only "
-        "one or two stories to judge.</figcaption></figure>"
+        '<figure class="chart-figure">'
+        '<div class="dotchart" role="img" aria-label="Precision and must-read recall per '
+        'audience, each with its 95% interval">'
+        f'<div class="dc-axis"><div class="dc-ticks">{ticks}</div></div>'
+        f"{''.join(groups)}</div>"
+        '<ul class="legend"><li><span class="sw precision"></span>Precision: of the stories '
+        'shown, the share worth showing</li><li><span class="sw recall"></span>Must-read '
+        "recall: of the stories a person would put first, the share the digest chose</li>"
+        '<li><span class="sw ci"></span>The bar is the 95% interval</li></ul>'
+        f"<figcaption>{_reading(audiences)} Public health's bars are long because its digests "
+        "are short: on a quiet day there were only one or two stories to judge.</figcaption>"
+        "</figure>"
     )
+
+
+def _reading(audiences: list[dict[str, Any]]) -> str:
+    """What to see in the chart, counted from the values rather than written by hand."""
+    both = [a for a in audiences if a["precision"] and a["must_recall"]]
+    ahead = sum(a["precision"][0] > a["must_recall"][0] for a in both)
+    words = ("none", "one", "two", "three", "four", "five", "six")
+    count = words[ahead] if ahead < len(words) else str(ahead)
+    total = words[len(both)] if len(both) < len(words) else str(len(both))
+    if ahead * 2 > len(both):
+        return (
+            f"Precision is ahead of recall for {count} of the {total} audiences: what the "
+            "digests show is mostly right, and what they leave out is the bigger error."
+        )
+    return f"Precision is ahead of recall for {count} of the {total} audiences."
 
 
 def _fill(text: str, values: dict[str, Any]) -> str:

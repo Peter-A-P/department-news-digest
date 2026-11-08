@@ -262,23 +262,51 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 #rejected .eyebrow { color: var(--rose); }
 #built .eyebrow { color: var(--violet); }
 .chart-figure { margin: 1.6rem 0 1.2rem; }
-.chart { display: block; width: 100%; max-width: 40rem; height: auto; }
-.chart text { font-family: var(--sans); font-size: 15px; fill: var(--ink-soft);
-  font-variant-numeric: tabular-nums; }
-.chart .name { fill: var(--ink); font-weight: 600; }
-.chart .halo { paint-order: stroke; stroke: var(--paper); stroke-width: 4px; }
-.chart .val { fill: var(--ink); }
-.chart .grid { stroke: var(--line); stroke-width: 1; }
-.chart .whisker { stroke-width: 3; stroke-linecap: round; opacity: 0.55; }
-.chart .whisker.precision, .chart .dot.precision { stroke: var(--teal); fill: var(--teal); }
-.chart .whisker.recall, .chart .dot.recall { stroke: var(--violet); fill: var(--violet); }
-.chart .dot { stroke: var(--paper-soft); stroke-width: 2; }
+.dotchart { --name: 17rem; --val: 8.5rem; margin-top: 0.4rem; }
+.dc-axis, .dc-row { display: grid; grid-template-columns: var(--name) 1fr var(--val);
+  align-items: center; column-gap: 1rem; }
+.dc-ticks { grid-column: 2; position: relative; height: 1.4rem; }
+.dc-tick { position: absolute; left: var(--x); transform: translateX(-50%); font-size: 0.78rem;
+  color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.dc-tick:first-child { transform: none; }
+.dc-tick:last-child { transform: translateX(-100%); }
+.dc-group { display: grid; grid-template-columns: var(--name) 1fr var(--val);
+  column-gap: 1rem; padding: 0.55rem 0; border-top: 1px solid var(--line); }
+.dc-name { grid-column: 1; grid-row: 1 / span 2; align-self: center; font-weight: 600;
+  line-height: 1.3; color: var(--ink); }
+.dc-name span { display: block; font-weight: 400; font-size: 0.78rem; color: var(--ink-faint); }
+.dc-group .dc-row { grid-column: 2 / -1; grid-template-columns: 1fr var(--val); }
+.dc-kind { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.dc-track { position: relative; height: 1.7rem;
+  background: repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 25%);
+  border-right: 1px solid var(--line); }
+.dc-ci { position: absolute; top: 50%; left: var(--lo); width: calc(var(--hi) - var(--lo));
+  height: 0.5rem; transform: translateY(-50%); border-radius: 0.25rem; opacity: 0.35; }
+.dc-dot { position: absolute; top: 50%; left: var(--p); width: 0.9rem; height: 0.9rem;
+  transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid var(--paper); }
+.precision .dc-ci, .precision .dc-dot { background: var(--teal); }
+.recall .dc-ci, .recall .dc-dot { background: var(--violet); }
+.dc-val { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 0.95rem; }
+.dc-val b { font-weight: 600; color: var(--ink); }
+.dc-val span { font-size: 0.78rem; color: var(--ink-faint); margin-left: 0.2rem; }
+@media (max-width: 46rem) {
+  .dotchart { --val: 6.6rem; }
+  .dc-axis { grid-template-columns: 1fr var(--val); }
+  .dc-ticks { grid-column: 1; }
+  .dc-group { grid-template-columns: 1fr var(--val); }
+  .dc-name { grid-column: 1 / -1; grid-row: auto; margin-bottom: 0.15rem; }
+  .dc-group .dc-row { grid-column: 1 / -1; }
+  .dc-val span { display: block; margin: 0; }
+  .dc-tick.minor { visibility: hidden; }
+}
 .legend { list-style: none; padding: 0; margin: 0.8rem 0 0; display: flex; flex-wrap: wrap;
   gap: 0.5rem 1.2rem; font-size: 0.85rem; color: var(--ink-soft); }
 .legend li { display: flex; align-items: center; gap: 0.45rem; }
 .sw { width: 0.8rem; height: 0.8rem; border-radius: 50%; flex: none; }
 .sw.precision { background: var(--teal); }
 .sw.recall { background: var(--violet); }
+.sw.ci { width: 1.4rem; height: 0.5rem; border-radius: 0.25rem; background: var(--ink-faint);
+  opacity: 0.45; }
 .chart-figure figcaption { margin-top: 0.6rem; font-size: 0.85rem; color: var(--ink-faint);
   max-width: var(--column); }
 .verdict { max-width: var(--column); margin: 1.2rem 0; padding: 0.9rem 1.1rem;
