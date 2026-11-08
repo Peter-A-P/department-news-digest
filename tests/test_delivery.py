@@ -398,7 +398,15 @@ def test_the_front_page_explains_itself_and_shows_only_what_the_report_measured(
     for anchor in anchors:
         assert f'id="{anchor}"' in page
     assert not re.search("[\\u2012-\\u2015\\u2018\\u2019\\u201c\\u201d]", page)
-    for key in ("precision_range", "faith", "kappa", "cost_month", "uptime", "reader_ratio"):
+    for key in (
+        "precision_mean",
+        "precision_range",
+        "faith",
+        "kappa",
+        "cost_month",
+        "uptime",
+        "reader_ratio",
+    ):
         assert f"V-{key}-V" in page
     # No measured share typed into the prose: outside the chart, the only percentages are
     # the interval's level.

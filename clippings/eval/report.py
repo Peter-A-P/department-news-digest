@@ -1126,6 +1126,8 @@ def site_values(report: Report) -> dict[str, object]:
         "precision_range": (
             f"{min(precision):.0%} to {max(precision):.0%}" if precision else NOT_YET
         ),
+        # The plain mean of the four audiences' precision, each audience counting once.
+        "precision_mean": f"{sum(precision) / len(precision):.0%}" if precision else NOT_YET,
         "must_recall_range": f"{min(must):.0%} to {max(must):.0%}" if must else NOT_YET,
         "audiences": [
             {

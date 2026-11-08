@@ -5,6 +5,7 @@
   "digests": 131,
   "labelled_days": 33,
   "precision_range": "69% to 100%",
+  "precision_mean": "82%",
   "must_recall_range": "60% to 84%",
   "audiences": [
     {

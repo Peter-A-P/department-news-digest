@@ -57,7 +57,7 @@ Items held (thirty days), items a digest showed or cited, and, once labelled, th
 
 | Audience | Source | Items held | In a digest | Share in a digest (95% CI) | Relevant of labelled |
 |---|---|---|---|---|---|
-| ai | gdelt | 1005 | 106 | 11% (9% to 13%) | 28 of 125, 22% (16% to 30%) |
+| ai | gdelt | 1155 | 106 | 9% (8% to 11%) | 28 of 125, 22% (16% to 30%) |
 | ai | bluesky | 604 | 12 | 2% (1% to 3%) | 8 of 8, 100% (73% to 100%) |
 | ai | techcrunch.com | 260 | 113 | 43% (38% to 49%) | 35 of 75, 47% (36% to 58%) |
 | ai | cbc.ca | 164 | 12 | 7% (4% to 12%) | 4 of 36, 11% (4% to 24%) |
@@ -72,7 +72,7 @@ Items held (thirty days), items a digest showed or cited, and, once labelled, th
 | ai | citynews.ca | 1 | 0 | 0% (0% to 86%) | _not yet_ |
 | municipal-toronto | bluesky | 659 | 12 | 2% (1% to 3%) | 6 of 9, 67% (35% to 89%) |
 | municipal-toronto | citynews.ca | 453 | 36 | 8% (6% to 11%) | 11 of 161, 7% (4% to 11%) |
-| municipal-toronto | gdelt | 375 | 31 | 8% (6% to 11%) | 7 of 34, 21% (10% to 36%) |
+| municipal-toronto | gdelt | 385 | 31 | 8% (6% to 11%) | 7 of 34, 21% (10% to 36%) |
 | municipal-toronto | cbc.ca | 359 | 74 | 21% (17% to 25%) | 40 of 135, 30% (22% to 38%) |
 | municipal-toronto | toronto.ca | 15 | 9 | 60% (35% to 81%) | 4 of 4, 100% (55% to 100%) |
 | newfoundland-labrador | bluesky | 454 | 19 | 4% (3% to 6%) | 1 of 1, 100% (14% to 100%) |
@@ -80,7 +80,7 @@ Items held (thirty days), items a digest showed or cited, and, once labelled, th
 | newfoundland-labrador | ntv.ca | 295 | 95 | 32% (27% to 38%) | 30 of 77, 39% (29% to 50%) |
 | newfoundland-labrador | saltwire.com | 261 | 4 | 2% (1% to 4%) | 0 of 62, 0% (0% to 4%) |
 | newfoundland-labrador | cbc.ca | 238 | 99 | 42% (35% to 48%) | 26 of 53, 49% (36% to 62%) |
-| newfoundland-labrador | gdelt | 84 | 14 | 17% (10% to 26%) | _not yet_ |
+| newfoundland-labrador | gdelt | 85 | 14 | 16% (10% to 25%) | _not yet_ |
 | newfoundland-labrador | gazette.mun.ca | 25 | 4 | 16% (6% to 33%) | 0 of 10, 0% (0% to 22%) |
 | newfoundland-labrador | theindependent.ca | 10 | 7 | 70% (39% to 91%) | 2 of 2, 100% (33% to 100%) |
 | public-health-canada | bluesky | 536 | 7 | 1% (1% to 3%) | 4 of 4, 100% (55% to 100%) |

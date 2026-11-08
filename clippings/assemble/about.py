@@ -396,9 +396,9 @@ def hero_points(values: dict[str, Any]) -> str:
     """Four figures for the first screen, each with what it counts and its comparison."""
     return _fill(
         '<div class="points">'
-        '<div class="point"><div class="figure">{{precision_range}}</div><div class="unit">of '
-        "shown stories worth showing, across the four audiences, against a person's "
-        "labels</div></div>"
+        '<div class="point"><div class="figure">{{precision_mean}}</div><div class="unit">of '
+        "shown stories worth showing, the average of the four audiences ({{precision_range}}), "
+        "against a person's labels</div></div>"
         '<div class="point"><div class="figure">{{faith_point}}</div><div class="unit">of '
         "{{faith_n}} sentences checked by hand say only what their sources say</div></div>"
         '<div class="point"><div class="figure">{{reader_ratio}}x</div><div class="unit">as '
