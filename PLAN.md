@@ -1,12 +1,11 @@
 # Plan: Verified Media Briefing
 
-**Written:** 2026-09-07. **Status:** building. Week 1 and week 2's code are built and tested; the
-first model-backed digest and the deployment wait on the gateway key, the spend caps and the GCP
-account (2026-10-02).
+**Written:** 2026-09-07. **Status:** built and measured, live since 2026-10-07; in its
+measurement month, 2026-11-09 to 2026-12-08.
 
 **Build:** three weeks of evenings, not sequenced; the plan is written in relative weeks.
 Earliest start: after `boundary` v0.1.0 (Sep 13 2026) and a GCP account with billing
-alerts (plan repository action 9). Followed by one measurement month running daily.
+alerts. Followed by one measurement month running daily.
 **Package:** `clippings`, after the media-clippings service every department runs by hand.
 **Fed by:** 04 (every model call through the gateway; cost per digest from its ledger),
 11 (LangGraph pipeline patterns), 03 (the gate runs the precision and recall evaluation
@@ -15,9 +14,8 @@ February 2027). **Feeds:** 13 reuses the citation and quote verification node.
 
 > **Employer note.** Dozens of departments and divisions each have someone reading the
 > media landscape by hand. This is a generic, configurable version built on public sources
-> only, with example audiences that are not the employer's. Open question 05 in the plan
-> repository was closed on 2026-09-06 with no concern: any internal version is built
-> separately on the employer's own tooling, no shared code in either direction.
+> only, with example audiences that are not the employer's. Any internal version is built
+> separately on the employer's own tooling, with no shared code in either direction.
 
 > **Nothing is sent.** The system publishes a web page per audience and writes an email
 > draft file the owner can send. There is no send path, by design and by the global rule.
@@ -462,12 +460,13 @@ a sixth of the cost per call; at low effort it agreed less with the labels and w
 | **Build** | | **40** | **54** |
 | **Running** | | **23 to 26 per month** | **31 to 35 per month** |
 
-Still under the CA$40 per month the project file estimated, with less room than before:
+Still under the CA$40 per month first estimated, with less room than before:
 the fourth audience added on 2026-09-13 costs about a third more to run, and X adds about
 CA$15. The difference is
 a small model for
-re-ranking and the pre-filter that keeps the model away from the full pool. Outside the
-plan's budget, as an alongside project; actuals still go in the plan repository's STATUS.
+re-ranking and the pre-filter that keeps the model away from the full pool. Measured on
+2026-11-08: about CA$18 a month for all four audiences, models and X together, with Google
+Cloud inside its free tier (README).
 
 ## 7. Handover
 
