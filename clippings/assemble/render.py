@@ -26,8 +26,9 @@ from datetime import UTC
 from email.message import EmailMessage
 from email.policy import SMTP
 from html import escape
+from typing import Any
 
-from clippings.assemble.about import about_sections
+from clippings.assemble.about import about_sections, hero_points, load_results
 from clippings.assemble.digest import Digest, DigestSentence, DigestStory, Spotlight, XPick
 from clippings.assemble.trends import Trends, describe
 from clippings.constants import CAD_PER_USD, cad
@@ -257,6 +258,35 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 #measure .eyebrow { color: var(--green); }
 #rules .eyebrow { color: var(--rose); }
 #status .eyebrow { color: var(--amber); }
+#results .eyebrow { color: var(--teal); }
+#rejected .eyebrow { color: var(--rose); }
+#built .eyebrow { color: var(--violet); }
+.chart-figure { margin: 1.6rem 0 1.2rem; }
+.chart { display: block; width: 100%; max-width: 40rem; height: auto; }
+.chart text { font-family: var(--sans); font-size: 15px; fill: var(--ink-soft);
+  font-variant-numeric: tabular-nums; }
+.chart .name { fill: var(--ink); font-weight: 600; }
+.chart .halo { paint-order: stroke; stroke: var(--paper); stroke-width: 4px; }
+.chart .val { fill: var(--ink); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .whisker { stroke-width: 3; stroke-linecap: round; opacity: 0.55; }
+.chart .whisker.precision, .chart .dot.precision { stroke: var(--teal); fill: var(--teal); }
+.chart .whisker.recall, .chart .dot.recall { stroke: var(--violet); fill: var(--violet); }
+.chart .dot { stroke: var(--paper-soft); stroke-width: 2; }
+.legend { list-style: none; padding: 0; margin: 0.8rem 0 0; display: flex; flex-wrap: wrap;
+  gap: 0.5rem 1.2rem; font-size: 0.85rem; color: var(--ink-soft); }
+.legend li { display: flex; align-items: center; gap: 0.45rem; }
+.sw { width: 0.8rem; height: 0.8rem; border-radius: 50%; flex: none; }
+.sw.precision { background: var(--teal); }
+.sw.recall { background: var(--violet); }
+.chart-figure figcaption { margin-top: 0.6rem; font-size: 0.85rem; color: var(--ink-faint);
+  max-width: var(--column); }
+.verdict { max-width: var(--column); margin: 1.2rem 0; padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--teal); background: var(--teal-soft);
+  border-radius: 0 var(--radius) var(--radius) 0; }
+.verdict p { margin: 0; }
+table.results td:nth-child(2) { font-variant-numeric: tabular-nums; white-space: normal;
+  min-width: 11rem; }
 .section-lead { font-size: 1.02rem; color: var(--ink-soft); }
 .section p { color: var(--ink-soft); }
 .table-wrap { overflow-x: auto; margin: 1.2rem 0 1.2rem; }
@@ -348,6 +378,7 @@ INTRO = (
 # The site's menu, on every page. Absolute paths, because pages sit at three depths.
 MENU = (
     ("/", "All digests"),
+    ("/#results", "Results"),
     ("/#why", "Why it exists"),
     ("/#how", "How it works"),
     ("/#measure", "How it is measured"),
@@ -957,8 +988,13 @@ def trends_page(audience_name: str, audience_id: str, trends: Trends) -> str:
     return _page(f"Trends: {audience_name}", body, hue=hue(audience_id))
 
 
-def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
-    """The front page: what this is, then each audience with its description and latest day."""
+def site_index(
+    audiences: Sequence[tuple[str, str, str, str | None]],
+    results: Mapping[str, Any] | None = None,
+) -> str:
+    """The front page: what this is and how well it works, each audience with its latest day,
+    then the long read. `results` is what `clippings report` measured (about.load_results)."""
+    values = dict(load_results() if results is None else results)
     cards = []
     for audience_id, name, description, latest in audiences:
         latest_link = (
@@ -976,17 +1012,19 @@ def site_index(audiences: Sequence[tuple[str, str, str, str | None]]) -> str:
         '<p class="eyebrow">Verified Media Briefing</p>'
         '<h1>The day\'s news for one department, <span class="hl">cited and checked.</span></h1>'
         f'<p class="lead">{escape(INTRO)}</p>'
+        f"{hero_points(values)}"
         '<p class="note">Nothing is sent: each digest is a web page and an email draft file '
         "that its owner may send. The four audiences below are examples, built on public "
         "sources whose terms were read and recorded before anything was fetched.</p>"
-        '<p class="note">Below the audiences: <a href="#why">why this exists</a>, '
-        '<a href="#how">how it works</a>, <a href="#measure">how it is measured</a>, '
-        '<a href="#rules">the rules it keeps</a> and <a href="#status">where it stands</a>. '
-        '<a href="/architecture/">See how it\'s built</a>, in three diagrams.</p>'
+        '<p class="note">Below the audiences: <a href="#results">the results</a>, '
+        '<a href="#why">why this exists</a>, <a href="#how">how it works</a>, '
+        '<a href="#rejected">what did not work</a> and <a href="#status">where it stands</a>. '
+        '<a href="/architecture/">See how it\'s built</a>, in three diagrams, or read '
+        '<a href="https://github.com/Peter-A-P/department-news-digest">the code</a>.</p>'
         "</header>\n"
         '<h2 class="section-title">Audiences</h2>\n'
         f'<div class="cards">\n{"".join(cards)}\n</div>\n'
-        f"{about_sections()}"
+        f"{about_sections(values)}"
     )
     return _page("Verified Media Briefing", body, current="/")
 

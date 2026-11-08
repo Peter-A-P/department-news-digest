@@ -1,17 +1,34 @@
-"""The front page's long read, below the audiences: why this exists, how it works, where it is.
+"""The front page's long read, below the audiences: the results, why this exists, how it
+works, what did not work, and where it stands.
 
 Written in the manner of the portfolio's other project sites (gate.peterparker.ca): the
-problem first, then the pipeline step by step for the technical reader, then the rules it
-keeps, what is built and what is to come, and what it deliberately does not do. It states
-no measured result. The numbers belong in the README, filled by the report command with
-their intervals, and a figure copied here by hand would go stale the day the next label
-lands. Keep it in step with the README's "How it works" and PLAN.md: if the pipeline
-changes, change this in the same commit.
+result first, then the problem, then the pipeline step by step for the technical reader, the
+rules it keeps, what was tried and dropped, and what it deliberately does not do. Every
+measured number comes from `results.json`, which `clippings report` writes from the same run
+as the README's tables; none is typed here, so the page cannot drift from the README. Keep
+the prose in step with the README's "How it works" and PLAN.md: if the pipeline changes,
+change this in the same commit.
 """
 
 from __future__ import annotations
 
+import json
+import re
+from html import escape
+from pathlib import Path
+from typing import Any
+
 from clippings.constants import QUOTE_MAX_WORDS, RETENTION_DAYS
+
+RESULTS = Path(__file__).parent / "results.json"
+REPO = "https://github.com/Peter-A-P/department-news-digest"
+
+
+def load_results(path: Path = RESULTS) -> dict[str, Any]:
+    """The values `clippings report` wrote. Missing is an error, not an empty page."""
+    values: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    return values
+
 
 _WHY = """<section class="section" id="why">
 <p class="eyebrow">Why this exists</p>
@@ -123,8 +140,9 @@ first draft, how many sentences the verifier refused, how many articles collapse
 story, how long a story takes to reach a digest, and what each digest cost. These come from
 the run's own records, not from a person.</p></div>
 </div>
-<p class="note">One audience will be labelled twice, by two people, and their agreement
-published as kappa, because "relevant" is a judgement and a reader should know how much two
+<p class="note">Because "relevant" is a judgement, one audience's week was labelled twice, by
+two people who did not see each other's answers. Their agreement on {{kappa_audience}} is
+kappa {{kappa}}: well above chance, short of identical. A reader should know how much two
 reasonable people disagree before reading how well a machine matched one of them.</p>
 </section>"""
 
@@ -155,11 +173,11 @@ next run.</p></div>
 
 _STATUS = """<section class="section" id="status">
 <p class="eyebrow">Where it stands</p>
-<h2>Running every day, still being measured</h2>
-<p class="section-lead">This is a working build, not a finished product. The digests above
-are real and produced every morning; the measurement that says how good they are is under way,
-and its results will be published with the code that produces them, so anyone can run the
-same command and get the same numbers.</p>
+<h2>Built, measured, and left alone for a month</h2>
+<p class="section-lead">Every number on this page is published with the code that produces it,
+so anyone can run the same command and get the same figures. From {{measurement_from}} to
+{{measurement_to}} the daily runs are left alone, to show that the briefing turns up every
+morning without a person, and what that costs.</p>
 <div class="split">
 <div class="panel built"><h3>Built and running</h3><ul>
 <li>Four example audiences, each with a daily digest since 7 October 2026.</li>
@@ -168,30 +186,66 @@ X, with the terms record enforced in the code.</li>
 <li>Duplicate removal and story grouping, the free pre-filter, the model re-ranker against
 each rubric, and selection with a diversity penalty.</li>
 <li>Cited summaries and the quote verifier, with one repair attempt per failing sentence.</li>
-<li>The day's Bluesky pick, shown in full while it exists, and the day's X pick, shown whole
-on its day only.</li>
 <li>A trend view per audience: the organisations, people, places and topics it follows,
 this week against the week before.</li>
-<li>A labelled week for all four audiences, and precision and recall published with
-intervals in the README.</li>
-<li>Duplicate grouping judged pair by pair over the labelled week, every story of several
-articles checked for articles that do not belong, and a sample of summary sentences read
-against their sources for faithfulness, each with its numbers in the README.</li>
-<li>A second labeller on the Toronto week, whose agreement with the first says how subjective
-"relevant" is.</li>
-<li>A timed study with three readers: minutes to be briefed from the digest against from
-the sources.</li>
-<li>Labelling pages built for speed, a day on one screen and a key per judgement, and the
-report that turns labels into the results tables with intervals.</li>
-<li>Hard spending caps, the cost of every digest from the gateway's ledger, and the uptime
-of the scheduled run counted from the runs themselves.</li>
+<li>Every check above measured by hand: a labelled week per audience, duplicate pairs,
+story checks, a faithfulness sample, a second labeller and a timed reader study.</li>
+<li>Hard spending caps, the cost of every digest from the gateway's ledger and the vendors'
+bills, and uptime counted from the runs themselves.</li>
 </ul></div>
 <div class="panel tocome"><h3>Still to come</h3><ul>
+<li>Uptime and cost over the measurement month, {{measurement_from}} to {{measurement_to}}.</li>
 <li>The pre-filter's weights and the diversity penalty tuned against the labels, in place of
 the starting values chosen by reasoning.</li>
-<li>The repository made public, with the results table at the top of its README.</li>
 </ul></div>
 </div>
+</section>"""
+
+_REJECTED = """<section class="section" id="rejected">
+<p class="eyebrow">What did not work</p>
+<h2>Six things that were tried and dropped</h2>
+<p class="section-lead">Each of these looked sensible until it met the data. The model
+comparisons are written up in full in the repository's
+<a href="{{repo}}/blob/main/docs/models.md">docs/models.md</a>.</p>
+<div class="panels">
+<div class="panel"><h3>A cheaper setting for the re-ranker</h3><p>Asking the small model to
+think less scored relevant stories lower and agreed less with the hand labels. The default
+setting stayed, and still costs about a sixth of the model it replaced.</p></div>
+<div class="panel"><h3>A cheaper model for the summaries</h3><p>The small model left some
+stories with no summary because it broke the format, used half the quotes and added
+interpretation the verifier cannot hold to a source. The saving was a few dollars a month,
+so the larger model stayed.</p></div>
+<div class="panel"><h3>Posts as stories</h3><p>On the first day Bluesky was switched on,
+commentary posts took six of Toronto's ten places. Since then a post reaches a digest only
+inside a story that a news source also carries.</p></div>
+<div class="panel"><h3>Searching X by topic</h3><p>The ten "most relevant" posts for a topic
+were reposted headlines with no likes, and the popular ones were jokes and rants. X is now
+read from short lists of named people in public roles.</p></div>
+<div class="panel"><h3>Asking GDELT once a day</h3><p>Cloud Run's outgoing addresses are
+shared, and GDELT turned most of the morning's queries away, which once left the AI digest
+with two stories. It is now asked every three hours, and a paid fixed address was turned
+down on cost.</p></div>
+<div class="panel"><h3>Reddit</h3><p>Access now needs Reddit's approval. The request went
+unanswered for four weeks, so Reddit was dropped. The pipeline runs on whatever sources are
+left, which is what makes dropping one cheap.</p></div>
+</div>
+</section>"""
+
+_BUILT = """<section class="section" id="built">
+<p class="eyebrow">How this was built</p>
+<h2>Whose decisions these were</h2>
+<p class="section-lead">I chose the four audiences to differ, so that one product would have
+to serve a fast global subject, a big city, a national brief and a small province. I labelled
+every relevance week, duplicate pair, story check and faithfulness sentence myself, and asked
+a second person to label Toronto's week without seeing my answers. When Bluesky commentary
+crowded out the news, I decided posts are not stories. I kept the quote verifier without an
+off switch, turned down a fixed outgoing address for GDELT at about US$32 a month, and
+dropped Reddit when its access request went unanswered rather than reach it some other
+way.</p>
+<p>AI coding assistants (Claude Code) were used for implementation and drafting, the way a
+senior engineer uses them in 2026. Every number on this page is reproducible from
+<a href="{{repo}}">the public repository</a> with one command, and that
+reproducibility is the evidence that matters.</p>
 </section>"""
 
 _LIMITS = """<section class="section" id="limits">
@@ -214,9 +268,136 @@ decides whether it goes anywhere, which is where that decision belongs.</p></div
 </section>"""
 
 
-def about_sections() -> str:
+_RESULTS = """<section class="section" id="results">
+<p class="eyebrow">Does it work?</p>
+<h2>Checked against a person's judgement, with the error bars shown</h2>
+<p class="section-lead">A digest that feels relevant is not evidence. Over {{labelled_days}}
+audience-days, a person judged every story each digest showed and a random sample of the
+ones it left out, against the same rubric the model was given. Every figure carries a 95%
+interval, because a few dozen judgements a day leave real uncertainty.</p>
+{{chart}}
+<div class="verdict"><p><strong>The digests are mostly right about what they show, and
+miss more than they show.</strong> Depending on the audience, {{precision_range}} of
+the stories shown were worth showing, while {{must_recall_range}} of the stories a person
+would put first made it in. A ten-story page cannot hold every must-read on a busy day in
+Newfoundland and Labrador.</p></div>
+<div class="table-wrap"><table class="idea results">
+<thead><tr><th>Check</th><th>Result, 95% interval</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td><strong>Quotes word for word</strong></td><td data-label="Result">{{quotes}}</td><td data-label="Means">After the verifier: a quote that is not exact is rewritten once, then removed. On the first draft: {{quotes_first}}.</td></tr>
+<tr><td><strong>Sentences faithful to their sources</strong></td><td data-label="Result">{{faith}}</td><td data-label="Means">{{faith_n}} sentences read by hand against what the summariser read; {{faith_unsupported}} said something their sources did not.</td></tr>
+<tr><td><strong>Duplicates found, precision / recall</strong></td><td data-label="Result">{{dedup}}</td><td data-label="Means">Pairs of articles judged "same story" or not.</td></tr>
+<tr><td><strong>Articles in the right story</strong></td><td data-label="Result">{{purity}}</td><td data-label="Means">Every story of several articles checked for one that does not belong.</td></tr>
+<tr><td><strong>Minutes to be briefed</strong></td><td data-label="Result">{{reader_digest}} from the digest, {{reader_sources}} from the sources</td><td data-label="Means">{{reader_count}} readers, {{reader_sessions}} timed sessions: from the sources took {{reader_ratio_text}} times as long.</td></tr>
+<tr><td><strong>Two labellers agree</strong></td><td data-label="Result">kappa {{kappa}}</td><td data-label="Means">On {{kappa_audience}}'s week, by two people working apart.</td></tr>
+<tr><td><strong>Time to reach a digest</strong></td><td data-label="Result">{{lag_p50}}</td><td data-label="Means">Median from publication to the morning's digest.</td></tr>
+<tr><td><strong>Turns up unattended</strong></td><td data-label="Result">{{uptime}}</td><td data-label="Means">A day rescued by a run started by hand counts as down.</td></tr>
+<tr><td><strong>Cost, all four audiences</strong></td><td data-label="Result">{{cost_day}} a day, about {{cost_month}} a month</td><td data-label="Means">Model calls from the gateway's ledger, plus X and Google Cloud from their own bills.</td></tr>
+</tbody></table></div>
+<p class="note">What these do not say: relevance rests on one person's labels over one week per
+audience, checked against a second labeller on one audience only. Recall is an
+importance-weighted estimate from a random sample, not a count. The reader study is three
+people on the AI audience. Measured over {{digests}} digests from {{first_day}} to
+{{last_day}}; the full tables are in <a href="{{repo}}#result">the README</a>.</p>
+</section>"""
+
+
+def _chart(audiences: list[dict[str, Any]]) -> str:
+    """Precision and must-read recall per audience, each a dot on its 95% interval, drawn on
+    the server so the page needs no script. Each audience's name sits above its two rows, so
+    the chart keeps its width on a phone. Colours come from classes in the stylesheet."""
+    left, plot_w, value_w, name_h, row_h, top = 8, 430, 70, 26, 26, 30
+    group_h = name_h + 2 * row_h + 8
+    height = top + group_h * len(audiences)
+    width = left + plot_w + value_w
+
+    def x(value: float) -> float:
+        return left + value * plot_w
+
+    parts = [
+        f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" aria-label="Precision '
+        'and must-read recall per audience, each with its 95% interval">'
+    ]
+    for tick in (0, 0.25, 0.5, 0.75, 1.0):
+        anchor = "start" if tick == 0 else "end" if tick == 1.0 else "middle"
+        parts.append(
+            f'<line class="grid" x1="{x(tick):.0f}" y1="{top - 6}" x2="{x(tick):.0f}" '
+            f'y2="{height - 6}"/><text class="tick" x="{x(tick):.0f}" y="{top - 12}" '
+            f'text-anchor="{anchor}">{tick:.0%}</text>'
+        )
+    for index, audience in enumerate(audiences):
+        base = top + group_h * index
+        parts.append(
+            f'<text class="name halo" x="{left}" y="{base + name_h - 8}">'
+            f"{escape(audience['name'])}</text>"
+        )
+        for row, (kind, key) in enumerate((("precision", "precision"), ("recall", "must_recall"))):
+            triple = audience[key]
+            if triple is None:
+                continue
+            point, lo, hi = triple
+            y = base + name_h + row * row_h + row_h / 2
+            parts.append(
+                f'<line class="whisker {kind}" x1="{x(lo):.1f}" y1="{y:.0f}" x2="{x(hi):.1f}" '
+                f'y2="{y:.0f}"/><circle class="dot {kind}" cx="{x(point):.1f}" cy="{y:.0f}" '
+                f'r="6.5"/><text class="val" x="{width - 4}" y="{y + 5:.0f}" '
+                f'text-anchor="end">{escape(audience[f"{key}_text"].split(" (")[0])}</text>'
+            )
+    parts.append("</svg>")
+    return (
+        '<figure class="chart-figure">' + "".join(parts) + '<ul class="legend">'
+        '<li><span class="sw precision"></span>Precision: of the stories shown, the share worth '
+        'showing</li><li><span class="sw recall"></span>Must-read recall: of the stories a '
+        "person would put first, the share the digest chose</li></ul>"
+        "<figcaption>Each dot is the measured share and its line the 95% interval. Public "
+        "health's lines are long because its digests are short: on a quiet day there were only "
+        "one or two stories to judge.</figcaption></figure>"
+    )
+
+
+def _fill(text: str, values: dict[str, Any]) -> str:
+    """Replace every {{token}} from `values`, escaped; a token without a value is an error, so
+    a missing number stops the build instead of reaching the page."""
+
+    def one(match: re.Match[str]) -> str:
+        key = match.group(1)
+        if key not in values:
+            raise KeyError(f"about.py: no value for {{{{{key}}}}} in results.json")
+        value = values[key]
+        return value if key in RAW else escape(str(value))
+
+    return re.sub(r"\{\{(\w+)\}\}", one, text)
+
+
+# Values that are HTML already, built here rather than taken from results.json.
+RAW = frozenset({"chart", "repo"})
+
+
+def hero_points(values: dict[str, Any]) -> str:
+    """Four figures for the first screen, each with what it counts and its comparison."""
+    return _fill(
+        '<div class="points">'
+        '<div class="point"><div class="figure">{{precision_range}}</div><div class="unit">of '
+        "shown stories worth showing, across the four audiences, against a person's "
+        "labels</div></div>"
+        '<div class="point"><div class="figure">{{faith_point}}</div><div class="unit">of '
+        "{{faith_n}} sentences checked by hand say only what their sources say</div></div>"
+        '<div class="point"><div class="figure">{{reader_ratio}}x</div><div class="unit">as '
+        "long to be briefed from the sources as from the digest, in a timed study</div></div>"
+        '<div class="point"><div class="figure">{{cost_month}}</div><div class="unit">a month '
+        "for all four audiences: models, X and Google Cloud together</div></div>"
+        "</div>",
+        {**values, "repo": REPO},
+    )
+
+
+def about_sections(values: dict[str, Any] | None = None) -> str:
     """Every section, in reading order, for the front page below the audience cards."""
+    values = load_results() if values is None else values
+    filled = {**values, "repo": REPO, "chart": _chart(values["audiences"])}
     return "\n".join(
-        part.replace("{retention}", str(RETENTION_DAYS)).replace("{quote}", str(QUOTE_MAX_WORDS))
-        for part in (_WHY, _HOW, _MEASURE, _RULES, _STATUS, _LIMITS)
+        _fill(part, filled)
+        .replace("{retention}", str(RETENTION_DAYS))
+        .replace("{quote}", str(QUOTE_MAX_WORDS))
+        for part in (_RESULTS, _WHY, _HOW, _MEASURE, _REJECTED, _RULES, _STATUS, _LIMITS, _BUILT)
     )

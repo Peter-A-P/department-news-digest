@@ -102,10 +102,12 @@ places and topics counted in two weeks of coverage, a change called only when it
 chance. Precision and recall are measured against a hand-labelled week through the AI
 Release Gate's harness, with intervals.
 
-The site's front page explains the same for a visitor, below the audience cards: why this
-exists, the pipeline step by step, how it is measured, the rules it keeps, what is built and
-what is to come. It is in `clippings/assemble/about.py`, states no measured result (those
-are here, with their intervals), and changes with this section.
+The site's front page explains the same for a visitor, below the audience cards: the
+results with a chart, why this exists, the pipeline step by step, how it is measured, what
+did not work, the rules it keeps and where it stands. It is in `clippings/assemble/about.py`
+and changes with this section. Its numbers are never typed: `clippings report` writes them
+to `clippings/assemble/results.json` from the same run as the tables above, and the page
+refuses to render without one.
 
 Three architecture diagrams, the system, one morning's run and how the numbers are produced, are in
 [docs/architecture.md](docs/architecture.md).

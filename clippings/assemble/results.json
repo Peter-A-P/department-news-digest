@@ -1,0 +1,118 @@
+{
+  "as_of": "2026-11-08",
+  "first_day": "2026-10-07",
+  "last_day": "2026-11-08",
+  "digests": 131,
+  "labelled_days": 33,
+  "precision_range": "69% to 100%",
+  "must_recall_range": "60% to 84%",
+  "audiences": [
+    {
+      "name": "Artificial intelligence",
+      "days": 8,
+      "precision": [
+        0.6949152542372882,
+        0.5454545454545454,
+        0.8529411764705882
+      ],
+      "must_recall": [
+        0.84,
+        0.5699481865284974,
+        1.0
+      ],
+      "recall": [
+        0.6032368808239332,
+        0.5008944543828265,
+        0.7555555555555555
+      ],
+      "precision_text": "69% (55% to 85%)",
+      "must_recall_text": "84% (57% to 100%)"
+    },
+    {
+      "name": "Municipal affairs, Toronto",
+      "days": 8,
+      "precision": [
+        0.7666666666666667,
+        0.6585365853658537,
+        0.9166666666666666
+      ],
+      "must_recall": [
+        0.6008583690987124,
+        0.42105263157894735,
+        0.875
+      ],
+      "recall": [
+        0.5311778290993072,
+        0.4160246533127889,
+        0.6896551724137931
+      ],
+      "precision_text": "77% (66% to 92%)",
+      "must_recall_text": "60% (42% to 88%)"
+    },
+    {
+      "name": "Regional affairs, Newfoundland and Labrador",
+      "days": 9,
+      "precision": [
+        0.8333333333333334,
+        0.7444444444444445,
+        0.9111111111111111
+      ],
+      "must_recall": [
+        0.670487106017192,
+        0.5028901734104047,
+        0.746031746031746
+      ],
+      "recall": [
+        0.508819538670285,
+        0.39742619227857684,
+        0.6209790209790209
+      ],
+      "precision_text": "83% (74% to 91%)",
+      "must_recall_text": "67% (50% to 75%)"
+    },
+    {
+      "name": "Public health in Canada",
+      "days": 8,
+      "precision": [
+        1.0,
+        0.5515601748853359,
+        1.0
+      ],
+      "must_recall": [
+        0.6,
+        0.1,
+        0.8888888888888888
+      ],
+      "recall": [
+        0.42857142857142855,
+        0.2,
+        0.6
+      ],
+      "precision_text": "100% (55% to 100%)",
+      "must_recall_text": "60% (10% to 89%)"
+    }
+  ],
+  "kappa": "0.71 (0.59 to 0.82)",
+  "kappa_audience": "Municipal affairs, Toronto",
+  "dedup": "94% (84% to 98%) / 85% (58% to 100%)",
+  "purity": "98% (97% to 100%)",
+  "quotes": "100% (99% to 100%)",
+  "quotes_first": "100% (99% to 100%)",
+  "faith": "99% (98% to 100%)",
+  "faith_point": "99%",
+  "faith_n": 111,
+  "faith_unsupported": 2,
+  "reader_digest": "0.9 (0.6 to 1.2)",
+  "reader_sources": "1.9 (1.5 to 2.4)",
+  "reader_ratio": "2.1",
+  "reader_ratio_text": "2.1 (1.5 to 3.2)",
+  "reader_sessions": 15,
+  "reader_count": 3,
+  "lag_p50": "15 h (14 to 15)",
+  "cost_day": "CA$0.58",
+  "cost_month": "CA$18",
+  "cost_models_day": "CA$0.193 (CA$0.171 to CA$0.216)",
+  "uptime": "94% (81% to 99%), 30 of 32 days since 2026-10-08",
+  "measurement_from": "2026-11-09",
+  "measurement_to": "2026-12-08"
+}

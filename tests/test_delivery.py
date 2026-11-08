@@ -378,21 +378,36 @@ def test_the_bluesky_pick_is_shown_as_a_post_and_escaped() -> None:
     assert "Most discussed on Bluesky" not in html_page(digest())
 
 
-def test_the_front_page_explains_itself_below_the_audiences_and_claims_no_result() -> None:
+def test_the_front_page_explains_itself_and_shows_only_what_the_report_measured() -> None:
     import re
 
+    import pytest
+
+    from clippings.assemble.about import load_results
     from clippings.assemble.render import site_index
 
-    page = site_index([("ai", "AI", "About AI.", "2026-10-10")])
+    real = load_results()
+    # Every value replaced by a marker: whatever the page shows must come from these.
+    fake = {key: f"V-{key}-V" for key in real if key != "audiences"}
+    fake["audiences"] = real["audiences"]
+    page = site_index([("ai", "AI", "About AI.", "2026-10-10")], fake)
     cards, about = page.split('<section class="section"', 1)
     assert 'href="ai/2026-10-10/"' in cards
     anchors = re.findall(r'href="#([a-z]+)"', cards)
     assert anchors
     for anchor in anchors:
         assert f'id="{anchor}"' in page
-    # Plain punctuation, and no measured figure: those live in the README with intervals.
     assert not re.search("[\\u2012-\\u2015\\u2018\\u2019\\u201c\\u201d]", page)
-    assert "%" not in about
+    for key in ("precision_range", "faith", "kappa", "cost_month", "uptime", "reader_ratio"):
+        assert f"V-{key}-V" in page
+    # No measured share typed into the prose: outside the chart, the only percentages are
+    # the interval's level.
+    prose = re.sub(r"<svg.*?</svg>", "", about, flags=re.S)
+    assert set(re.findall(r"\d+%", prose)) <= {"95%"}
+    # A value the report did not write stops the page instead of leaving a gap.
+    del fake["faith"]
+    with pytest.raises(KeyError, match="faith"):
+        site_index([("ai", "AI", "About AI.", "2026-10-10")], fake)
 
 
 def test_a_day_with_posts_opens_with_a_button_for_news_and_one_for_posts() -> None:

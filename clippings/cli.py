@@ -18,6 +18,7 @@ There is no send command, and there will not be one.
 
 from __future__ import annotations
 
+import json
 import os
 import webbrowser
 from collections.abc import Sequence
@@ -31,6 +32,7 @@ from wsgiref.simple_server import make_server
 import typer
 
 from clippings import graph
+from clippings.assemble.about import RESULTS
 from clippings.assemble.deletions import expire_x_picks, recheck_picks
 from clippings.assemble.digest import Digest
 from clippings.assemble.publish import GcsSite, LocalSite, Site, publish_digest, publish_indexes
@@ -52,6 +54,7 @@ from clippings.eval.report import (
     detail,
     readme_tables,
     replace_between_markers,
+    site_values,
 )
 from clippings.gateway import (
     GatewayClient,
@@ -888,6 +891,7 @@ def report(
             bills=load_bills(),
         )
     Path("docs/report.md").write_text(detail(result), encoding="utf-8")
+    RESULTS.write_text(json.dumps(site_values(result), indent=2) + "\n", encoding="utf-8")
     typer.echo(readme_tables(result))
     typer.echo("\nwrote docs/report.md")
     if readme:

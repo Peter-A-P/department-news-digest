@@ -1093,3 +1093,78 @@ def replace_between_markers(text: str, block: str) -> str:
 
 def all_labels(stores: Iterable[Store]) -> list[Label]:
     return [label for store in stores for label in store.all_labels()]
+
+
+def _triple(estimate: Estimate | None) -> list[float] | None:
+    """An estimate as [point, low, high] for a chart, or None when it does not exist yet."""
+    if estimate is None or math.isnan(estimate.point):
+        return None
+    return [estimate.point, estimate.lo, estimate.hi]
+
+
+def site_values(report: Report) -> dict[str, object]:
+    """What the site's front page shows, from the same run as the README's tables.
+
+    Written to `clippings/assemble/results.json` by `clippings report` and read by
+    `assemble/about.py`, so no measured number is ever typed into the page. Strings are
+    already formatted the way the README prints them; triples feed the chart."""
+    precision = [r.precision.point for r in report.audiences if r.precision]
+    must = [r.must_recall.point for r in report.audiences if r.must_recall]
+    kappa = next((r for r in report.audiences if r.kappa is not None), None)
+    extra = sum(bill.cad_per_day for bill in report.bills)
+    whole = cad(report.cost_per_day.point) + extra
+    readers = report.readers
+    month = _month_days(report.uptime)
+    days = month or report.uptime
+    up = sum(day.up for day in days)
+    return {
+        "as_of": report.generated_at.date().isoformat(),
+        "first_day": report.first_day,
+        "last_day": report.last_day,
+        "digests": report.digests,
+        "labelled_days": sum(len(r.labelled_days) for r in report.audiences),
+        "precision_range": (
+            f"{min(precision):.0%} to {max(precision):.0%}" if precision else NOT_YET
+        ),
+        "must_recall_range": f"{min(must):.0%} to {max(must):.0%}" if must else NOT_YET,
+        "audiences": [
+            {
+                "name": r.name,
+                "days": len(r.labelled_days),
+                "precision": _triple(r.precision),
+                "must_recall": _triple(r.must_recall),
+                "recall": _triple(r.recall),
+                "precision_text": pct(r.precision),
+                "must_recall_text": pct(r.must_recall),
+            }
+            for r in report.audiences
+        ],
+        "kappa": num(kappa.kappa) if kappa else NOT_YET,
+        "kappa_audience": kappa.name if kappa else "",
+        "dedup": f"{pct(report.dedup_precision)} / {pct(report.dedup_recall)}",
+        "purity": pct(report.purity_joined),
+        "quotes": pct(report.quotes_after_repair),
+        "quotes_first": pct(report.quotes_first),
+        "faith": pct(report.faith),
+        "faith_point": f"{report.faith.point:.0%}" if report.faith else NOT_YET,
+        "faith_n": report.faith.n if report.faith else 0,
+        "faith_unsupported": len(report.faith_unsupported),
+        "reader_digest": num(readers.digest, ".1f") if readers else NOT_YET,
+        "reader_sources": num(readers.sources, ".1f") if readers else NOT_YET,
+        "reader_ratio": f"{readers.ratio.point:.1f}" if readers else NOT_YET,
+        "reader_ratio_text": num(readers.ratio, ".1f") if readers else NOT_YET,
+        "reader_sessions": readers.sessions if readers else 0,
+        "reader_count": readers.readers if readers else 0,
+        "lag_p50": num(report.lag_p50, ".0f", " h"),
+        "cost_day": f"CA${whole:.2f}",
+        "cost_month": f"CA${whole * 30.4:.0f}",
+        "cost_models_day": cad_money(report.cost_per_day),
+        "uptime": (
+            f"{pct(counted_share(up, len(days)))}, {up} of {len(days)} days"
+            + (" of the measurement month" if month else f" since {UPTIME_FROM}")
+            if days
+            else NOT_YET
+        ),
+        "measurement_from": MEASUREMENT_FROM,
+        "measurement_to": MEASUREMENT_TO,
+    }
