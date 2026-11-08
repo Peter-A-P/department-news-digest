@@ -7,7 +7,7 @@
   last_day: 2026-11-08
   amount: 0.00
   currency: CAD
-  source: Cloud Billing reports, billing account BILLING-ACCOUNT, grouped by service
+  source: Cloud Billing reports for the project's billing account, grouped by service
   read_on: 2026-11-08
   note: >-
     Cloud Run, Cloud Scheduler, Cloud Storage and Cloud Logging all within the free tier. The
