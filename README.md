@@ -27,22 +27,22 @@ file an owner can send. It has no send path.
 ## Result
 
 <!-- report:start -->
-Measured over 127 digests from 2026-10-07 to 2026-11-07, by `clippings report` on 2026-11-08. 95% intervals throughout. 33 audience-days hand-labelled: every audience has its labelled week.
+Measured over 131 digests from 2026-10-07 to 2026-11-08, by `clippings report` on 2026-11-08. 95% intervals throughout. 33 audience-days hand-labelled: every audience has its labelled week.
 
 **Relevance, per audience, against a hand-labelled week**
 
 | Audience | Precision at K (95% CI) | Recall of must-read stories, importance-weighted (95% CI) | Must-read stories per day | Recall of all relevant stories | Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |
 |---|---|---|---|---|---|---|---|---|
-| Artificial intelligence | 69% (55% to 85%), 8 days | 84% (57% to 100%) | 3.1 (2.1 to 4.4) | 60% (50% to 76%) | 8.5 (5.2 to 12.9) | _not yet_ | 8.4 (7.3 to 9.4) | CA$0.056 (CA$0.047 to CA$0.064) |
-| Municipal affairs, Toronto | 77% (66% to 92%), 8 days | 60% (42% to 88%) | 2.9 (1.8 to 4.4) | 53% (42% to 69%) | 5.4 (3.5 to 7.6) | _not yet_ | 4.8 (3.8 to 5.8) | CA$0.047 (CA$0.038 to CA$0.057) |
-| Regional affairs, Newfoundland and Labrador | 83% (74% to 91%), 9 days | 67% (50% to 75%) | 7.3 (5.1 to 9.0) | 51% (40% to 62%) | 16.4 (13.0 to 19.9) | _not yet_ | 9.8 (9.5 to 10.0) | CA$0.066 (CA$0.063 to CA$0.070) |
-| Public health in Canada | 100% (55% to 100%), 8 days | 60% (10% to 89%) | 1.2 (0.6 to 1.9) | 43% (20% to 60%) | 2.6 (1.5 to 3.8) | _not yet_ | 2.5 (1.6 to 3.5) | CA$0.026 (CA$0.017 to CA$0.035) |
+| Artificial intelligence | 69% (55% to 85%), 8 days | 84% (57% to 100%) | 3.1 (2.1 to 4.4) | 60% (50% to 76%) | 8.5 (5.2 to 12.9) | _not yet_ | 8.5 (7.4 to 9.4) | CA$0.058 (CA$0.049 to CA$0.066) |
+| Municipal affairs, Toronto | 77% (66% to 92%), 8 days | 60% (42% to 88%) | 2.9 (1.8 to 4.4) | 53% (42% to 69%) | 5.4 (3.5 to 7.6) | 0.71 (0.59 to 0.82) | 4.7 (3.8 to 5.7) | CA$0.046 (CA$0.037 to CA$0.056) |
+| Regional affairs, Newfoundland and Labrador | 83% (74% to 91%), 9 days | 67% (50% to 75%) | 7.3 (5.1 to 9.0) | 51% (40% to 62%) | 16.4 (13.0 to 19.9) | _not yet_ | 9.8 (9.6 to 10.0) | CA$0.066 (CA$0.063 to CA$0.070) |
+| Public health in Canada | 100% (55% to 100%), 8 days | 60% (10% to 89%) | 1.2 (0.6 to 1.9) | 43% (20% to 60%) | 2.6 (1.5 to 3.8) | _not yet_ | 2.4 (1.5 to 3.4) | CA$0.025 (CA$0.016 to CA$0.034) |
 
 **Pipeline properties**
 
 | Deduplication precision / recall (pairs) | Collapse rate | Cluster purity, stories of several articles | Quotes verbatim, before / after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime of the scheduled daily run |
 |---|---|---|---|---|---|---|---|---|
-| 94% (84% to 98%) / 85% (58% to 100%), 27 audience-days | 1.17 (1.15 to 1.19) items per story | 98% (97% to 100%), 26 audience-days | 100% (99% to 100%) / 100% (99% to 100%) | 100% (100% to 100%) | 99% (98% to 100%), 111 sentences | 15 h (14 to 15) / 33 h (33 to 37) | 0.9 (0.6 to 1.2) vs 1.9 (1.5 to 2.4), 15 sessions | 94% (81% to 99%), 29 of 31 days since 2026-10-08 |
+| 94% (84% to 98%) / 85% (58% to 100%), 27 audience-days | 1.17 (1.15 to 1.19) items per story | 98% (97% to 100%), 26 audience-days | 100% (99% to 100%) / 100% (99% to 100%) | 100% (100% to 100%) | 99% (98% to 100%), 111 sentences | 15 h (14 to 15) / 33 h (33 to 37) | 0.9 (0.6 to 1.2) vs 1.9 (1.5 to 2.4), 15 sessions | 94% (81% to 99%), 30 of 32 days since 2026-10-08 |
 
 Cluster purity is the share of articles in a story of several that a labeller judged to belong with the rest; over every news article, stories of one included, it is 100% (99% to 100%).
 
@@ -58,7 +58,7 @@ Most discussed on Bluesky, judged worth showing: Artificial intelligence 100% (7
 
 Most discussed on X, judged worth showing: Artificial intelligence 100% (80% to 100%); Municipal affairs, Toronto 100% (61% to 100%); Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API.
 
-All four digests together cost CA$0.193 (CA$0.170 to CA$0.216) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
+All four digests together cost CA$0.193 (CA$0.171 to CA$0.216) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
 <!-- report:end -->
 
 ## What this does not do
