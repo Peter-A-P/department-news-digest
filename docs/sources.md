@@ -172,16 +172,9 @@ allowed.
 ## The provincial government's own releases
 
 `https://www.gov.nl.ca/releases/feed/` works and would be the highest-value source in the
-Newfoundland and Labrador audience. It is deliberately not used.
-
-The reason is not the terms, which are public and permissive. It is that this repository is
-public and its author works for that government, and the portfolio keeps a visible
-separation between work built here and work built there. The same call was made in project
-07, where the real-record test uses published federal releases only and the employer's own
-disclosure log is excluded. Including the employer's newsroom in an example audience would
-make the separation something a reader has to take on trust rather than something they can
-see. The audience is built from independent outlets instead, which is also the more honest
-test of the ranking.
+Newfoundland and Labrador audience. It is deliberately not used, although its terms are
+public and permissive. The audience is built from independent outlets instead, which is also
+the more honest test of the ranking.
 
 ## Sources considered and not used
 
