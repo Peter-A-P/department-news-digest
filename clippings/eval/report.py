@@ -45,6 +45,7 @@ from gate.stats import rate_draw
 from clippings.assemble.digest import Digest
 from clippings.config.audience import Audience
 from clippings.constants import CAD_PER_USD, UPTIME_FROM, cad
+from clippings.eval.bills import Bill
 from clippings.eval.labels import ranked_ids_for_day
 from clippings.eval.sample import DEFAULT_TOP, stratified_sample
 from clippings.eval.uptime import UptimeDay, uptime_days
@@ -470,6 +471,8 @@ class Report:
     lag_p90: Estimate
     cost_per_day: Estimate
     uncosted_calls: int
+    # What the cloud and X billed, read from their own pages (eval/bills.py).
+    bills: list[Bill]
     # Deduplication against labelled pairs: precision and recall, the audience-days they
     # come from, and the "check" pairs found to be one story, of those judged.
     dedup_precision: Estimate | None
@@ -559,6 +562,7 @@ def build_report(
     purity_labels: Sequence[PurityLabel] = (),
     faith_labels: Sequence[FaithLabel] = (),
     reader_sessions: Sequence[ReaderSession] = (),
+    bills: Sequence[Bill] = (),
     now: datetime | None = None,
 ) -> Report:
     digests = [
@@ -731,6 +735,7 @@ def build_report(
         lag_p90=quantile(lags, 0.9),
         cost_per_day=bootstrap_mean(list(by_day.values())),
         uncosted_calls=totals["uncosted"],
+        bills=list(bills),
         dedup_precision=dedup_precision,
         dedup_recall=dedup_recall,
         pair_days=len(judged),
@@ -966,9 +971,39 @@ def readme_tables(report: Report) -> str:
         f"All four digests together cost {cad_money(report.cost_per_day)} a day in model calls, from "
         f"the gateway's ledger, converted from US dollars at {CAD_PER_USD} CAD per USD"
         + (f" ({report.uncosted_calls} calls uncosted)" if report.uncosted_calls else "")
-        + ". Details, per source and per day: [docs/report.md](docs/report.md).",
+        + "."
+        + _bills_text(report)
+        + " Details, per source and per day: [docs/report.md](docs/report.md).",
     ]
     return "\n".join(lines)
+
+
+def _bill_amount(bill: Bill) -> str:
+    return f"{'US' if bill.currency == 'USD' else 'CA'}${bill.amount:.2f}"
+
+
+def _bills_text(report: Report) -> str:
+    """The bills the ledger does not see, and everything together. A bill is a total, not a
+    sample, so the interval of the whole is the model cost's, moved by the bills."""
+    if not report.bills:
+        return ""
+    parts = [
+        f"{bill.name} billed {_bill_amount(bill)} from {bill.first_day} to {bill.last_day}, "
+        f"CA${bill.cad_per_day:.3f} a day"
+        for bill in report.bills
+    ]
+    extra = sum(bill.cad_per_day for bill in report.bills)
+    whole = report.cost_per_day
+    if math.isnan(whole.point):
+        return " " + "; ".join(parts) + "."
+    point, lo, hi = (cad(value) + extra for value in (whole.point, whole.lo, whole.hi))
+    return (
+        " "
+        + "; ".join(parts)
+        + ", read from their own billing pages ([docs/bills.yaml](docs/bills.yaml)). "
+        f"Everything together: CA${point:.3f} (CA${lo:.3f} to CA${hi:.3f}) a day, "
+        f"about CA${point * 30.4:.0f} a month."
+    )
 
 
 def detail(report: Report) -> str:

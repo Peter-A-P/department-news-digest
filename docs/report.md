@@ -33,7 +33,7 @@ Most discussed on Bluesky, judged worth showing: Artificial intelligence 100% (7
 
 Most discussed on X, judged worth showing: Artificial intelligence 100% (80% to 100%); Municipal affairs, Toronto 100% (61% to 100%); Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API.
 
-All four digests together cost CA$0.193 (CA$0.171 to CA$0.216) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
+All four digests together cost CA$0.193 (CA$0.171 to CA$0.216) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Google Cloud billed CA$0.00 from 2026-10-07 to 2026-11-08, CA$0.000 a day; X API billed US$8.01 from 2026-10-12 to 2026-11-08, CA$0.386 a day, read from their own billing pages ([docs/bills.yaml](docs/bills.yaml)). Everything together: CA$0.579 (CA$0.557 to CA$0.602) a day, about CA$18 a month. Details, per source and per day: [docs/report.md](docs/report.md).
 
 ## Labelled days
 

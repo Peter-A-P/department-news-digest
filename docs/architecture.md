@@ -77,7 +77,9 @@ audience-days are labelled so far, and the numbers fill in as more are done.
 How often quotes were exact before and after repair, and how many first-draft sentences
 carried a citation, come from the checker's own record. Stories per day, how often duplicates
 were collapsed and how long a story takes to appear come from the database. The cost per digest
-and per day comes from the gateway's ledger, converted to Canadian dollars.
+and per day comes from the gateway's ledger, converted to Canadian dollars. What the ledger does
+not see, the Google Cloud bill and X's pay-per-use charges, is read by hand from each vendor's
+billing page into `docs/bills.yaml`, with the period and the day it was read, and added to it.
 
 How well duplicates are detected comes from pairs of articles labelled "same story" or not,
 on a second page of the same tool. Each day it asks about pairs the clustering joined, pairs

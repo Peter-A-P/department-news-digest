@@ -41,6 +41,7 @@ from clippings.cluster.embed import Hashing, default_embedder
 from clippings.config.audience import Audience
 from clippings.config.load import EXAMPLES, AudienceFileError, load_audience, load_audiences
 from clippings.constants import RETENTION_DAYS, cad
+from clippings.eval.bills import load_bills
 from clippings.eval.label_ui import Workspace
 from clippings.eval.label_ui import application as label_application
 from clippings.eval.reader_study import Study
@@ -884,6 +885,7 @@ def report(
             reader_sessions=[
                 session for one in [store, *label_stores] for session in one.reader_sessions()
             ],
+            bills=load_bills(),
         )
     Path("docs/report.md").write_text(detail(result), encoding="utf-8")
     typer.echo(readme_tables(result))

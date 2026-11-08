@@ -1,0 +1,27 @@
+# Totals read by hand from each vendor's billing page, for what the gateway's ledger does not
+# see (clippings/eval/bills.py). `clippings report` spreads each over the days the service
+# ran and adds it to the model cost. Add a new entry for a new period; do not edit an old one.
+
+- name: Google Cloud
+  first_day: 2026-10-07
+  last_day: 2026-11-08
+  amount: 0.00
+  currency: CAD
+  source: Cloud Billing reports, billing account BILLING-ACCOUNT, grouped by service
+  read_on: 2026-11-08
+  note: >-
+    Cloud Run, Cloud Scheduler, Cloud Storage and Cloud Logging all within the free tier. The
+    account's only other charge, Gemini API, is another project's (gen-lang-client-0915051085);
+    Gemini is not enabled in clippings-digest.
+
+- name: X API
+  first_day: 2026-10-12
+  last_day: 2026-11-08
+  amount: 8.01
+  currency: USD
+  source: X Developer Console, Usage analytics, 2026-10-09 to 2026-11-08 UTC, total cost
+  read_on: 2026-11-08
+  note: >-
+    1.48K billable events in 209 requests, for the AI and Toronto digests' X picks; the first
+    request was on 2026-10-12. Counted at what X charged against the account's balance,
+    whether that balance came from free credits or bought ones.
