@@ -234,7 +234,8 @@ left, which is what makes dropping one cheap.</p></div>
 _BUILT = """<section class="section" id="built">
 <p class="eyebrow">How this was built</p>
 <h2>Whose decisions these were</h2>
-<p class="section-lead">I chose the four audiences to differ, so that one product would have
+<p class="section-lead">I designed this project and made the calls in it. I chose the four
+audiences to differ, so that one product would have
 to serve a fast global subject, a big city, a national brief and a small province. I labelled
 every relevance week, duplicate pair, story check and faithfulness sentence myself, and asked
 a second person to label Toronto's week without seeing my answers. When Bluesky commentary
