@@ -353,7 +353,8 @@ person. A run's id carries its start time, and a retry now marks itself `-retry<
 two are told apart without the console. Counted from 2026-10-08, the first morning the
 schedule fired; checked against Cloud Run's execution list on 2026-10-18, it finds the one
 day that was down (2026-10-08, out of memory, rerun by hand). It is reported from that day
-until the measurement month has a start date, and then over the month.
+until the measurement month has a start date, and then over the month: 2026-11-09 to
+2026-12-08 (Peter, 2026-11-08), set in `clippings/constants.py`.
 
 ### 2.7 Out of scope, on purpose
 
@@ -431,7 +432,7 @@ writing.
 | 1 | Source adapters with terms recorded; normalise, extract, store on DuckDB with Cloud Storage sync; near-duplicate and story clustering; the four audience configs; gateway aliases; labelling CLI; first local end-to-end run on one audience | A day's pool for one audience clustered locally; `docs/sources.md` complete |
 | 2 | Hybrid ranking and gateway re-ranker; cited summariser, verifier, repair; assembly and rendering (page, Markdown, .eml draft); LangGraph graph; Cloud Run job, service and scheduler deployed; daily runs begin for all four audiences; labelling week starts as days arrive | Four digests published daily at digest.peterparker.ca; labels accumulating |
 | 3 | Evaluation: precision, recall and kappa through the gate; deduplication pairs; quote and faithfulness checks; source yield; timeliness; cost per digest; reader study (three readers, five days); trend view; Rule C write-up; README; `v0.1.0` | Every table in section 1 filled except uptime; repository public |
-| Measurement month | Daily runs unattended; uptime, cost and timeliness collected; a second labelled week on one audience if drift in relevance is suspected | Uptime and monthly cost added to the README |
+| Measurement month, 2026-11-09 to 2026-12-08 | Daily runs unattended; uptime, cost and timeliness collected; a second labelled week on one audience if drift in relevance is suspected | Uptime and monthly cost added to the README |
 
 First to drop if behind: the trend view; Bluesky (RSS and GDELT stay); the reader
 study to two readers. The four audiences, the labelled week with intervals,
@@ -455,7 +456,7 @@ a sixth of the cost per call; at low effort it agreed less with the labels and w
 | Re-ranking | 60 candidates per audience per day; Haiku 5.5 since 2026-10-10 (Haiku 4.5, about US$0.013 measured, before) | 0.002 per audience-day | |
 | Summaries | About 10 stories per digest at about 3,000 tokens in and 400 out; Sonnet 5 | 0.10 per audience-day | |
 | Running cost, four audiences | About US$0.10 per audience-day, 30 days | 12 per month | 16 per month |
-| X API, since 2026-10-12 | Post reads per day: fifty for AI since 2026-10-15, ten each for Toronto and Newfoundland and Labrador; one user read per audience per day; at list price; capped at US$12 a month in code | 11.40 per month | 15.40 per month |
+| X API, since 2026-10-12 | Post reads per day: fifty for AI since 2026-10-15, ten for Newfoundland and Labrador, and ten for Toronto until 2026-11-09; one user read per audience per day; at list price; capped at US$12 a month in code | 11.40 per month | 15.40 per month |
 | Cloud Run job and service, Scheduler, Storage | Within free tiers at this volume; egress a few GB | 0 to 3 per month | 0 to 4 per month |
 | Build month | Development reruns, the labelled week rerun under five configurations, faithfulness sample | 40 | 54 |
 | **Build** | | **40** | **54** |
@@ -504,20 +505,20 @@ Whichever produces the clearest evidence becomes `docs/rejected.md`.
 
 ## 10. Definition of done
 
-- [ ] Four example audiences configured and running daily on Cloud Run with Cloud Scheduler
-- [ ] Hand-labelled week per audience; precision at K and importance-weighted recall with CIs through the 03 gate; kappa on one audience
-- [ ] Deduplication precision and recall on labelled pairs; collapse rate reported
-- [ ] Every quote in a published digest verified verbatim against its source; before-and-after repair counts published
-- [ ] Citation coverage and faithfulness on a 100-sentence sample
-- [ ] Reader time with and without the digest, with CI
-- [ ] Timeliness and source yield reported
-- [ ] Cost per digest per audience from the gateway ledger and the cloud bill
-- [ ] Source terms recorded for every source used, with dates
-- [ ] No send path; the test that asserts it passes
-- [ ] Uptime over the measurement month
-- [ ] Digest pages live at digest.peterparker.ca
-- [ ] README opens with the one-liner and the results table
-- [ ] One rejected approach documented with evidence (Rule C)
+- [x] Four example audiences configured and running daily on Cloud Run with Cloud Scheduler
+- [x] Hand-labelled week per audience; precision at K and importance-weighted recall with CIs through the 03 gate; kappa on one audience
+- [x] Deduplication precision and recall on labelled pairs; collapse rate reported
+- [x] Every quote in a published digest verified verbatim against its source; before-and-after repair counts published
+- [x] Citation coverage and faithfulness on a 100-sentence sample
+- [x] Reader time with and without the digest, with CI
+- [x] Timeliness and source yield reported
+- [x] Cost per digest per audience from the gateway ledger and the cloud bill
+- [x] Source terms recorded for every source used, with dates
+- [x] No send path; the test that asserts it passes
+- [ ] Uptime over the measurement month (2026-11-09 to 2026-12-08)
+- [x] Digest pages live at digest.peterparker.ca
+- [x] README opens with the one-liner and the results table
+- [x] One rejected approach documented with evidence (Rule C)
 - [ ] Repository public, `v0.1.0` tagged
 
 ## 11. Deferred

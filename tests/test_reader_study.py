@@ -173,3 +173,19 @@ def test_a_day_rescued_by_hand_or_missing_an_audience_is_down(store: Store) -> N
         ("2026-10-09", True, ()),
         ("2026-10-10", False, ("b",)),
     ]
+
+
+def test_once_the_measurement_month_has_a_day_the_uptime_cell_is_the_months(
+    store: Store, audience: Audience
+) -> None:
+    def cell(now: datetime) -> str:
+        tables = readme_tables(build_report(store, [], [audience], "peter", now=now))
+        return tables.split("**Pipeline properties**")[1]
+
+    before = cell(datetime(2026, 11, 9, 10, 0, tzinfo=UTC))
+    assert "days since 2026-10-08" in before and "measurement month runs from" in before
+    during = cell(datetime(2026, 11, 11, 12, 0, tzinfo=UTC))
+    assert "0 of 3 days of the measurement month, 2026-11-09 to 2026-12-08" in during
+    assert "Since 2026-10-08, the first scheduled morning:" in during
+    after = cell(datetime(2027, 1, 1, tzinfo=UTC))
+    assert "of 30 days of the measurement month" in after

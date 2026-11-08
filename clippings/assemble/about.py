@@ -47,7 +47,7 @@ morning Eastern time, and each step exists because the obvious version of it eit
 too much or cannot be checked.</p>
 <ol class="steps">
 <li><strong>Read the sources</strong>News feeds, publishers' site indexes, the GDELT global
-news index, Bluesky search and, for the AI and Toronto audiences, X's paid API. A source is requested only if its terms of use were read and
+news index, Bluesky search and, for the AI and Newfoundland and Labrador audiences, X's paid API. A source is requested only if its terms of use were read and
 dated in the project's record; the code refuses anything else, and a site's robots rules
 are obeyed.</li>
 <li><strong>Store and clean</strong>Articles go into DuckDB for {retention} days. Readable text is

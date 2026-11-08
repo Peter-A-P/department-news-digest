@@ -47,6 +47,11 @@ SCHEDULED_GRACE_MINUTES: Final = 15
 # after that day's 09:00, so that day's digests came from a run started by hand.
 UPTIME_FROM: Final = "2026-10-08"
 
+# The measurement month (PLAN.md section 2.6): the daily runs left alone, with uptime and cost
+# reported over it (Peter, 2026-11-08). Once it has a day, the uptime cell is the month's.
+MEASUREMENT_FROM: Final = "2026-11-09"
+MEASUREMENT_TO: Final = "2026-12-08"
+
 # Every model call this project makes is over public sources only.
 GATEWAY_DATA_CLASS: Final = "public"
 

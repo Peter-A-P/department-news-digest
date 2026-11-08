@@ -6,15 +6,16 @@ audience, and delivers a short briefing with every claim cited and every quote c
 its source. One system in place of dozens of people doing this by hand, for a few dollars a
 month each, with measured precision and recall.
 
-**Status: building.** The whole pipeline is built and tested: ingestion, deduplication,
-clustering, ranking, the model re-ranker, cited summaries, the verifier with one repair,
-the page, the Markdown and the email draft, the read-only service and the Cloud Run
-deployment. It has run daily on Cloud Run since 2026-10-07, for all four audiences, at about
-CA$0.31 (US$0.23) a day in model calls, and the digests are at https://digest.peterparker.ca. The
-pipeline's own properties are measured below by `clippings report`; relevance waits on the
-hand-labelled week.
-The plan is in [PLAN.md](PLAN.md): a build on Google Cloud Run, then a measurement month
-running daily.
+**Status: built and measured; in its measurement month.** The whole pipeline is built,
+tested and running: ingestion, deduplication, clustering, ranking, the model re-ranker,
+cited summaries, the verifier with one repair, the page, the Markdown and the email draft,
+the read-only service and the Cloud Run deployment. It has run daily on Cloud Run since
+2026-10-07 for all four audiences, and the digests are at https://digest.peterparker.ca.
+Every number below is filled by `clippings report`: relevance against a hand-labelled week
+per audience, with a second labeller's agreement on one, the pipeline's own checks, a timed
+reader study, and the cost from the gateway's ledger and the vendors' bills. The
+measurement month, 2026-11-09 to 2026-12-08, leaves the daily runs alone and reports uptime
+and cost over it. The plan is in [PLAN.md](PLAN.md).
 
 **Every source is gated on its terms.** A source is fetched only when its row in
 [docs/sources.md](docs/sources.md) says `allowed` with the date the terms were read; until
@@ -50,7 +51,7 @@ Faithfulness is the share of sampled digest sentences that say only what the sou
 
 Reader minutes are minutes with the page in view, from 3 readers briefed on a morning either from the digest or from the news items it was made from; from the sources they took 2.1 (1.5 to 3.2) times as long. Of the 43 items readers ticked as worth a briefing when working from the sources, 72% (58% to 84%) were in a story the digest showed.
 
-Uptime counts a day as up when the run Cloud Scheduler started at 09:00 UTC, or Cloud Run's automatic retry of it, published every audience's digest; a day rescued by a run started by hand is down (2026-10-08, 2026-10-25).
+Uptime counts a day as up when the run Cloud Scheduler started at 09:00 UTC, or Cloud Run's automatic retry of it, published every audience's digest; a day rescued by a run started by hand is down (2026-10-08, 2026-10-25). The measurement month runs from 2026-11-09 to 2026-12-08.
 
 Deduplication recall is over the pairs whose words overlap most, where a missed duplicate almost always is; of 54 pairs drawn from outside them as a check, 1 was the same story.
 

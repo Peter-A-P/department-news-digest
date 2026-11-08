@@ -25,7 +25,7 @@ Faithfulness is the share of sampled digest sentences that say only what the sou
 
 Reader minutes are minutes with the page in view, from 3 readers briefed on a morning either from the digest or from the news items it was made from; from the sources they took 2.1 (1.5 to 3.2) times as long. Of the 43 items readers ticked as worth a briefing when working from the sources, 72% (58% to 84%) were in a story the digest showed.
 
-Uptime counts a day as up when the run Cloud Scheduler started at 09:00 UTC, or Cloud Run's automatic retry of it, published every audience's digest; a day rescued by a run started by hand is down (2026-10-08, 2026-10-25).
+Uptime counts a day as up when the run Cloud Scheduler started at 09:00 UTC, or Cloud Run's automatic retry of it, published every audience's digest; a day rescued by a run started by hand is down (2026-10-08, 2026-10-25). The measurement month runs from 2026-11-09 to 2026-12-08.
 
 Deduplication recall is over the pairs whose words overlap most, where a missed duplicate almost always is; of 54 pairs drawn from outside them as a check, 1 was the same story.
 

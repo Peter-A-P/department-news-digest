@@ -44,7 +44,7 @@ from gate.stats import rate_draw
 
 from clippings.assemble.digest import Digest
 from clippings.config.audience import Audience
-from clippings.constants import CAD_PER_USD, UPTIME_FROM, cad
+from clippings.constants import CAD_PER_USD, MEASUREMENT_FROM, MEASUREMENT_TO, UPTIME_FROM, cad
 from clippings.eval.bills import Bill
 from clippings.eval.labels import ranked_ids_for_day
 from clippings.eval.sample import DEFAULT_TOP, stratified_sample
@@ -818,6 +818,10 @@ def cad_money(estimate: Estimate) -> str:
     return f"CA${point:.3f} (CA${lo:.3f} to CA${hi:.3f})"
 
 
+def _month_days(days: Sequence[UptimeDay]) -> list[UptimeDay]:
+    return [day for day in days if MEASUREMENT_FROM <= day.day <= MEASUREMENT_TO]
+
+
 def readme_tables(report: Report) -> str:
     labelled = sum(len(result.labelled_days) for result in report.audiences)
     lines = [
@@ -872,13 +876,21 @@ def readme_tables(report: Report) -> str:
         else f"{num(report.readers.digest, '.1f')} vs {num(report.readers.sources, '.1f')}, "
         f"{report.readers.sessions} sessions"
     )
+    month = _month_days(report.uptime)
     up = sum(day.up for day in report.uptime)
-    uptime = (
-        NOT_YET
-        if not report.uptime
-        else f"{pct(counted_share(up, len(report.uptime)))}, {up} of {len(report.uptime)} "
-        f"days since {UPTIME_FROM}"
-    )
+    if month:
+        month_up = sum(day.up for day in month)
+        uptime = (
+            f"{pct(counted_share(month_up, len(month)))}, {month_up} of {len(month)} days of the "
+            f"measurement month, {MEASUREMENT_FROM} to {MEASUREMENT_TO}"
+        )
+    elif report.uptime:
+        uptime = (
+            f"{pct(counted_share(up, len(report.uptime)))}, {up} of {len(report.uptime)} "
+            f"days since {UPTIME_FROM}"
+        )
+    else:
+        uptime = NOT_YET
     lines += [
         "",
         "**Pipeline properties**",
@@ -948,7 +960,13 @@ def readme_tables(report: Report) -> str:
             "Uptime counts a day as up when the run Cloud Scheduler started at 09:00 UTC, or "
             "Cloud Run's automatic retry of it, published every audience's digest; a day "
             "rescued by a run started by hand is down"
-            + (f" ({', '.join(day.day for day in missed)})." if missed else "."),
+            + (f" ({', '.join(day.day for day in missed)})." if missed else ".")
+            + (
+                f" Since {UPTIME_FROM}, the first scheduled morning: "
+                f"{pct(counted_share(up, len(report.uptime)))}, {up} of {len(report.uptime)} days."
+                if month
+                else f" The measurement month runs from {MEASUREMENT_FROM} to {MEASUREMENT_TO}."
+            ),
             "",
         ]
     if report.pair_days:

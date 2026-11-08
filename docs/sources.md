@@ -153,7 +153,8 @@ pay-per-use, US$0.005 a post read and US$0.010 a user read, counted once per res
 day, so one search of ten posts and one author lookup a day costs about US$0.06 an audience.
 It was added on 2026-10-10 for one post a day, while the Reddit access request was unanswered;
 Reddit was dropped on 2026-11-07 and X stays (Peter). Since 2026-10-13 it reads named people in public
-roles, for the AI, Toronto and Newfoundland and Labrador audiences (PLAN.md section 2.3). Read on 2026-10-10:
+roles, for the AI and Newfoundland and Labrador audiences (PLAN.md section 2.3); Toronto's was
+switched off on 2026-11-09 (Peter). Read on 2026-10-10:
 
 | Term | Where | What it means here |
 |---|---|---|
