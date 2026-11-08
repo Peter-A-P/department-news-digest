@@ -1,7 +1,7 @@
 """X, through its official API v2: one recent search a day, for one post (rank/x_pick.py).
 
-Added 2026-10-10 while Reddit's access request is unanswered, and likely dropped if Reddit
-approves it (Peter). X is not a `Source` in the ingest sense. Its posts never enter the
+Added 2026-10-10 while Reddit's access request was unanswered; Reddit was dropped on
+2026-11-07 and X stays (Peter). X is not a `Source` in the ingest sense. Its posts never enter the
 pool or a story: X's display rules allow a post to be shown only whole and unaltered, so a
 twenty-five-word quote of one inside a story summary is exactly what they forbid. The only
 use is the day's pick, shown whole on the day it is picked.

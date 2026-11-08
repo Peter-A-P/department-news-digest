@@ -75,10 +75,12 @@ deliberately not one of its sources, for the reason recorded in `docs/sources.md
 
 ### 2.2 Official APIs and published feeds only; terms recorded before use
 
-RSS and Atom feeds and news APIs; GDELT's document API for global coverage; the Reddit
-API through a registered application on its free tier; Bluesky through the public AT
-Protocol API. X only through its official API: out at plan time because no tier fitted the
-budget, and in from 2026-10-10 for one post a day on pay-per-use pricing (section 2.3). No
+RSS and Atom feeds and news APIs; GDELT's document API for global coverage; Bluesky
+through the public AT Protocol API. Reddit was planned through a registered application on
+its free tier, but since November 2025 that needs Reddit's approval; the request of
+2026-10-09 had no answer after four weeks, so Reddit was dropped on 2026-11-07 (Peter). X
+only through its official API: out at plan time because no tier fitted the budget, and in
+from 2026-10-10 for one post a day on pay-per-use pricing (section 2.3). No
 scraping around paywalls or robots rules. Article text is
 extracted only from pages that allow it, kept for thirty days for processing, and never
 republished: the digest shows a summary, a link, and quotes of at most twenty-five words.
@@ -110,8 +112,8 @@ this, 69 of the 130 stories shown from 2026-10-08 to 2026-10-12 were stories the
 day's digest could already have shown. Stories left out this way are not ranked, so they are
 not sampled for labelling either: a story the reader saw yesterday is not today's to miss.
 
-Posts are not stories (decided by Peter, 2026-10-08). A Reddit or Bluesky post reaches a
-digest only inside a story that a feed or GDELT also carries, where it counts towards
+Posts are not stories (decided by Peter, 2026-10-08). A Bluesky post reaches a digest
+only inside a story that a feed or GDELT also carries, where it counts towards
 corroboration and can be cited beside the report; a story made only of posts is not a
 candidate, and a story is always headed by a news item. On the first day Bluesky was on,
 commentary posts ("Lmfao former Liberal MPP...") took six of Toronto's ten slots, because
@@ -162,11 +164,10 @@ engaged rather than eight, because a person's most liked post of the day is ofte
 For Newfoundland and Labrador and public health, where X is off, this is where the people
 those audiences follow are. A post is its author's to delete, so each run checks the picks of the last
 thirty days against Bluesky's public API and removes the words of any post that no longer
-exists, and after thirty days a pick keeps only its twenty-five-word quote. Reddit posts are
-never shown beyond the quote: the access request to Reddit said so.
+exists, and after thirty days a pick keeps only its twenty-five-word quote.
 
-One X post a day may appear beside it (Peter, 2026-10-10), while the Reddit access request is
-unanswered; if Reddit approves it, X is likely to be dropped. X's API has been pay-per-use
+One X post a day may appear beside it (Peter, 2026-10-10). It was added while the Reddit access
+request was unanswered, and stays now that Reddit is dropped. X's API has been pay-per-use
 since February 2026, US$0.005 a post read and US$0.010 a user read, so X is read for the pick
 and nothing else: one search a day for the audience's query, ten candidates (X's minimum) by
 X's own relevance order from the last day, the same rubric scoring with the rules for posts,
@@ -369,7 +370,6 @@ until the measurement month has a start date, and then over the month.
 |---|---|---|---|
 | RSS and Atom feeds from news outlets, government newsrooms, journals | Hundreds of items per day across four audiences | The core news stream | Publisher terms and robots rules respected; text kept thirty days; recorded per feed |
 | GDELT document API | Queried per audience daily | Global coverage of the audience's entities | Free, open; rate limits respected |
-| Reddit API | Selected public subreddits per audience | Public discussion | Registered application, free tier; terms read and recorded; deletions honoured by thirty-day retention |
 | Bluesky public API (AT Protocol) | Search and feeds per audience | Public discussion | Public API; user preferences respected |
 | X API v2, pay-per-use | One search of ten posts and one author lookup per audience per day; for AI, thirty posts from named people and twenty by subject | The day's X pick only | Official API, terms read and recorded; shown whole on its day only; not for government users without an Enterprise plan |
 | Hand-labelled week | About 420 labels per audience, 60 per day; one audience double-labelled | Precision, recall, kappa | Own |
@@ -386,7 +386,7 @@ clippings/
   config/      audience.py (pydantic schema), examples/ (ai.yaml, public-health-canada.yaml,
                municipal-<city>.yaml), load.py
   sources/     base.py (Source protocol: fetch since watermark, record terms), rss.py, gdelt.py,
-               reddit.py, bluesky.py, x.py (the X pick's search and author lookup), robots.py
+               bluesky.py, x.py (the X pick's search and author lookup), robots.py
   ingest/      normalise.py (canonical URL, language), extract.py (trafilatura where permitted),
                store.py (DuckDB on Cloud Storage, watermarks, thirty-day retention, run lock)
   cluster/     shingles.py (MinHash near-duplicates), embed.py (bge-small, CPU), cluster.py, metrics.py
@@ -433,7 +433,7 @@ writing.
 | 3 | Evaluation: precision, recall and kappa through the gate; deduplication pairs; quote and faithfulness checks; source yield; timeliness; cost per digest; reader study (three readers, five days); trend view; Rule C write-up; README; `v0.1.0` | Every table in section 1 filled except uptime; repository public |
 | Measurement month | Daily runs unattended; uptime, cost and timeliness collected; a second labelled week on one audience if drift in relevance is suspected | Uptime and monthly cost added to the README |
 
-First to drop if behind: the trend view; Bluesky (RSS, GDELT and Reddit stay); the reader
+First to drop if behind: the trend view; Bluesky (RSS and GDELT stay); the reader
 study to two readers. The four audiences, the labelled week with intervals,
 deduplication, quote verification, cost per digest and the terms record are not droppable.
 
@@ -479,7 +479,7 @@ wants its own instance copies three files and a Cloud Run deployment.
 
 | Risk | Handling |
 |---|---|
-| Source terms change (Reddit and X have, repeatedly) | Terms recorded with dates; a source is dropped, not bent; the pipeline runs with any subset of sources |
+| Source terms change (Reddit and X have, repeatedly) | Terms recorded with dates; a source is dropped, not bent; the pipeline runs with any subset of sources. Reddit was dropped on 2026-11-07, when its access request went unanswered |
 | It becomes a reader app | Out of scope by decision; delivery is a plain page and a draft file |
 | Relevance labels are subjective | Two labellers on one audience, kappa published; the rubric per audience is in the config, so a reader can see what "relevant" meant |
 | The model invents quotes | The verifier rejects any quote not verbatim in the source; the before-and-after counts are published |

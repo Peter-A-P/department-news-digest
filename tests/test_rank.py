@@ -438,7 +438,7 @@ def test_the_story_is_headed_by_the_report_not_the_post() -> None:
 
     report = item("report", published_at=NOW)
     earlier_post = item("post", published_at=NOW - timedelta(hours=3)).model_copy(
-        update={"source_kind": "reddit", "domain": "reddit.com"}
+        update={"source_kind": "bluesky", "domain": "bsky.app"}
     )
     audience = Audience(
         id="a",

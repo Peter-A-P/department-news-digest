@@ -73,13 +73,6 @@ sources:
       - '"Public Health Agency of Canada"'
     limit: 75
 
-  reddit:
-    subreddits:
-      - canada
-      - Epidemiology
-    listing: new
-    limit: 50
-
   bluesky:
     queries:
       - Canada public health

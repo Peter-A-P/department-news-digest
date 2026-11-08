@@ -26,14 +26,13 @@ from clippings.rank.select import Selection, candidates_for_rerank, select
 from clippings.sources.base import FetchContext, FetchResult, Source
 from clippings.sources.bluesky import BlueskySource, person_origin
 from clippings.sources.gdelt import GdeltSource
-from clippings.sources.reddit import RedditSource
 from clippings.sources.rss import RssSource
 from clippings.sources.sitemap import SitemapSource
 
 
 def default_sources() -> tuple[Source, ...]:
     """Every adapter. Which ones do anything is decided by the audience file."""
-    return (RssSource(), SitemapSource(), GdeltSource(), RedditSource(), BlueskySource())
+    return (RssSource(), SitemapSource(), GdeltSource(), BlueskySource())
 
 
 @dataclass(frozen=True)
@@ -137,7 +136,6 @@ def _watermarks(store: Store, audience: Audience) -> dict[tuple[str, str], datet
             marks[(sitemap.terms, sitemap.url)] = mark
     for key, origins in (
         ("gdelt", audience.sources.gdelt.queries),
-        ("reddit", audience.sources.reddit.subreddits),
         ("bluesky", audience.sources.bluesky.queries),
         ("bluesky", tuple(map(person_origin, audience.sources.bluesky.people))),
     ):

@@ -14,7 +14,6 @@ from clippings.constants import USER_AGENT
 from clippings.sources.base import FetchContext, FetchResult
 from clippings.sources.bluesky import BlueskySource, parse_posts, post_url
 from clippings.sources.gdelt import MIN_INTERVAL_SECONDS, GdeltSource, parse_articles
-from clippings.sources.reddit import RedditSource, parse_listing
 from clippings.sources.robots import AllowAll, RobotsCache
 from clippings.sources.rss import RssSource, parse_feed
 from tests.conftest import NOW, gate
@@ -241,51 +240,6 @@ def test_gdelt_restricts_the_query_to_the_audience_languages() -> None:
     assert seen == ["transit sourcelang:english"]
 
 
-# -- Reddit ------------------------------------------------------------------------------
-
-
-def test_reddit_posts_are_parsed_as_the_post_not_the_link_target() -> None:
-    payload = {
-        "data": {
-            "children": [
-                {
-                    "kind": "t3",
-                    "data": {
-                        "permalink": "/r/toronto/comments/abc/council_votes/",
-                        "title": "Council votes",
-                        "selftext": "Some discussion.",
-                        "author": "someone",
-                        "created_utc": 1789000000,
-                        "score": 42,
-                        "num_comments": 7,
-                        "url": "https://news.example/elsewhere",
-                    },
-                }
-            ]
-        }
-    }
-    items = parse_listing(payload, "toronto", since=datetime(2020, 1, 1, tzinfo=UTC))
-    assert items[0].url == "https://www.reddit.com/r/toronto/comments/abc/council_votes/"
-    assert items[0].score == 42
-
-
-def test_a_comment_in_a_listing_is_ignored() -> None:
-    payload = {"data": {"children": [{"kind": "t1", "data": {"body": "a comment"}}]}}
-    assert parse_listing(payload, "toronto", since=datetime(2020, 1, 1, tzinfo=UTC)) == ()
-
-
-def test_reddit_without_credentials_reports_itself_unavailable() -> None:
-    """The pipeline runs with any subset of sources."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise AssertionError("a token request was sent with no credentials")
-
-    audience = audience_with({"reddit": {"subreddits": ["toronto"]}})
-    results = list(RedditSource().fetch(audience, context_with(handler, reddit="allowed")))
-    assert results[0].ok is False
-    assert "REDDIT_CLIENT_ID" in results[0].detail
-
-
 # -- Bluesky -----------------------------------------------------------------------------
 
 
@@ -452,23 +406,6 @@ def test_the_user_agent_identifies_the_project_without_carrying_a_url() -> None:
         "a URL in the user agent gets this project refused by at least one publisher; "
         "robots.txt addresses the 'clippings' product token instead"
     )
-
-
-def test_reddit_gets_the_user_agent_its_rules_ask_for() -> None:
-    import httpx
-
-    from clippings.sources.base import FetchContext
-    from clippings.sources.reddit import user_agent
-    from clippings.sources.robots import AllowAll
-    from tests.conftest import gate
-
-    with httpx.Client() as client:
-        context = FetchContext(client=client, gate=gate(), robots=AllowAll())
-        assert user_agent(context) == {}
-        context.secrets = {"REDDIT_CLIENT_ID": "abc", "REDDIT_USERNAME": "someone"}
-        agent = user_agent(context)["User-Agent"]
-    assert agent == "python:clippings:abc:0.1 (by /u/someone)"
-    assert "http" not in agent.split("(")[0], "no URL: CBC-style edges refuse one"
 
 
 def test_bluesky_posts_in_another_language_are_skipped() -> None:

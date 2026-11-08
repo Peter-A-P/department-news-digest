@@ -12,13 +12,13 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-SourceKind = Literal["rss", "sitemap", "gdelt", "reddit", "bluesky"]
+SourceKind = Literal["rss", "sitemap", "gdelt", "bluesky"]
 
 # Discussion platforms. Their items are posts, not reports: they carry their own text, and
 # since 2026-10-08 they reach a digest only inside a story that a news source also carries
 # (`rank.score.has_news`), where they count as corroboration. Peter's decision, after Toronto
 # commentary posts filled six of ten slots on the first day Bluesky was on.
-SOCIAL_KINDS: frozenset[str] = frozenset({"reddit", "bluesky"})
+SOCIAL_KINDS: frozenset[str] = frozenset({"bluesky"})
 
 
 class RawItem(BaseModel):
@@ -37,7 +37,7 @@ class RawItem(BaseModel):
     summary: str = ""
     author: str | None = None
     published_at: datetime | None = None
-    # Where this item came from within the source: a feed URL, a subreddit, a query.
+    # Where this item came from within the source: a feed URL, a query, a person.
     origin: str = ""
     # Public engagement counts where the source publishes them, for the ranking features.
     score: int | None = None

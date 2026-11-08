@@ -105,7 +105,7 @@ def _secrets() -> dict[str, str]:
     return {
         key: value
         for key, value in os.environ.items()
-        if key.startswith(("REDDIT_", "BLUESKY_", "GDELT_", "X_"))
+        if key.startswith(("BLUESKY_", "GDELT_", "X_"))
     }
 
 

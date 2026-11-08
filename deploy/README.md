@@ -53,7 +53,6 @@ read -rs "KEY?Paste the Anthropic API key, then Enter: " && echo && printf %s "$
 | Secret | Needed for | Required |
 |---|---|---|
 | `anthropic-api-key` | Re-ranking and summaries, through the gateway | yes |
-| `reddit-client-id`, `reddit-client-secret`, `reddit-username` | The Reddit sources, from a registered application on the free tier; the username goes in the user agent Reddit's rules ask for | no |
 | `bluesky-handle`, `bluesky-app-password` | The Bluesky sources; an app password, revocable on its own | no |
 | `x-bearer-token` | The day's X pick: the app-only bearer token of an X developer account on pay-per-use pricing. Set the account's monthly spend limit in X's developer console first; the code's own cap is US$10 a month | no |
 

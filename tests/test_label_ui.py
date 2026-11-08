@@ -13,6 +13,7 @@ from clippings.config.audience import Audience
 from clippings.eval.label_ui import Workspace, application
 from clippings.ingest.pipeline import run_audience
 from clippings.ingest.store import Store
+from clippings.models import Label
 from clippings.sources.base import FetchContext
 from tests.conftest import NOW
 from tests.test_pipeline import FixtureSource, raw_item, result
@@ -214,3 +215,54 @@ def test_labelling_without_a_bucket_is_refused_unless_local_is_asked_for() -> No
         app, ["reader-study", "--reader", "1", "--no-open"], env={"CLIPPINGS_BUCKET": None}
     )
     assert result.exit_code == 2
+
+
+def test_a_labelled_day_still_counts_after_retention_deletes_its_items(
+    audience: Audience, store: Store, context: FetchContext
+) -> None:
+    from datetime import timedelta
+
+    from clippings.eval.report import build_report
+
+    # Eighty unrelated stories: a top stratum of thirty and thirty drawn from the fifty below.
+    run_audience(
+        audience,
+        store,
+        context,
+        Hashing(),
+        sources=[
+            FixtureSource(
+                result(
+                    *(
+                        raw_item(f"https://news.example/{n}", f"kappa{n} delta{n} sigma{n}", "")
+                        for n in range(80)
+                    )
+                )
+            )
+        ],
+        extract=False,
+    )
+    ws = Workspace(
+        store=store, labels=Store.memory(), labeller="peter", audiences={audience.id: audience}
+    )
+    _, page = call(ws, "GET", f"/day?audience={audience.id}&day={DAY}")
+    payload = {"token": ws.token, "audience": audience.id, "day": DAY, "shown": ids_on(page)}
+    assert call(ws, "POST", "/save", payload)[0].startswith("200")
+    labels = ws.labels.labels_for(audience.id)
+
+    def days(labels: list[Label]) -> list[str]:
+        return build_report(store, labels, [audience], "peter").audiences[0].labelled_days
+
+    assert days(labels) == [DAY]
+    # The top story was published earlier and reaches thirty days first. Drawn again, the
+    # sample would take the thirty-first story into the top and redraw the random stratum
+    # from forty-nine: what dropped Newfoundland and Labrador's 2026-10-09 on 2026-11-07.
+    top = next(label for label in labels if label.stratum == "top" and label.rank == 1)
+    store._connection.execute(
+        "UPDATE items SET published_at = ? WHERE id = ?", [NOW - timedelta(days=40), top.item_id]
+    )
+    assert store.retention(NOW)["items"] == 1
+    # The day was saved whole, so it is not lost.
+    assert days(labels) == [DAY]
+    # A day whose saved top ranks have a gap is not taken on trust.
+    assert days([label for label in labels if label.rank != 5]) == []

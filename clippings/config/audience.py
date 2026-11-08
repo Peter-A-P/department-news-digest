@@ -88,29 +88,6 @@ class Sitemap(Strict):
         return value
 
 
-class RedditSource(Strict):
-    """Public subreddits, read through a registered application on the free tier."""
-
-    subreddits: tuple[str, ...] = ()
-    listing: str = "new"
-    limit: int = Field(default=50, ge=1, le=100)
-
-    @field_validator("subreddits")
-    @classmethod
-    def _bare_names(cls, value: tuple[str, ...]) -> tuple[str, ...]:
-        for name in value:
-            if name.startswith(("r/", "/r/")):
-                raise ValueError(f"give the bare subreddit name, not {name!r}")
-        return value
-
-    @field_validator("listing")
-    @classmethod
-    def _known_listing(cls, value: str) -> str:
-        if value not in {"new", "hot", "top"}:
-            raise ValueError("listing must be one of: new, hot, top")
-        return value
-
-
 class BlueskySource(Strict):
     """Public AT Protocol search terms, and people whose posts are read directly."""
 
@@ -224,7 +201,6 @@ class Sources(Strict):
     feeds: tuple[Feed, ...] = ()
     sitemaps: tuple[Sitemap, ...] = ()
     gdelt: GdeltSource = GdeltSource()
-    reddit: RedditSource = RedditSource()
     bluesky: BlueskySource = BlueskySource()
     x: XSource = XSource()
 
@@ -351,8 +327,6 @@ class Audience(Strict):
         keys |= {sitemap.terms for sitemap in self.sources.sitemaps}
         if self.sources.gdelt.queries:
             keys.add("gdelt")
-        if self.sources.reddit.subreddits:
-            keys.add("reddit")
         if self.sources.bluesky.queries or self.sources.bluesky.people:
             keys.add("bluesky")
         if self.sources.x.searches:

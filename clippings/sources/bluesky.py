@@ -1,6 +1,6 @@
 """Bluesky, through the AT Protocol search endpoint.
 
-As with Reddit, the item is the post: public discussion is what this source is for, and a
+The item is the post: public discussion is what this source is for, and a
 link in a post reaches the pool through the publisher's own feed.
 
 Search needs a session. Measured on 2026-09-13: `app.bsky.actor.getProfile` answers 200 on

@@ -174,8 +174,11 @@ on its day only.</li>
 this week against the week before.</li>
 <li>A labelled week for all four audiences, and precision and recall published with
 intervals in the README.</li>
-<li>Duplicate grouping judged pair by pair over the labelled week, with its numbers in the
-README.</li>
+<li>Duplicate grouping judged pair by pair over the labelled week, every story of several
+articles checked for articles that do not belong, and a sample of summary sentences read
+against their sources for faithfulness, each with its numbers in the README.</li>
+<li>A timed study with three readers: minutes to be briefed from the digest against from
+the sources.</li>
 <li>Labelling pages built for speed, a day on one screen and a key per judgement, and the
 report that turns labels into the results tables with intervals.</li>
 <li>Hard spending caps, the cost of every digest from the gateway's ledger, and the uptime
@@ -183,12 +186,6 @@ of the scheduled run counted from the runs themselves.</li>
 </ul></div>
 <div class="panel tocome"><h3>Still to come</h3><ul>
 <li>A second labeller's agreement on one audience, which says how subjective "relevant" is.</li>
-<li>Checks the verifier cannot make: whether every article in a story belongs there, and a
-sample of summary sentences read against their sources for faithfulness.</li>
-<li>A small timed study: minutes to be briefed from the digest against from the sources.</li>
-<li>Reddit, once Reddit approves the access request. Its posts will appear only as commentary
-inside news stories and never beyond a {quote}-word quote. If access is refused, it is
-dropped.</li>
 <li>The pre-filter's weights and the diversity penalty tuned against the labels, in place of
 the starting values chosen by reasoning.</li>
 <li>The repository made public, with the results table at the top of its README.</li>

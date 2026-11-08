@@ -337,8 +337,8 @@ def test_the_sources_panel_lists_every_source_and_how_its_last_check_went() -> N
         ("techcrunch.com", "https://techcrunch.com/category/artificial-intelligence/feed/"): (
             FetchRecord(NOW, 9, True, "")
         ),
-        ("reddit", "MachineLearning"): FetchRecord(
-            NOW, 0, False, "unavailable: REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET are not set"
+        ("bluesky", "AI model release"): FetchRecord(
+            NOW, 0, False, "unavailable: BLUESKY_HANDLE and BLUESKY_APP_PASSWORD are not set"
         ),
     }
     panel = sources_panel(audience, terms, fetches)
@@ -346,7 +346,6 @@ def test_the_sources_panel_lists_every_source_and_how_its_last_check_went() -> N
         len(audience.sources.feeds)
         + len(audience.sources.sitemaps)
         + len(audience.sources.gdelt.queries)
-        + len(audience.sources.reddit.subreddits)
         + len(audience.sources.bluesky.queries)
         + len(audience.sources.bluesky.people)
         + len(audience.sources.x.searches)
@@ -355,7 +354,7 @@ def test_the_sources_panel_lists_every_source_and_how_its_last_check_went() -> N
     assert f"Sources checked ({configured})" in panel
     assert "2026-10-07" in panel and "9 new items" in panel
     # A failure is shown in plain words, not hidden and not as an internal message.
-    assert "not active yet" in panel and "REDDIT_CLIENT_ID" not in panel
+    assert "not active yet" in panel and "BLUESKY_HANDLE" not in panel
     assert "not checked yet" in panel
 
 

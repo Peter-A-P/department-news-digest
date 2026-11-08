@@ -22,7 +22,7 @@ dependencies = [
   "pydantic>=2,<3",
   # Audience files, source registry and the terms record are YAML. 6.x is the only maintained line.
   "pyyaml>=6,<7",
-  # One HTTP client for feeds, GDELT, Reddit, Bluesky and X. Below 1.0 because a major bump changes
+  # One HTTP client for feeds, GDELT, Bluesky and X. Below 1.0 because a major bump changes
   # defaults (timeouts, redirects, HTTP/2) that the politeness rules in sources/ depend on.
   "httpx>=0.28,<1",
   # RSS and Atom parsing. 6.x has handled the decade of malformed feeds in the wild; the

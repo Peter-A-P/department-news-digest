@@ -68,7 +68,7 @@ class ScoredStory:
 def has_news(cluster: Cluster, items: Mapping[str, Item]) -> bool:
     """Whether a news source (a feed or GDELT) carries this story, not only posts.
 
-    A story made only of Reddit or Bluesky posts is discussion, not a report, and is not a
+    A story made only of Bluesky posts is discussion, not a report, and is not a
     candidate for the digest. A post that joins a story a news source carries stays in it,
     where it adds to the corroboration feature and can be cited beside the report.
     """

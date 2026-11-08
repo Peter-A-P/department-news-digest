@@ -83,13 +83,6 @@ sources:
       - '"City of Toronto"'
     limit: 75
 
-  reddit:
-    subreddits:
-      - toronto
-      - TorontoRealEstate
-    listing: new
-    limit: 50
-
   bluesky:
     queries:
       - Toronto council

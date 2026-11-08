@@ -67,17 +67,6 @@ def source_lines(audience: Audience) -> list[SourceLine]:
     ]
     lines += [
         SourceLine(
-            "Reddit community",
-            f"r/{name}",
-            f"https://www.reddit.com/r/{name}/",
-            "reddit",
-            ("reddit", name),
-            "posts appear only inside news stories",
-        )
-        for name in sources.reddit.subreddits
-    ]
-    lines += [
-        SourceLine(
             "Bluesky search",
             query,
             "https://bsky.app/",

@@ -52,6 +52,11 @@ sources, the URLs of the items the reader ticked. No name, no address, nothing t
 
 `tests/test_pipeline.py::test_labelling_a_day_records_labels_that_outlive_the_item` runs
 retention over a labelled day and asserts the labels are still there and the items are not.
+`tests/test_label_ui.py::test_a_labelled_day_still_counts_after_retention_deletes_its_items`
+asserts the day still counts in the report: once some of a day's items are gone its sample
+cannot be drawn again, so the report takes the saved labels as the sample, which a day is
+only ever saved as whole. Until 2026-11-07 it drew the sample again from what was left, and
+a labelled day dropped out of the results when part of it reached thirty days.
 
 ## What a digest shows
 
@@ -69,7 +74,7 @@ feed title and summary, and the page says "feed summary only" beside the link.
 
 ## Deletion at the source
 
-A Reddit post or Bluesky post deleted by its author is honoured by the retention window:
+A Bluesky post deleted by its author is honoured by the retention window:
 nothing here is kept longer than thirty days, and a published digest quotes at most
 twenty-five words of what was public when it was fetched.
 

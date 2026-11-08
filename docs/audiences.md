@@ -24,7 +24,7 @@ almost everything is local but little of it matters.
 | `entities` | no | `organisations`, `people`, `places`. Matched in item text; also used to build GDELT queries. |
 | `geography` | no | Places this audience is about, as part of the profile. |
 | `languages` | no | ISO 639-1 codes, default `["en"]`. Restricts GDELT server-side. |
-| `sources` | no | `feeds`, `sitemaps`, `gdelt`, `reddit`, `bluesky`, `x`. Any subset. `x` takes `query`, in X's own search syntax, and `candidates` (10 to 100, default 10, X's minimum); it is off while `query` is empty, and each candidate is a paid read. Name people in their public roles with `from:` (reporters, officials, researchers), not outlets: an outlet's posts share reports the digest already has, and a post linking to an article in the day's digest is dropped anyway. A topic search returns mostly unliked reposts. During an election, list every candidate or none. A sitemap takes `url`, `publisher`, `terms`, `include` (the news section's path prefix, such as `/news/`) and `extract`, for a publisher that posts news with no feed; new pages are found by the sitemap's dates and kept only if the page's own publication date is new. Bluesky takes `queries`, `sort` (`top` by default) and `people`: handles, without the @, of people in public roles whose own recent posts are read from their public author feed, with no session, as candidates for the day's Bluesky post. A feed takes `url`, `publisher`, `terms`, and `extract` (default true); `extract: false` means the article pages are never requested and the item is summarised from the feed's own title and summary, for a publisher whose terms clear the feed but not the page. |
+| `sources` | no | `feeds`, `sitemaps`, `gdelt`, `bluesky`, `x`. Any subset. `x` takes `query`, in X's own search syntax, and `candidates` (10 to 100, default 10, X's minimum); it is off while `query` is empty, and each candidate is a paid read. Name people in their public roles with `from:` (reporters, officials, researchers), not outlets: an outlet's posts share reports the digest already has, and a post linking to an article in the day's digest is dropped anyway. A topic search returns mostly unliked reposts. During an election, list every candidate or none. A sitemap takes `url`, `publisher`, `terms`, `include` (the news section's path prefix, such as `/news/`) and `extract`, for a publisher that posts news with no feed; new pages are found by the sitemap's dates and kept only if the page's own publication date is new. Bluesky takes `queries`, `sort` (`top` by default) and `people`: handles, without the @, of people in public roles whose own recent posts are read from their public author feed, with no session, as candidates for the day's Bluesky post. A feed takes `url`, `publisher`, `terms`, and `extract` (default true); `extract: false` means the article pages are never requested and the item is summarised from the feed's own title and summary, for a publisher whose terms clear the feed but not the page. |
 | `trusted_sources` | no | Bare domains, subdomains included. Ranked up, and preferred when choosing which item represents a story. |
 | `blocked_sources` | no | Bare domains, subdomains included. Never stored, never extracted, never shown. |
 | `digest` | no | `max_stories`, `rerank_candidates`, `max_sentences_per_story`, `min_rubric_score`. `rerank_candidates` is how many stories the model re-ranker is shown, and so the cost of that call; the model never sees more. `min_rubric_score` (default 1) is the lowest rubric score a story may be shown with: 2 leaves out "marginal" stories, so a quiet day is a shorter digest. |
@@ -56,8 +56,8 @@ reads:
 
 Each feed carries a `terms` key. That key must appear in
 [`sources.md`](sources.md) with a date read and the status `allowed`, or the fetcher
-refuses the source and the run records the refusal. `gdelt`, `reddit`, `bluesky` and `x`
-are keys in the same record.
+refuses the source and the run records the refusal. `gdelt`, `bluesky` and `x` are
+keys in the same record.
 
     clippings sources check
 
@@ -67,15 +67,13 @@ check before any request leaves.
 
 ## Sources that need credentials
 
-Reddit and Bluesky both need an account of your own, and neither is committed. Reddit reads
-`REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` from a registered application on the free
-tier, and `REDDIT_USERNAME`, the account that owns it, for the user agent Reddit's API
-rules ask for (`python:clippings:<client id>:0.1 (by /u/<username>)`). Bluesky reads `BLUESKY_HANDLE` and `BLUESKY_APP_PASSWORD`: an app password, which is
+Bluesky needs an account of your own, which is not committed. It reads `BLUESKY_HANDLE`
+and `BLUESKY_APP_PASSWORD`: an app password, which is
 revocable on its own and cannot change the account. Bluesky's search endpoint began
 refusing unauthenticated requests with a 403, and an app password is the official way in,
 so that is the way this takes.
 
-Posts from either platform are discussion, not reports: one reaches a digest only inside a
+Bluesky posts are discussion, not reports: one reaches a digest only inside a
 story that a feed or GDELT also carries, and a story made only of posts is never shown
 (PLAN.md section 2.3).
 

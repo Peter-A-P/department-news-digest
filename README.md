@@ -27,26 +27,28 @@ file an owner can send. It has no send path.
 ## Result
 
 <!-- report:start -->
-Measured over 111 digests from 2026-10-07 to 2026-11-03, by `clippings report` on 2026-11-04. 95% intervals throughout. 33 audience-days hand-labelled: every audience has its labelled week.
+Measured over 127 digests from 2026-10-07 to 2026-11-07, by `clippings report` on 2026-11-08. 95% intervals throughout. 33 audience-days hand-labelled: every audience has its labelled week.
 
 **Relevance, per audience, against a hand-labelled week**
 
 | Audience | Precision at K (95% CI) | Recall of must-read stories, importance-weighted (95% CI) | Must-read stories per day | Recall of all relevant stories | Relevant stories per day | Labeller kappa | Stories per day | Cost per digest |
 |---|---|---|---|---|---|---|---|---|
-| Artificial intelligence | 69% (55% to 85%), 8 days | 84% (57% to 100%) | 3.1 (2.1 to 4.4) | 60% (50% to 76%) | 8.5 (5.2 to 12.9) | _not yet_ | 8.2 (6.9 to 9.3) | CA$0.054 (CA$0.044 to CA$0.064) |
-| Municipal affairs, Toronto | 77% (66% to 92%), 8 days | 60% (42% to 88%) | 2.9 (1.8 to 4.4) | 53% (42% to 69%) | 5.4 (3.5 to 7.6) | _not yet_ | 4.8 (3.8 to 5.9) | CA$0.048 (CA$0.037 to CA$0.058) |
-| Regional affairs, Newfoundland and Labrador | 83% (74% to 91%), 9 days | 67% (50% to 75%) | 7.3 (5.1 to 9.0) | 51% (40% to 62%) | 16.4 (13.0 to 19.9) | _not yet_ | 9.8 (9.5 to 10.0) | CA$0.066 (CA$0.062 to CA$0.070) |
-| Public health in Canada | 100% (55% to 100%), 8 days | 60% (10% to 89%) | 1.2 (0.6 to 1.9) | 43% (20% to 60%) | 2.6 (1.5 to 3.8) | _not yet_ | 2.6 (1.6 to 3.7) | CA$0.026 (CA$0.017 to CA$0.036) |
+| Artificial intelligence | 69% (55% to 85%), 8 days | 84% (57% to 100%) | 3.1 (2.1 to 4.4) | 60% (50% to 76%) | 8.5 (5.2 to 12.9) | _not yet_ | 8.4 (7.3 to 9.4) | CA$0.056 (CA$0.047 to CA$0.064) |
+| Municipal affairs, Toronto | 77% (66% to 92%), 8 days | 60% (42% to 88%) | 2.9 (1.8 to 4.4) | 53% (42% to 69%) | 5.4 (3.5 to 7.6) | _not yet_ | 4.8 (3.8 to 5.8) | CA$0.047 (CA$0.038 to CA$0.057) |
+| Regional affairs, Newfoundland and Labrador | 83% (74% to 91%), 9 days | 67% (50% to 75%) | 7.3 (5.1 to 9.0) | 51% (40% to 62%) | 16.4 (13.0 to 19.9) | _not yet_ | 9.8 (9.5 to 10.0) | CA$0.066 (CA$0.063 to CA$0.070) |
+| Public health in Canada | 100% (55% to 100%), 8 days | 60% (10% to 89%) | 1.2 (0.6 to 1.9) | 43% (20% to 60%) | 2.6 (1.5 to 3.8) | _not yet_ | 2.5 (1.6 to 3.5) | CA$0.026 (CA$0.017 to CA$0.035) |
 
 **Pipeline properties**
 
 | Deduplication precision / recall (pairs) | Collapse rate | Cluster purity, stories of several articles | Quotes verbatim, before / after repair | Citation coverage, first draft | Faithfulness (100-sentence sample) | Lag to inclusion p50 / p90 | Reader minutes, digest vs sources (95% CI) | Uptime of the scheduled daily run |
 |---|---|---|---|---|---|---|---|---|
-| 94% (84% to 98%) / 85% (58% to 100%), 27 audience-days | 1.17 (1.14 to 1.19) items per story | 98% (97% to 100%), 26 audience-days | 100% (99% to 100%) / 100% (99% to 100%) | 100% (100% to 100%) | 99% (98% to 100%), 111 sentences | 15 h (14 to 15) / 36 h (33 to 40) | _not yet_ (reader study) | 93% (78% to 98%), 25 of 27 days since 2026-10-08 |
+| 94% (84% to 98%) / 85% (58% to 100%), 27 audience-days | 1.17 (1.15 to 1.19) items per story | 98% (97% to 100%), 26 audience-days | 100% (99% to 100%) / 100% (99% to 100%) | 100% (100% to 100%) | 99% (98% to 100%), 111 sentences | 15 h (14 to 15) / 33 h (33 to 37) | 0.9 (0.6 to 1.2) vs 1.9 (1.5 to 2.4), 15 sessions | 94% (81% to 99%), 29 of 31 days since 2026-10-08 |
 
 Cluster purity is the share of articles in a story of several that a labeller judged to belong with the rest; over every news article, stories of one included, it is 100% (99% to 100%).
 
 Faithfulness is the share of sampled digest sentences that say only what the sources they cite say, hand-checked against what the summariser read, weighted by the sentences each day's digest showed. 2 of 111 were judged not supported, listed in [docs/report.md](docs/report.md).
+
+Reader minutes are minutes with the page in view, from 3 readers briefed on a morning either from the digest or from the news items it was made from; from the sources they took 2.1 (1.5 to 3.2) times as long. Of the 43 items readers ticked as worth a briefing when working from the sources, 72% (58% to 84%) were in a story the digest showed.
 
 Uptime counts a day as up when the run Cloud Scheduler started at 09:00 UTC, or Cloud Run's automatic retry of it, published every audience's digest; a day rescued by a run started by hand is down (2026-10-08, 2026-10-25).
 
@@ -54,9 +56,9 @@ Deduplication recall is over the pairs whose words overlap most, where a missed 
 
 Most discussed on Bluesky, judged worth showing: Artificial intelligence 100% (73% to 100%); Municipal affairs, Toronto 75% (38% to 100%); Regional affairs, Newfoundland and Labrador 100% (14% to 100%); Public health in Canada 100% (55% to 100%). A separate section below the stories, not counted in precision or recall.
 
-Most discussed on X, judged worth showing: Artificial intelligence 100% (80% to 100%); Municipal affairs, Toronto 100% (61% to 100%); Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API, while Reddit access is pending.
+Most discussed on X, judged worth showing: Artificial intelligence 100% (80% to 100%); Municipal affairs, Toronto 100% (61% to 100%); Regional affairs, Newfoundland and Labrador _not yet_; Public health in Canada _not yet_. The same kind of section, from X's paid API.
 
-All four digests together cost CA$0.192 (CA$0.166 to CA$0.217) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
+All four digests together cost CA$0.193 (CA$0.170 to CA$0.216) a day in model calls, from the gateway's ledger, converted from US dollars at 1.35 CAD per USD. Details, per source and per day: [docs/report.md](docs/report.md).
 <!-- report:end -->
 
 ## What this does not do
@@ -87,7 +89,7 @@ cite a source the verifier cannot hold them to. The saving was about CA$6 a mont
 
 See [PLAN.md](PLAN.md). Per audience, a YAML file names topics, entities, geography,
 languages, trusted and blocked sources and length. A daily Cloud Run job fetches RSS and
-Atom feeds, GDELT, the Reddit API and Bluesky (and, for one post a day, X's paid API),
+Atom feeds, GDELT and Bluesky (and, for one post a day, X's paid API),
 extracts text where permitted, collapses
 near-duplicates and clusters stories with local embeddings, ranks candidates by audience
 similarity, entities, source trust and recency, and sends only the top candidates to a

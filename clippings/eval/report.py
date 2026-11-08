@@ -46,7 +46,7 @@ from clippings.assemble.digest import Digest
 from clippings.config.audience import Audience
 from clippings.constants import CAD_PER_USD, UPTIME_FROM, cad
 from clippings.eval.labels import ranked_ids_for_day
-from clippings.eval.sample import stratified_sample
+from clippings.eval.sample import DEFAULT_TOP, stratified_sample
 from clippings.eval.uptime import UptimeDay, uptime_days
 from clippings.ingest.store import Store
 from clippings.models import FaithLabel, Label, PairLabel, PurityLabel, ReaderSession
@@ -497,17 +497,45 @@ class Report:
 def _complete_days(
     store: Store, labels: list[Label], audience_id: str, labeller: str
 ) -> dict[str, list[Label]]:
-    """This labeller's labels by day, for the days whose whole sample they judged."""
+    """This labeller's labels by day, for the days whose whole sample they judged.
+
+    While the store holds every item the day's labels name, the sample is drawn again and
+    must be covered. Once retention has deleted some of them it cannot be drawn again, and
+    the labels stand on their own record: a day was saved only as a whole sample
+    (`label_ui.save_day`), so it counts if its top stratum runs unbroken from rank 1. Without
+    this, each labelled day left the results thirty days after it was fetched (found
+    2026-11-07, when Newfoundland and Labrador's 2026-10-09 dropped out).
+    """
     by_day: dict[str, list[Label]] = defaultdict(list)
     for label in labels:
         if label.audience_id == audience_id and label.labeller == labeller:
             by_day[label.day].append(label)
+    held = {item.id for item in store.items_for(audience_id)}
     complete = {}
     for day, day_labels in by_day.items():
+        sampled = [label for label in day_labels if label.stratum in ("top", "random")]
+        if not {label.item_id for label in sampled} <= held:
+            if _whole_sample(sampled):
+                complete[day] = day_labels
+            continue
         sample = stratified_sample(ranked_ids_for_day(store, audience_id, day), audience_id, day)
         if {unit.item_id for unit in sample.units} <= {label.item_id for label in day_labels}:
             complete[day] = day_labels
     return complete
+
+
+def _whole_sample(sampled: Sequence[Label]) -> bool:
+    """Whether a day's saved labels hold a whole sample as `stratified_sample` draws one: every
+    top rank from 1 with no gap, and a random stratum only once the top one is full. A day
+    labelled again after its run was redone (Newfoundland and Labrador's 2026-10-10) holds
+    two samples' labels, so a rank may appear twice."""
+    top = {label.rank for label in sampled if label.stratum == "top"}
+    has_random = any(label.stratum == "random" for label in sampled)
+    return (
+        bool(top)
+        and top == set(range(1, len(top) + 1))
+        and (not has_random or len(top) == DEFAULT_TOP)
+    )
 
 
 def _shown_items(store: Store, digest: Digest) -> list[str]:
@@ -933,7 +961,7 @@ def readme_tables(report: Report) -> str:
         "",
         "Most discussed on X, judged worth showing: "
         + "; ".join(f"{r.name} {pct(r.x_pick)}" for r in report.audiences)
-        + ". The same kind of section, from X's paid API, while Reddit access is pending.",
+        + ". The same kind of section, from X's paid API.",
         "",
         f"All four digests together cost {cad_money(report.cost_per_day)} a day in model calls, from "
         f"the gateway's ledger, converted from US dollars at {CAD_PER_USD} CAD per USD"

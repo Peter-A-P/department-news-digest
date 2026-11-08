@@ -441,7 +441,7 @@ HUES = ("rose", "violet", "teal", "green")
 
 # Posts are commentary attached to a news story (models.SOCIAL_KINDS); the source list marks
 # them apart from the reporting. A link carries its domain, not its kind, hence the domains.
-POST_DOMAINS = frozenset({"bsky.app", "reddit.com", "www.reddit.com", "old.reddit.com"})
+POST_DOMAINS = frozenset({"bsky.app"})
 
 RUBRIC_TAGS = {3: ("must", "Must read"), 2: ("relevant", "Relevant"), 1: ("marginal", "Marginal")}
 

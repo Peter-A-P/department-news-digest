@@ -82,8 +82,7 @@ class Spotlight(Frozen):
     rubric_score: int
     reason: str
     # The whole post, shown in the post card while it exists and for thirty days, then
-    # cleared (assemble/deletions.py). Bluesky only: a Reddit post is never shown beyond its
-    # quote, as the access request to Reddit promised.
+    # cleared (assemble/deletions.py).
     full_text: str = ""
     # Set when a later run found the post deleted: its words are then no longer shown at all.
     deleted: bool = False

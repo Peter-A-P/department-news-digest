@@ -19,7 +19,7 @@
 <path d="M 622.0 838.0 L 622.0 914.0 Q 622.0 920.0 628.0 920.0 L 920.0 920.0" fill="none" stroke="#14201E" stroke-width="1.4" marker-end="url(#arrow)"/>
 <rect x="28.0" y="90.0" width="296.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
 <text x="176.0" y="111.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Sources, official APIs and feeds</text>
-<text x="176.0" y="127.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">RSS and Atom, GDELT, Reddit, Bluesky, X</text>
+<text x="176.0" y="127.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">RSS and Atom, GDELT, Bluesky, X</text>
 <text x="176.0" y="144.0" font-size="11" font-family="Consolas, Menlo, 'DejaVu Sans Mono', monospace" text-anchor="middle" fill="#5C6B67">clippings.sources</text>
 <rect x="474.0" y="90.0" width="296.0" height="64.0" rx="4" fill="#F2F4F3" stroke="#5C6B67" stroke-width="1.1" stroke-dasharray="5 3"/>
 <text x="622.0" y="111.0" font-size="13" font-weight="500" text-anchor="middle" fill="#14201E">Cloud Scheduler</text>

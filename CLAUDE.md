@@ -36,8 +36,8 @@ is in [PLAN.md](PLAN.md).
   while it exists and for thirty days; each run removes a deleted pick's words. A second
   exception, decided by Peter on the same day: the day's X pick is shown whole, as X's
   display rules require, on the day it is picked only; the next run removes its words and
-  its author's name and picture. X posts never join a story. Reddit posts never go beyond
-  the quote, as the access request to Reddit promised.
+  its author's name and picture. X posts never join a story. Reddit was dropped on
+  2026-11-07 when its access request went unanswered.
 - **X is not for government users** without an Enterprise plan (X Developer Agreement
   XIV.C). It is on for the public example audiences only.
 - **Every quote is verbatim or it is gone.** The verifier is not optional in production.
