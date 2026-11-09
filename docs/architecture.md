@@ -1,8 +1,7 @@
 # Architecture
 
 How the briefing is put together, in three pictures: the whole system, one morning's run, and
-how each published number is produced, including the ones that wait for more labelled days.
-For the reasoning behind the design, read [PLAN.md](../PLAN.md). Every source's terms are in
+how each published number is produced. For the reasoning behind the design, read [PLAN.md](../PLAN.md). Every source's terms are in
 [sources.md](sources.md), and the measurement is in [report.md](report.md). The same three
 pictures are on the live site at
 [digest.peterparker.ca/architecture/](https://digest.peterparker.ca/architecture/).
@@ -13,7 +12,7 @@ pictures are on the live site at
 
 Every morning a scheduled job runs on Google Cloud.
 
-It starts with a gate. The list of sources is not just documentation: a source is fetched only
+It starts with a gate. The list of sources is enforced in code: a source is fetched only
 when its entry says its terms of use were read, and when. The job then fetches from official
 feeds and APIs, keeps the article text only where the terms allow, and stores everything in a
 small database that remembers what it has already seen and deletes items after thirty days.
@@ -63,16 +62,16 @@ Where it lives: `clippings.sources`, `clippings.ingest.remote`, `clippings.clust
 
 ## How the published numbers are produced
 
-![Precision and recall come from hand-labelled audience-days drawn by a stratified sampler and scored through the release gate's harness; quote and citation checks come from the verifier's own record; cost comes from the gateway ledger; deduplication, cluster purity and faithfulness have labelling pages and wait for their labels; reader time has a timed study waiting for its readers; uptime is counted from the runs in the store.](architecture/measurement.svg)
+![Precision and recall come from hand-labelled audience-days drawn by a stratified sampler and scored through the release gate's harness; quote and citation checks come from the verifier's own record; cost comes from the gateway ledger; deduplication, cluster purity and faithfulness come from pages labelled by hand; reader time comes from a timed study with three readers; every figure carries a 95% interval.](architecture/measurement.svg)
 
-Every number in the README has a stated source, and some are still waiting for theirs.
+Every number in the README has a stated source.
 
 How many of the stories shown were worth showing, and how many important stories were caught,
 come from days labelled by hand. For each audience and day, a sampler picks the top 30 stories
 plus 30 at random, a person labels them in a small labelling tool, and they are scored with the
 release gate's method, with intervals. The intervals redraw whole days, because stories from
-one morning share a news cycle and are not separate pieces of evidence. Twenty-eight
-audience-days are labelled so far, and the numbers fill in as more are done.
+one morning share a news cycle and are not separate pieces of evidence. Every audience has a
+labelled week.
 
 How often quotes were exact before and after repair, and how many first-draft sentences
 carried a citation, come from the checker's own record. Stories per day, how often duplicates
@@ -99,8 +98,9 @@ mornings, some from the digest and some from the news items it was made from, th
 between readers. Uptime comes from the store: a day is up when the 09:00 UTC run, or its
 automatic retry, published every audience's digest, and down when a person had to step in.
 
-Anything still waiting for its labels or its readers is printed as "not yet" rather than left
-blank. One command writes the README and the report, and neither is edited by hand.
+A figure still waiting for its labels, such as the labeller agreement for the three audiences
+labelled once, is printed as "not yet" instead of being left blank. One command writes the
+README and the report, and neither is edited by hand.
 
 Where it lives: `clippings.eval.sample`, `clippings.eval.pairs`, `clippings.eval.faithfulness`,
 `clippings.eval.label_ui`, `clippings.eval.reader_study`, `clippings.eval.uptime`, the gateway

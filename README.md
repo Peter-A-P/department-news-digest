@@ -104,8 +104,8 @@ Release Gate's harness, with intervals.
 
 The site's front page explains the same for a visitor, below the audience cards: the
 results with a chart, why this exists, the pipeline step by step, how it is measured, what
-did not work, the rules it keeps and where it stands. It is in `clippings/assemble/about.py`
-and changes with this section. Its numbers are never typed: `clippings report` writes them
+did not work, the rules it keeps, where it stands, and how this was built, with a glossary.
+It is in `clippings/assemble/about.py` and changes with this section. Its numbers are never typed: `clippings report` writes them
 to `clippings/assemble/results.json` from the same run as the tables above, and the page
 refuses to render without one.
 
@@ -156,7 +156,15 @@ from Overload. It is the portfolio's Google Cloud example.
 
 ## How this was built
 
-Design, methodology, evaluation choices and judgement are Peter Parker's. AI coding
-assistants (Claude Code) were used for implementation and drafting, the way a senior
-engineer uses them in 2026. Every number in the results tables is reproducible from this
-repository with one command, and that reproducibility is the evidence that matters.
+I designed this project and made the calls in it. I chose the four audiences to differ, so
+that one product would have to serve a fast global subject, a big city, a national brief and a
+small province. I labelled every relevance week, duplicate pair, story check and faithfulness
+sentence myself, and asked a second person to label Toronto's week without seeing my answers.
+When Bluesky commentary crowded out the news, I decided posts are not stories. I kept the
+quote verifier without an off switch, turned down a fixed outgoing address for GDELT at about
+US$32 a month, and dropped Reddit when its access request went unanswered rather than reach it
+some other way.
+
+I used an AI coding assistant (Claude Code) for implementation and drafting, which is now
+standard practice in software, data science and machine learning work. Every number in the
+results tables can be reproduced from this repository with one command, `clippings report`.

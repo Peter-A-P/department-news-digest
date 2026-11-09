@@ -436,3 +436,26 @@ def test_a_day_with_posts_opens_with_a_button_for_news_and_one_for_posts() -> No
     assert f"{len(both.stories)} stor" in nav and '<span class="n">3</span>' in nav
     # The buttons come before the stories, and the posts after them, under their own heading.
     assert page.index('class="jump"') < page.index('id="news"') < page.index('id="posts"')
+
+
+def test_the_hero_figures_carry_the_interval_the_report_printed() -> None:
+    from clippings.assemble.about import hero_points, interval, load_results
+
+    assert interval("99% (98% to 100%)") == "; 95% interval 98% to 100%"
+    assert interval("2.1 (1.5 to 3.2)") == "; 95% interval 1.5 to 3.2"
+    # A value without an interval, or not yet measured, adds nothing rather than a gap.
+    assert interval("82%") == "" and interval("_not yet_") == ""
+    real = load_results()
+    hero = hero_points(real)
+    assert interval(real["faith"]) in hero and interval(real["reader_ratio_text"]) in hero
+
+
+def test_how_this_was_built_is_first_person_with_a_glossary() -> None:
+    from clippings.assemble.about import about_sections
+
+    page = about_sections()
+    built = page.partition('<section class="section" id="built">')[2]
+    assert built.startswith("\n<h2>How this was built</h2>")
+    first = built.partition("<p")[2].partition(">")[2]
+    assert first.startswith("I ")
+    assert '<dl class="glossary">' in built and "TODO" not in page

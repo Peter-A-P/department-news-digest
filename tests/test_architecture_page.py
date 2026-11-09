@@ -54,3 +54,17 @@ def test_every_page_carries_the_menu_and_the_front_page_links_it_early() -> None
     assert 'href="/architecture/"' in hero
     archive = render.audience_index("Example", ["2026-10-16"])
     assert 'href="/architecture/">How it' in archive
+
+
+def test_the_icon_is_served_and_every_page_names_it_with_a_description() -> None:
+    status, headers, data = _get("/favicon.svg")
+    assert status.startswith("200") and headers["Content-Type"] == "image/svg+xml"
+    assert data.startswith(b"<svg")
+    for page in (render.site_index([]), render.audience_index("Example", ["2026-10-16"])):
+        head = page.partition("</head>")[0]
+        assert '<link rel="icon" href="/favicon.svg"' in head
+        assert '<meta name="description" content="' in head
+    # The architecture page has a way back to the results at the top as well as the bottom.
+    _, _, body = _get("/architecture/")
+    page = body.decode("utf-8")
+    assert page.index('href="/#results"') < page.index("<img ")

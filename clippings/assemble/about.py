@@ -96,15 +96,15 @@ then dropped, and the page counts both.</li>
 owner may send. Each page shows why every story was chosen, what the verifier refused and
 what the model calls cost, taken from the spending ledger.</li>
 </ol>
-<p>Beside the stories, each digest may show one Bluesky post: the day's most discussed post
-that the audience's rubric would want, even when no article covers it, from a search and from
-a short list of people in public roles the audience would follow. A model scores the
+<p>Beside the stories, each digest may show a Bluesky post (the AI digest up to two): the day's
+most discussed post that the audience's rubric would want, even when no article covers it,
+from a search and from a short list of people in public roles the audience would follow. A model scores the
 popular candidates against the rubric with rules for posts on top (no jokes, insults or
 posts about private individuals), and the page shows the post's own words, its author and a
-link. Where X is switched on, a second post is chosen the same way from the day's posts by a
-short list of people in public roles, read through X's paid API, leaving out any that only
-share an article the digest already has, and shown whole on that day only, as X's rules
-ask. Every model call goes through the portfolio's compliant AI gateway, which records it,
+link. Where X is switched on, a post is chosen the same way from the day's posts by a short list
+of people in public roles (for AI, also from a search by subject), read through X's paid API,
+leaving out any that only share an article the digest already has, and shown whole on that
+day only, as X's rules ask. Every model call goes through the portfolio's compliant AI gateway, which records it,
 prices it and enforces hard daily and monthly spending caps.</p>
 <ul class="chips" aria-label="Built with">
 <li>Python 3.13, typed, mypy and ruff clean</li><li>LangGraph pipeline</li><li>DuckDB</li>
@@ -119,10 +119,9 @@ prices it and enforces hard daily and monthly spending caps.</p>
 _MEASURE = """<section class="section" id="measure">
 <p class="eyebrow">How it is measured</p>
 <h2>A digest that feels relevant is not evidence</h2>
-<p class="section-lead">The point of the project is the numbers, not the pages. Each
-audience ends with figures measured against stories a person judged by hand, and every one
-of them carries a confidence interval, because a figure from a few dozen judgements a day has
-real uncertainty and hiding it would be its own kind of dishonesty.</p>
+<p class="section-lead">Each audience is scored against stories a person judged by hand, and
+every figure carries a confidence interval, because a few dozen judgements a day leave real
+uncertainty.</p>
 <div class="panels">
 <div class="panel"><h3>Precision</h3><p>Of what the digest showed, how much was worth
 showing. A person reads every story it ranked highest and judges each against the same
@@ -130,12 +129,12 @@ rubric the model was given, without seeing the model's score.</p></div>
 <div class="panel"><h3>Recall, estimated</h3><p>Of what was worth knowing, how much it caught.
 Judging the whole pool is hundreds of stories a day, so each day the labeller also sees
 stories drawn at random from everything ranked lower. Each stands in for many in a known
-proportion, which makes the misses estimable rather than guessed, and the figure is always
-labelled as an importance-weighted estimate.</p></div>
-<div class="panel"><h3>The ten that matter most</h3><p>A busy reader wants the most important
+proportion, so the misses can be estimated, and the figure is always labelled as an
+importance-weighted estimate.</p></div>
+<div class="panel"><h3>The stories a reader must not miss</h3><p>A busy reader wants the most important
 stories, not every relevant one. The labeller marks the day's must-reads, and the report says
 how many of those the digest chose, apart from how many merely relevant ones it found.</p></div>
-<div class="panel"><h3>The pipeline's own honesty</h3><p>How often quotes were verbatim on the
+<div class="panel"><h3>What the pipeline records about itself</h3><p>How often quotes were verbatim on the
 first draft, how many sentences the verifier refused, how many articles collapse into one
 story, how long a story takes to reach a digest, and what each digest cost. These come from
 the run's own records, not from a person.</p></div>
@@ -220,7 +219,8 @@ commentary posts took six of Toronto's ten places. Since then a post reaches a d
 inside a story that a news source also carries.</p></div>
 <div class="panel"><h3>Searching X by topic</h3><p>The ten "most relevant" posts for a topic
 were reposted headlines with no likes, and the popular ones were jokes and rants. X is now
-read from short lists of named people in public roles.</p></div>
+read from short lists of named people in public roles; AI adds a search by subject, and posts
+under a likes floor never reach the model.</p></div>
 <div class="panel"><h3>Asking GDELT once a day</h3><p>Cloud Run's outgoing addresses are
 shared, and GDELT turned most of the morning's queries away, which once left the AI digest
 with two stories. It is now asked every three hours, and a paid fixed address was turned
@@ -232,8 +232,7 @@ left, which is what makes dropping one cheap.</p></div>
 </section>"""
 
 _BUILT = """<section class="section" id="built">
-<p class="eyebrow">How this was built</p>
-<h2>Whose decisions these were</h2>
+<h2>How this was built</h2>
 <p class="section-lead">I designed this project and made the calls in it. I chose the four
 audiences to differ, so that one product would have
 to serve a fast global subject, a big city, a national brief and a small province. I labelled
@@ -243,10 +242,40 @@ crowded out the news, I decided posts are not stories. I kept the quote verifier
 off switch, turned down a fixed outgoing address for GDELT at about US$32 a month, and
 dropped Reddit when its access request went unanswered rather than reach it some other
 way.</p>
-<p>AI coding assistants (Claude Code) were used for implementation and drafting, the way a
-senior engineer uses them in 2026. Every number on this page is reproducible from
-<a href="{{repo}}">the public repository</a> with one command, and that
-reproducibility is the evidence that matters.</p>
+<p>I used an AI coding assistant (Claude Code) for implementation and drafting, which is now
+standard practice in software, data science and machine learning work. Every number on this
+page can be reproduced from <a href="{{repo}}">the public repository</a> with one command,
+<code>clippings report</code>.</p>
+<details class="disclose">
+<summary>Glossary</summary>
+<dl class="glossary">
+<dt>Precision</dt><dd>Of the stories a digest showed, the share a person judged worth
+showing.</dd>
+<dt>Must-read recall</dt><dd>Of the stories the labeller marked as ones the audience should not
+miss that day, the share the digest chose.</dd>
+<dt>Importance-weighted estimate</dt><dd>Nobody can judge the whole pool every day, so a random
+sample of the stories left out is judged, and each sampled story counts for the many it stands
+in for.</dd>
+<dt>Rubric</dt><dd>A few plain sentences in each audience's file saying what matters to it. The
+model ranks against it and the labeller judges against it.</dd>
+<dt>95% interval</dt><dd>The range the true value is likely to sit in, given how much was
+judged. A wide interval means few judgements.</dd>
+<dt>Bootstrap</dt><dd>A way to get an interval by redrawing the data many times. Here whole days
+are redrawn, because stories from one morning share a news cycle.</dd>
+<dt>Kappa (Cohen's kappa)</dt><dd>Agreement between two people's judgements once the agreement
+expected by chance is removed. 1 is perfect agreement, 0 is no better than chance.</dd>
+<dt>Faithfulness</dt><dd>Whether a summary sentence says only what the sources it cites
+say.</dd>
+<dt>MinHash</dt><dd>A quick way to find articles that share most of their wording, such as
+reprints of one wire story.</dd>
+<dt>Embedding</dt><dd>A list of numbers that stands for what a text means, so two reports of one
+event land close together even when they share few words.</dd>
+<dt>Maximal marginal relevance</dt><dd>Choosing the best story first, then each next one with a
+penalty for resembling those already chosen, so one event cannot fill the page.</dd>
+<dt>GDELT</dt><dd>A public index of news published around the world.</dd>
+<dt>DuckDB</dt><dd>A small database kept in a single file.</dd>
+</dl>
+</details>
 </section>"""
 
 _LIMITS = """<section class="section" id="limits">
@@ -258,13 +287,13 @@ The product is the pipeline and the numbers; the delivery is a plain page. The r
 experience is where projects like this go to die, because it is more fun than measuring
 whether the thing works.</p></div>
 <div class="panel"><h3>No sentiment or tone scores</h3><p>They are the standard offering in
-commercial media monitoring, and they cannot be checked against anything true, which makes
-them the opposite of what this project is for.</p></div>
+commercial media monitoring, and they cannot be checked against anything true, so this project
+does not produce them.</p></div>
 <div class="panel"><h3>No paywalls, no back doors</h3><p>It does not read paywalled articles,
 and it reads social platforms only through their official interfaces, on their terms and at
 their price. Anything else is out on the terms, not on the budget.</p></div>
 <div class="panel"><h3>It never decides to send</h3><p>It writes a draft. A person reads it and
-decides whether it goes anywhere, which is where that decision belongs.</p></div>
+decides whether it goes anywhere.</p></div>
 </div>
 </section>"""
 
@@ -272,13 +301,13 @@ decides whether it goes anywhere, which is where that decision belongs.</p></div
 _RESULTS = """<section class="section" id="results">
 <p class="eyebrow">Does it work?</p>
 <h2>Checked against a person's judgement, with the error bars shown</h2>
-<p class="section-lead">A digest that feels relevant is not evidence. Over {{labelled_days}}
+<p class="section-lead">Over {{labelled_days}}
 audience-days, a person judged every story each digest showed and a random sample of the
 ones it left out, against the same rubric the model was given. Every figure carries a 95%
 interval, because a few dozen judgements a day leave real uncertainty.</p>
 {{chart}}
-<div class="verdict"><p><strong>The digests are mostly right about what they show, and
-miss more than they show.</strong> Depending on the audience, {{precision_range}} of
+<div class="verdict"><p><strong>What the digests show is mostly worth showing; more of the
+error is in what they leave out.</strong> Depending on the audience, {{precision_range}} of
 the stories shown were worth showing, while {{must_recall_range}} of the stories a person
 would put first made it in. A ten-story page cannot hold every must-read on a busy day in
 Newfoundland and Labrador.</p></div>
@@ -345,7 +374,7 @@ def _chart(audiences: list[dict[str, Any]]) -> str:
         )
     return (
         '<figure class="chart-figure">'
-        '<div class="dotchart" role="img" aria-label="Precision and must-read recall per '
+        '<div class="dotchart" role="group" aria-label="Precision and must-read recall per '
         'audience, each with its 95% interval">'
         f'<div class="dc-axis"><div class="dc-ticks">{ticks}</div></div>'
         f"{''.join(groups)}</div>"
@@ -392,21 +421,36 @@ def _fill(text: str, values: dict[str, Any]) -> str:
 RAW = frozenset({"chart", "repo"})
 
 
+def interval(text: str) -> str:
+    """The interval of a value the report printed as "point (low to high)", as "; 95% interval
+    low to high", or nothing when the value carries none."""
+    _, found, rest = str(text).partition(" (")
+    return f"; 95% interval {rest.rstrip(')')}" if found and " to " in rest else ""
+
+
 def hero_points(values: dict[str, Any]) -> str:
-    """Four figures for the first screen, each with what it counts and its comparison."""
+    """Four figures for the first screen, each with what it counts, its comparison and, where
+    the report gives one, its interval."""
     return _fill(
         '<div class="points">'
         '<div class="point"><div class="figure">{{precision_mean}}</div><div class="unit">of '
         "shown stories worth showing, the average of the four audiences ({{precision_range}}), "
         "against a person's labels</div></div>"
         '<div class="point"><div class="figure">{{faith_point}}</div><div class="unit">of '
-        "{{faith_n}} sentences checked by hand say only what their sources say</div></div>"
+        "{{faith_n}} sentences checked by hand say only what their sources say"
+        "{{faith_ci}}</div></div>"
         '<div class="point"><div class="figure">{{reader_ratio}}x</div><div class="unit">as '
-        "long to be briefed from the sources as from the digest, in a timed study</div></div>"
+        "long to be briefed from the sources as from the digest: {{reader_count}} readers, "
+        "{{reader_sessions}} timed sessions{{reader_ci}}</div></div>"
         '<div class="point"><div class="figure">{{cost_month}}</div><div class="unit">a month '
         "for all four audiences: models, X and Google Cloud together</div></div>"
         "</div>",
-        {**values, "repo": REPO},
+        {
+            **values,
+            "repo": REPO,
+            "faith_ci": interval(values.get("faith", "")),
+            "reader_ci": interval(values.get("reader_ratio_text", "")),
+        },
     )
 
 

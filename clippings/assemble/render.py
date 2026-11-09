@@ -31,7 +31,7 @@ from typing import Any
 from clippings.assemble.about import about_sections, hero_points, load_results
 from clippings.assemble.digest import Digest, DigestSentence, DigestStory, Spotlight, XPick
 from clippings.assemble.trends import Trends, describe
-from clippings.constants import CAD_PER_USD, cad
+from clippings.constants import CAD_PER_USD, QUOTE_MAX_WORDS, cad
 
 # Sentences shown before "Read more"; the rest of the summary is one click away.
 LEAD_SENTENCES = 2
@@ -140,7 +140,7 @@ h1 .hl { color: var(--accent); }
 .point { --c: var(--teal); border-top: 3px solid var(--c); }
 .point:nth-child(2) { --c: var(--green); }
 .point:nth-child(3) { --c: var(--violet); }
-.point:nth-child(4) { --c: var(--amber); }
+.point:nth-child(4) { --c: var(--accent-ink); }
 .figure { display: block; font-family: var(--serif); font-size: 1.7rem; font-weight: 500;
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1.15;
   color: var(--c); }
@@ -187,8 +187,8 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 .sources a { overflow-wrap: anywhere; }
 .why { font-size: 0.76rem; color: var(--ink-faint); margin-top: 0.5rem; }
 
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-  gap: 0.9rem; margin: 2rem 0; }
+.cards { display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr)); gap: 0.9rem; margin: 2rem 0; }
 .card h3 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 0.4rem; }
 .card h3 a { color: var(--ink); }
 .card p { font-size: 0.88rem; color: var(--ink-soft); }
@@ -254,13 +254,6 @@ details[open] > summary .more, details:not([open]) > summary .less { display: no
 /* Text runs the full width, the same as the tables, steps and panels beside it. */
 .section h2 { font-size: clamp(1.6rem, 3.2vw, 2.1rem); line-height: 1.18; margin: 0 0 0.8rem; }
 .section .eyebrow { color: var(--accent-ink); }
-#how .eyebrow { color: var(--violet); }
-#measure .eyebrow { color: var(--green); }
-#rules .eyebrow { color: var(--rose); }
-#status .eyebrow { color: var(--amber); }
-#results .eyebrow { color: var(--teal); }
-#rejected .eyebrow { color: var(--rose); }
-#built .eyebrow { color: var(--violet); }
 .chart-figure { margin: 1.6rem 0 1.2rem; }
 .dotchart { --name: 17rem; --val: 8.5rem; margin-top: 0.4rem; }
 .dc-axis, .dc-row { display: grid; grid-template-columns: var(--name) 1fr var(--val);
@@ -333,10 +326,6 @@ table.idea tr.real { background: color-mix(in srgb, var(--green) 9%, transparent
 .steps li { --c: var(--teal); counter-increment: step; background: var(--paper-soft);
   border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; margin: 0;
   font-size: 0.88rem; color: var(--ink-soft); line-height: 1.55; }
-.steps li:nth-child(5n+2) { --c: var(--violet); }
-.steps li:nth-child(5n+3) { --c: var(--green); }
-.steps li:nth-child(5n+4) { --c: var(--amber); }
-.steps li:nth-child(5n+5) { --c: var(--rose); }
 .steps li::before { content: counter(step); display: inline-flex; width: 1.6rem; height: 1.6rem;
   border-radius: 50%; background: var(--c); color: var(--paper-soft); font-weight: 600;
   font-size: 0.78rem; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
@@ -349,9 +338,6 @@ table.idea tr.real { background: color-mix(in srgb, var(--green) 9%, transparent
 .panel { --c: var(--teal); background: var(--paper-soft); border: 1px solid var(--line);
   border-top: 3px solid var(--c); border-radius: var(--radius); padding: 1rem 1.15rem;
   min-width: 0; }
-.panels .panel:nth-child(4n+2) { --c: var(--violet); }
-.panels .panel:nth-child(4n+3) { --c: var(--green); }
-.panels .panel:nth-child(4n+4) { --c: var(--amber); }
 .panel h3 { font-size: 1.15rem; line-height: 1.25; margin: 0 0 0.45rem; }
 .panel p { font-size: 0.88rem; margin: 0; }
 .panel ul { margin: 0; padding-left: 1.1rem; font-size: 0.88rem; color: var(--ink-soft); }
@@ -361,6 +347,16 @@ table.idea tr.real { background: color-mix(in srgb, var(--green) 9%, transparent
 .panel.tocome { --c: var(--amber); }
 .panel.built h3 { color: var(--green); }
 .panel.tocome h3 { color: var(--amber); }
+.toc { margin: 1.2rem 0 0; }
+.toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; columns: 2 16rem;
+  column-gap: 2rem; }
+.toc li { counter-increment: toc; margin: 0 0 0.3rem; break-inside: avoid; font-size: 0.9rem; }
+.toc li::before { content: counter(toc, decimal-leading-zero); font-variant-numeric: tabular-nums;
+  color: var(--ink-faint); font-size: 0.76rem; margin-right: 0.6rem; }
+.disclose { margin-top: 1.2rem; }
+.glossary { margin: 0.9rem 0 0; max-width: var(--column); }
+.glossary dt { font-weight: 600; color: var(--ink); margin-top: 0.7rem; }
+.glossary dd { margin: 0.15rem 0 0; color: var(--ink-soft); font-size: 0.9rem; }
 .footer-band { background: var(--paper-deep); border-top: 1px solid var(--line); }
 footer { max-width: var(--wide); margin: 0 auto; padding: 2rem 1.5rem 3rem;
   font-size: 0.84rem; color: var(--ink-faint); }
@@ -388,7 +384,8 @@ PROJECT_PAGE = "https://peterparker.ca/projects/department-news-digest/"
 FOOTER = (
     "Nothing is sent: this is a page and a draft file. Summary sentences are written by a "
     "model and every one cites its sources; any quote is checked word for word against a "
-    "source it cites and is at most twenty-five words. Headlines are the publishers' own. "
+    f"source it cites and is at most {QUOTE_MAX_WORDS} words. Headlines are the publishers' "
+    "own. "
     "Article text is never republished. A Bluesky post may be shown in full, with its author "
     "and a link, while it exists, and an X post on the day it was picked."
 )
@@ -411,6 +408,26 @@ MENU = (
     ("/#how", "How it works"),
     ("/#measure", "How it is measured"),
     ("/architecture/", "How it's built"),
+)
+
+
+# The front page's sections below the audiences, in reading order: the house's "On this page"
+# list, in the hero.
+SECTIONS = (
+    ("results", "Does it work?"),
+    ("why", "Why this exists"),
+    ("how", "How a story gets onto these pages"),
+    ("measure", "How it is measured"),
+    ("rejected", "What did not work"),
+    ("rules", "The rules it keeps"),
+    ("status", "Where it stands"),
+    ("limits", "What it deliberately does not do"),
+    ("built", "How this was built"),
+)
+TOC = (
+    '<nav class="toc" aria-label="On this page"><p class="eyebrow">Below the audiences</p><ol>'
+    + "".join(f'<li><a href="#{anchor}">{escape(label)}</a></li>' for anchor, label in SECTIONS)
+    + "</ol></nav>"
 )
 
 
@@ -452,7 +469,10 @@ def _page(title: str, body: str, *, nav: str = "", hue: str = "teal", current: s
     return (
         '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{escape(title)}</title>\n{_preview(title)}<style>{STYLE}</style>\n</head>\n"
+        f"<title>{escape(title)}</title>\n"
+        f'<meta name="description" content="{escape(PREVIEW_DESCRIPTION)}">\n'
+        '<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n'
+        f"{_preview(title)}<style>{STYLE}</style>\n</head>\n"
         f'<body class="aud-{hue}">\n'
         '<header class="top"><div class="top-inner">\n'
         '<a class="brand" href="https://peterparker.ca">'
@@ -1037,24 +1057,28 @@ def site_index(
         )
     body = (
         '<header class="hero wide">'
-        '<p class="eyebrow">Verified Media Briefing</p>'
+        '<p class="eyebrow">Every quote checked word for word, scored against a person\'s '
+        "labels</p>"
         '<h1>The day\'s news for one department, <span class="hl">cited and checked.</span></h1>'
         f'<p class="lead">{escape(INTRO)}</p>'
         f"{hero_points(values)}"
         '<p class="note">Nothing is sent: each digest is a web page and an email draft file '
         "that its owner may send. The four audiences below are examples, built on public "
         "sources whose terms were read and recorded before anything was fetched.</p>"
-        '<p class="note">Below the audiences: <a href="#results">the results</a>, '
-        '<a href="#why">why this exists</a>, <a href="#how">how it works</a>, '
-        '<a href="#rejected">what did not work</a> and <a href="#status">where it stands</a>. '
-        '<a href="/architecture/">See how it\'s built</a>, in three diagrams, or read '
-        '<a href="https://github.com/Peter-A-P/department-news-digest">the code</a>.</p>'
+        '<p class="note"><a href="/architecture/">See how it\'s built</a>, in three '
+        'diagrams, or read <a href="https://github.com/Peter-A-P/department-news-digest">the '
+        "code</a>.</p>"
+        f"{TOC}"
         "</header>\n"
         '<h2 class="section-title">Audiences</h2>\n'
         f'<div class="cards">\n{"".join(cards)}\n</div>\n'
         f"{about_sections(values)}"
     )
-    return _page("Verified Media Briefing", body, current="/")
+    return _page(
+        "Verified Media Briefing: the day's news for one department, cited and checked",
+        body,
+        current="/",
+    )
 
 
 def _md_inline(text: str) -> str:
@@ -1072,6 +1096,7 @@ def architecture_page(document: str, sizes: Mapping[str, tuple[str, str]]) -> st
     stories. `sizes` gives each diagram's width and height, read from the SVG."""
     parts = [
         '<header class="hero">'
+        '<p class="crumbs"><a href="/#results">Back to the results</a></p>'
         '<p class="eyebrow">Architecture</p><h1>How it\'s built</h1>'
         '<p class="lead">How the briefing is put together, in three pictures: the whole '
         "system, one morning's run, and how each published number is produced. Select a "
